@@ -1,0 +1,63 @@
+@extends('layouts.header')
+
+@section('title', 'Stock Entries')
+
+@section('header')
+    <h2 class="text-lg font-semibold leading-tight text-gray-800">
+        {{ __('Stock Entries') }}
+    </h2>
+@endsection
+
+@section('content')
+
+    <div class="card shadow-sm border-0 p-2">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
+            <div>
+                <h5 class="mb-1 fw-semibold">{{ $product->name }}</h5>
+                <span class="text-muted small">
+                    {{ __('SKU') }}: {{ $product->sku ?? '—' }}
+                    &middot;
+                    {{ __('Current Stock') }}: {{ number_format($product->total_qty, 2) }}
+                </span>
+            </div>
+            <a href="{{ route('inventories.index') }}" class="btn btn-dark btn-sm">
+                <i class="fa-solid fa-arrow-left me-1"></i>{{ __('Back') }}
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>{{ __('Quantity Added') }}</th>
+                        <th>{{ __('Added By') }}</th>
+                        <th>{{ __('Date') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($entries as $entry)
+                        <tr>
+                            <td class="fw-medium">{{ number_format($entry->quantity, 2) }}</td>
+                            <td class="text-secondary">{{ $entry->inserted_by ?? '—' }}</td>
+                            <td class="text-secondary">{{ $entry->created_at->format('Y-m-d H:i') }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" class="text-center py-5">
+                                <i class="fa-solid fa-boxes-stacked fs-2 text-secondary opacity-50 d-block mb-2"></i>
+                                <p class="text-muted mb-0">{{ __('No stock entries found.') }}</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if ($entries->hasPages())
+            <div class="card-footer bg-white">
+                {{ $entries->links() }}
+            </div>
+        @endif
+    </div>
+
+@endsection
