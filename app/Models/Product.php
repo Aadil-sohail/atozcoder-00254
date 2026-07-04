@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'sku', 'description', 'image', 'cost_price', 'selling_price', 'unit_price', 'size', 'total_qty', 'sold_qty', 'category_id', 'status', 'close', 'inserted_by'])]
+#[Fillable(['name', 'sku', 'description', 'image', 'cost_price', 'selling_price', 'unit_price', 'size', 'warranty_months', 'warranty_expiry_date', 'total_qty', 'sold_qty', 'category_id', 'status', 'close', 'inserted_by'])]
 class Product extends Model
 {
     /**
@@ -19,6 +19,7 @@ class Product extends Model
     {
         return [
             'image' => 'array',
+            'warranty_expiry_date' => 'date',
         ];
     }
 

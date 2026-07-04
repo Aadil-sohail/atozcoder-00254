@@ -2082,6 +2082,8 @@ namespace App\Models {
      * @property mixed $category_id
      * @property float $sold_qty
      * @property float $total_qty
+     * @property \Illuminate\Support\Carbon|null $warranty_expiry_date
+     * @property mixed $warranty_months
      * @property string|null $size
      * @property float|null $selling_price
      * @property float|null $cost_price
@@ -2103,6 +2105,8 @@ namespace App\Models {
      * @method static \Illuminate\Database\Eloquent\Builder<Product>|Product whereCostPrice($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Product>|Product whereSellingPrice($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Product>|Product whereSize($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<Product>|Product whereWarrantyMonths($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<Product>|Product whereWarrantyExpiryDate($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Product>|Product whereTotalQty($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Product>|Product whereSoldQty($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Product>|Product whereCategoryId($value)
@@ -2789,6 +2793,7 @@ namespace App\Models {
      * @property mixed $status
      * @property float $subtotal
      * @property float $selling_price
+     * @property float $returned_qty
      * @property float $quantity
      * @property mixed $product_id
      * @property mixed $sale_id
@@ -2801,6 +2806,7 @@ namespace App\Models {
      * @method static \Illuminate\Database\Eloquent\Builder<SaleItem>|SaleItem whereSaleId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<SaleItem>|SaleItem whereProductId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<SaleItem>|SaleItem whereQuantity($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<SaleItem>|SaleItem whereReturnedQty($value)
      * @method static \Illuminate\Database\Eloquent\Builder<SaleItem>|SaleItem whereSellingPrice($value)
      * @method static \Illuminate\Database\Eloquent\Builder<SaleItem>|SaleItem whereSubtotal($value)
      * @method static \Illuminate\Database\Eloquent\Builder<SaleItem>|SaleItem whereStatus($value)

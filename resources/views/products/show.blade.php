@@ -76,6 +76,18 @@
                     <p class="fw-medium mb-0">{{ $product->unit_price !== null ? number_format($product->unit_price, 2) : '—' }}</p>
                 </div>
 
+                <div class="col-md-6">
+                    <p class="text-muted small mb-1">{{ __('Warranty') }}</p>
+                    <p class="fw-medium mb-0">
+                        @if ($product->warranty_months)
+                            {{ $product->warranty_months == 12 ? __('1 Year') : $product->warranty_months . ' ' . ($product->warranty_months == 1 ? __('Month') : __('Months')) }}
+                            <span class="text-muted">({{ __('expires') }} {{ $product->warranty_expiry_date?->format('d M, Y') }})</span>
+                        @else
+                            —
+                        @endif
+                    </p>
+                </div>
+
                 <div class="col-12">
                     <p class="text-muted small mb-1">{{ __('Description') }}</p>
                     <p class="mb-0" style="white-space: pre-line;">{{ $product->description ?? '—' }}</p>

@@ -40,7 +40,8 @@ class StoreSaleReturnRequest extends FormRequest
     /**
      * Ensure every returned sale item belongs to the given sale, and that the
      * total quantity requested per sale item (across all rows in this submission
-     * plus any previously recorded returns) never exceeds what was originally sold.
+     * plus the returned quantity already tracked on the item) never exceeds
+     * what was originally sold.
      */
     public function withValidator(Validator $validator): void
     {
@@ -61,8 +62,7 @@ class StoreSaleReturnRequest extends FormRequest
                 return;
             }
 
-            $saleItems = SaleItem::withSum('returnItems as already_returned', 'quantity')
-                ->whereIn('id', array_keys($requestedBySaleItem))
+            $saleItems = SaleItem::whereIn('id', array_keys($requestedBySaleItem))
                 ->get()
                 ->keyBy('id');
 
@@ -75,7 +75,7 @@ class StoreSaleReturnRequest extends FormRequest
                     continue;
                 }
 
-                $remaining = (float) $saleItem->quantity - (float) ($saleItem->already_returned ?? 0);
+                $remaining = (float) $saleItem->quantity - (float) $saleItem->returned_qty;
 
                 if ($requestedQty > $remaining) {
                     $validator->errors()->add(

@@ -32,6 +32,7 @@ class StoreProductRequest extends FormRequest
             'selling_price' => ['nullable', 'numeric', 'min:0'],
             'unit_price' => ['nullable', 'numeric', 'min:0'],
             'size' => ['nullable', 'string', 'max:50'],
+            'warranty_months' => ['nullable', 'integer', 'in:1,2,3,4,5,6,12'],
             'category_id' => ['nullable', 'exists:categories,id'],
         ];
     }

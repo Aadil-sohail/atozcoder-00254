@@ -14,7 +14,7 @@ class ProductController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:view products')->only(['index', 'show']);
+        $this->middleware('permission:view products')->only(['index', 'show', 'outOfStock']);
         $this->middleware('permission:create products')->only(['create', 'store']);
         $this->middleware('permission:edit products')->only(['edit', 'update']);
         $this->middleware('permission:delete products')->only('destroy');
@@ -29,6 +29,20 @@ class ProductController extends Controller
         $ebayAccounts = EbayAccount::where('status', '1')->orderBy('store_name')->get();
 
         return view('products.index', compact('products', 'ebayAccounts'));
+    }
+
+    /**
+     * Display products whose available stock (total minus sold) has run out.
+     */
+    public function outOfStock(): View
+    {
+        $products = Product::where('status', '1')
+            ->whereRaw('(total_qty - sold_qty) <= 0')
+            ->with('category')
+            ->orderBy('name')
+            ->paginate(15);
+
+        return view('products.out-of-stock', compact('products'));
     }
 
     /**
@@ -66,6 +80,10 @@ class ProductController extends Controller
             'cost_price' => $request->cost_price,
             'selling_price' => $request->selling_price,
             'size' => $request->size,
+            'warranty_months' => $request->warranty_months,
+            'warranty_expiry_date' => $request->warranty_months
+                ? now()->addMonths((int) $request->warranty_months)->toDateString()
+                : null,
             'category_id' => $request->category_id,
             'inserted_by' => auth()->user()->name,
         ]);
@@ -101,6 +119,10 @@ class ProductController extends Controller
             'cost_price' => $request->cost_price,
             'selling_price' => $request->selling_price,
             'size' => $request->size,
+            'warranty_months' => $request->warranty_months,
+            'warranty_expiry_date' => $request->warranty_months
+                ? $product->created_at->copy()->addMonths((int) $request->warranty_months)->toDateString()
+                : null,
             'category_id' => $request->category_id,
         ]);
 

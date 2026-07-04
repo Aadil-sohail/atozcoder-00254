@@ -43,14 +43,14 @@ class ReturnController extends Controller
 
     /**
      * Ajax: look up a sale by invoice number and return its items with the
-     * remaining returnable quantity for each (original quantity minus quantity
-     * already recorded against previous returns).
+     * remaining returnable quantity for each (original quantity minus the
+     * returned quantity tracked on the sale item).
      */
     public function lookupInvoice(Request $request): JsonResponse
     {
         $invoiceNo = trim((string) $request->input('invoice_no', ''));
 
-        $sale = Sale::with(['customer', 'saleItems.product', 'saleItems.returnItems'])
+        $sale = Sale::with(['customer', 'saleItems.product'])
             ->where('invoice_no', $invoiceNo)
             ->first();
 
@@ -59,7 +59,7 @@ class ReturnController extends Controller
         }
 
         $items = $sale->saleItems->map(function (SaleItem $saleItem) {
-            $alreadyReturned = (float) $saleItem->returnItems->sum('quantity');
+            $alreadyReturned = (float) $saleItem->returned_qty;
             $remaining = max(0, (float) $saleItem->quantity - $alreadyReturned);
 
             return [
@@ -105,11 +105,14 @@ class ReturnController extends Controller
                     'inserted_by'    => auth()->user()->name,
                 ]);
 
+                $saleItem->increment('returned_qty', $item['quantity']);
+
                 if ($item['condition'] === 'good') {
-                    Product::where('id', $saleItem->product_id)->increment('total_qty', $item['quantity']);
                     Product::where('id', $saleItem->product_id)->decrement('sold_qty', $item['quantity']);
                 }
             }
+
+            $this->refreshSaleTotal(Sale::findOrFail($request->sale_id));
         });
 
         return redirect()->route('returns.index')->with('status', 'Return recorded successfully.');
@@ -132,15 +135,32 @@ class ReturnController extends Controller
     {
         DB::transaction(function () use ($saleReturn) {
             foreach ($saleReturn->items as $item) {
+                SaleItem::where('id', $item->sale_item_id)->decrement('returned_qty', $item->quantity);
+
                 if ($item->condition === 'good') {
-                    Product::where('id', $item->product_id)->decrement('total_qty', $item->quantity);
                     Product::where('id', $item->product_id)->increment('sold_qty', $item->quantity);
                 }
             }
+
+            $this->refreshSaleTotal($saleReturn->sale);
 
             $saleReturn->delete();
         });
 
         return redirect()->route('returns.index')->with('status', 'Return deleted successfully.');
+    }
+
+    /**
+     * Recalculate the sale total from the net (sold minus returned) value of its items.
+     */
+    private function refreshSaleTotal(Sale $sale): void
+    {
+        $netValue = (float) $sale->saleItems()
+            ->selectRaw('COALESCE(SUM((quantity - returned_qty) * selling_price), 0) as net')
+            ->value('net');
+
+        $sale->update([
+            'total_amount' => max(0, round($netValue, 2) - (float) $sale->discount),
+        ]);
     }
 }

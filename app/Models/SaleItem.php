@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['sale_id', 'product_id', 'quantity', 'selling_price', 'subtotal'])]
+#[Fillable(['sale_id', 'product_id', 'quantity', 'returned_qty', 'selling_price', 'subtotal'])]
 class SaleItem extends Model
 {
     public function sale(): BelongsTo

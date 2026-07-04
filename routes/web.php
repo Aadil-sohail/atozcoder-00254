@@ -14,6 +14,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\SmtpSettingController;
+use App\Http\Controllers\WarrantyController;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -62,12 +63,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
     Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');
 
+    // Warranties
+    Route::get('/warranties', [WarrantyController::class, 'index'])->name('warranties.index');
+
     // Categories
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::match(['put', 'patch'], '/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
     Route::post('/categories/check-name', [CategoryController::class, 'checkName'])->name('categories.check-name');
+
+    // Out of stock products
+    Route::get('/out-of-stock', [ProductController::class, 'outOfStock'])->name('out-of-stock.index');
 
     // Products
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');

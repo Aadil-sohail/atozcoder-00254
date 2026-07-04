@@ -60,6 +60,7 @@
                     <th>#</th>
                     <th>{{ __('Product') }}</th>
                     <th class="text-left">{{ __('Qty') }}</th>
+                    <th class="text-left">{{ __('Returned') }}</th>
                     <th class="text-left">{{ __('Unit Price') }}</th>
                     <th class="text-left">{{ __('Subtotal') }}</th>
                 </tr>
@@ -75,24 +76,34 @@
                             @endif
                         </td>
                         <td class="text-left">{{ number_format($item->quantity, 2) }}</td>
+                        <td class="text-left {{ $item->returned_qty > 0 ? 'text-danger fw-medium' : 'text-muted' }}">
+                            {{ number_format($item->returned_qty, 2) }}
+                        </td>
                         <td class="text-left">{{ number_format($item->selling_price, 2) }}</td>
-                        <td class="text-left fw-medium">{{ number_format($item->subtotal, 2) }}</td>
+                        <td class="text-left fw-medium">
+                            @if ($item->returned_qty > 0)
+                                <del class="text-muted fw-normal small">{{ number_format($item->subtotal, 2) }}</del>
+                                {{ number_format(($item->quantity - $item->returned_qty) * $item->selling_price, 2) }}
+                            @else
+                                {{ number_format($item->subtotal, 2) }}
+                            @endif
+                        </td>
                     </tr>
                 @endforeach
             </tbody>
             <tfoot class="table-light">
                 <tr>
-                    <td colspan="4" class="text-end text-muted">{{ __('Subtotal') }}</td>
-                    <td class="text-left fw-medium">{{ number_format($sale->saleItems->sum('subtotal'), 2) }}</td>
+                    <td colspan="5" class="text-end text-muted">{{ __('Subtotal') }}</td>
+                    <td class="text-left fw-medium">{{ number_format($sale->saleItems->sum(fn ($i) => ($i->quantity - $i->returned_qty) * $i->selling_price), 2) }}</td>
                 </tr>
                 @if($sale->discount > 0)
                 <tr>
-                    <td colspan="4" class="text-end text-muted">{{ __('Discount') }}</td>
+                    <td colspan="5" class="text-end text-muted">{{ __('Discount') }}</td>
                     <td class="text-left text-danger">- {{ number_format($sale->discount, 2) }}</td>
                 </tr>
                 @endif
                 <tr>
-                    <td colspan="4" class="text-end fw-semibold">{{ __('Total') }}</td>
+                    <td colspan="5" class="text-end fw-semibold">{{ __('Total') }}</td>
                     <td class="text-left fw-bold text-success fs-6">{{ number_format($sale->total_amount, 2) }}</td>
                 </tr>
             </tfoot>

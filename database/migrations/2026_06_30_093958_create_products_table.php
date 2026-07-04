@@ -22,6 +22,8 @@ return new class extends Migration
             $table->string('size', 50)->nullable();
             $table->decimal('total_qty', 10, 2)->default(0);
             $table->decimal('sold_qty', 10, 2)->default(0);
+            $table->unsignedTinyInteger('warranty_months')->nullable();
+            $table->date('warranty_expiry_date')->nullable();
             $table->foreignId('category_id')->constrained()->restrictOnDelete()->nullable();
             $table->enum('status', ['1', '0'])->default('1');
             $table->enum('close', ['1', '0'])->default('1');

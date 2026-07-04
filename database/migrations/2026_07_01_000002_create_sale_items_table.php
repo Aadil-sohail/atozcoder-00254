@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('sale_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->restrictOnDelete();
             $table->decimal('quantity', 12, 2);
+            $table->decimal('returned_qty', 12, 2)->default(0);
             $table->decimal('selling_price', 12, 2);
             $table->decimal('subtotal', 12, 2);
              $table->enum('status', ['1', '0'])->default('1');

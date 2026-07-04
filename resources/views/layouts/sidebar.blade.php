@@ -3,13 +3,10 @@
     <div class="d-flex align-items-center gap-2 px-3 border-bottom border-secondary" style="height:64px;">
         @if ($sidebarCompany?->company_logo)
             <img src="{{ asset($sidebarCompany->company_logo) }}" alt="{{ $sidebarCompany->company_name ?? config('app.name') }}"
-                class="rounded-circle bg-white flex-shrink-0" style="width:36px; height:36px; object-fit:cover;">
+                class="bg-white flex-shrink-0" style="width: 200px; height:36px; object-fit:cover;">
         @else
             <i class="fa-solid fa-layer-group text-white fs-5"></i>
         @endif
-        <span class="fw-semibold text-white fs-6 text-truncate">
-            {{ $sidebarCompany->company_name ?? config('app.name', 'CRM') }}
-        </span>
     </div>
 
     <nav class="mt-2 px-2 d-flex flex-column gap-1">
@@ -56,6 +53,17 @@
             </a>
         @endcan
 
+        @can('view products')
+            <a href="{{ route('out-of-stock.index') }}"
+                class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small
+                {{ request()->routeIs('out-of-stock.*') ? 'bg-primary text-white' : 'text-white-50' }}"
+                onmouseover="{{ request()->routeIs('out-of-stock.*') ? '' : "this.style.background='#1f2937'" }}"
+                onmouseout="{{ request()->routeIs('out-of-stock.*') ? '' : "this.style.background=''" }}">
+                <i class="fa-solid fa-box-open" style="width:18px; text-align:center;"></i>
+                {{ __('Out of Stock') }}
+            </a>
+        @endcan
+
         @can('view customers')
             <a href="{{ route('customers.index') }}"
                 class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small
@@ -75,6 +83,17 @@
                 onmouseout="{{ request()->routeIs('sales.*') ? '' : "this.style.background=''" }}">
                 <i class="fa-solid fa-receipt" style="width:18px; text-align:center;"></i>
                 {{ __('Sales') }}
+            </a>
+        @endcan
+
+        @can('view sales')
+            <a href="{{ route('warranties.index') }}"
+                class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small
+                {{ request()->routeIs('warranties.*') ? 'bg-primary text-white' : 'text-white-50' }}"
+                onmouseover="{{ request()->routeIs('warranties.*') ? '' : "this.style.background='#1f2937'" }}"
+                onmouseout="{{ request()->routeIs('warranties.*') ? '' : "this.style.background=''" }}">
+                <i class="fa-solid fa-shield-halved" style="width:18px; text-align:center;"></i>
+                {{ __('Warranties') }}
             </a>
         @endcan
 

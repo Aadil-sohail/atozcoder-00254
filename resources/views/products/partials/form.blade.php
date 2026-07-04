@@ -46,6 +46,22 @@
     </div>
 
     <div class="col-md-6">
+        <label for="warranty_months" class="form-label">{{ __('Warranty') }}</label>
+        <select id="warranty_months" name="warranty_months"
+            class="form-select @error('warranty_months') is-invalid @enderror">
+            <option value="">{{ __('No warranty') }}</option>
+            @foreach ([1, 2, 3, 4, 5, 6, 12] as $months)
+                <option value="{{ $months }}" @selected(old('warranty_months', $product?->warranty_months) == $months)>
+                    {{ $months === 12 ? __('1 Year') : $months . ' ' . ($months === 1 ? __('Month') : __('Months')) }}
+                </option>
+            @endforeach
+        </select>
+        @error('warranty_months')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-6">
         <label for="cost_price" class="form-label">{{ __('Cost Price') }}</label>
         <input id="cost_price" name="cost_price" type="number" step="0.01" min="0"
             value="{{ old('cost_price', $product?->cost_price) }}"
