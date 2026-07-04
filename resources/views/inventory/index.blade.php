@@ -20,7 +20,7 @@
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
-                <p class="mb-0 text-muted small">{{ __('Stock added to products over time.') }}</p>
+                <p class="mb-0 text-muted small">{{ __('Stock by category — open a category to see its products.') }}</p>
             </div>
             @can('create inventories')
             <button type="button" onclick="openStockModal()" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
@@ -34,21 +34,26 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>{{ __('Product') }}</th>
-                        <th>{{ __('Stock') }}</th>
+                        <th>{{ __('Category') }}</th>
+                        <th>{{ __('Products') }}</th>
+                        <th>{{ __('Available Stock') }}</th>
                         <th>{{ __('Actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($inventories as $inventory)
+                    @forelse ($categories as $category)
                         <tr>
-                            <td class="fw-medium">{{ $inventory->product->name ?? '—' }}</td>
-                            @php $available = ($inventory->product->total_qty ?? 0) - ($inventory->product->sold_qty ?? 0); @endphp
-                            <td class="{{ $available <= 0 ? 'text-danger fw-semibold' : '' }}">
-                                {{ number_format($available, 2) }}
+                            <td class="fw-medium">
+                                <a href="{{ route('inventories.category', $category) }}" class="text-decoration-none">
+                                    {{ $category->name }}
+                                </a>
+                            </td>
+                            <td class="text-secondary">{{ $category->products_count }}</td>
+                            <td class="{{ $category->available_stock <= 0 ? 'text-danger fw-semibold' : '' }}">
+                                {{ number_format($category->available_stock, 2) }}
                             </td>
                             <td>
-                                <a href="{{ route('inventories.show', $inventory->product) }}"
+                                <a href="{{ route('inventories.category', $category) }}"
                                     class="btn btn-sm btn-outline-secondary" title="{{ __('View') }}">
                                     <i class="fa-solid fa-eye"></i>
                                 </a>
@@ -56,9 +61,9 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5">
+                            <td colspan="4" class="text-center py-5">
                                 <i class="fa-solid fa-warehouse fs-2 text-secondary opacity-50 d-block mb-2"></i>
-                                <p class="text-muted mb-2">{{ __('No stock entries found.') }}</p>
+                                <p class="text-muted mb-2">{{ __('No categories found.') }}</p>
                                 @can('create inventories')
                                     <button type="button" onclick="openStockModal()" class="btn btn-sm btn-dark">
                                         {{ __('Add your first stock entry') }}
@@ -71,9 +76,9 @@
             </table>
         </div>
 
-        @if ($inventories->hasPages())
+        @if ($categories->hasPages())
             <div class="card-footer bg-white">
-                {{ $inventories->links() }}
+                {{ $categories->links() }}
             </div>
         @endif
     </div>

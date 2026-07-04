@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
     // Inventories
     Route::get('/inventories', [InventoryController::class, 'index'])->name('inventories.index');
     Route::post('/inventories', [InventoryController::class, 'store'])->name('inventories.store');
+    Route::get('/inventories/category/{category}', [InventoryController::class, 'category'])->name('inventories.category');
     Route::get('/inventories/{product}', [InventoryController::class, 'show'])->name('inventories.show');
 
     // eBay stores & product sync

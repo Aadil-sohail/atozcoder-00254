@@ -20,7 +20,7 @@
                     {{ __('Current Stock') }}: {{ number_format($product->total_qty, 2) }}
                 </span>
             </div>
-            <a href="{{ route('inventories.index') }}" class="btn btn-dark btn-sm">
+            <a href="{{ $product->category_id ? route('inventories.category', $product->category_id) : route('inventories.index') }}" class="btn btn-dark btn-sm">
                 <i class="fa-solid fa-arrow-left me-1"></i>{{ __('Back') }}
             </a>
         </div>

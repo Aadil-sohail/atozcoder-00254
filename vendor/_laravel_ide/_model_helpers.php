@@ -12,6 +12,8 @@ namespace App\Models {
      * @property mixed $status
      * @property string $name
      * @property int $id
+     * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Product> $products
+     * @property-read int|null $products_count
      * @method static \Illuminate\Database\Eloquent\Builder<Category>|Category whereId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Category>|Category whereName($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Category>|Category whereStatus($value)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreInventoryRequest;
+use App\Models\Category;
 use App\Models\Inventory;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
@@ -13,28 +14,41 @@ class InventoryController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:view inventories')->only(['index', 'show']);
+        $this->middleware('permission:view inventories')->only(['index', 'category', 'show']);
         $this->middleware('permission:create inventories')->only('store');
     }
 
     /**
-     * Display a listing of the resource.
+     * Display stock grouped by category.
      */
     public function index(): View
     {
-        $inventories = Inventory::query()
-            ->select('product_id')
-            ->selectRaw('SUM(quantity) as total_quantity')
-            ->selectRaw('COUNT(*) as entries_count')
-            ->selectRaw('MAX(created_at) as last_added_at')
-            ->with('product')
-            ->groupBy('product_id')
-            ->orderByDesc('last_added_at')
-            ->paginate(10);
+        $categories = Category::query()
+            ->where('status', '1')
+            ->withCount(['products as products_count' => fn ($q) => $q->where('status', '1')])
+            ->addSelect(['available_stock' => Product::selectRaw('COALESCE(SUM(total_qty - sold_qty), 0)')
+                ->whereColumn('category_id', 'categories.id')
+                ->where('status', '1'),
+            ])
+            ->orderBy('name')
+            ->paginate(15);
 
         $products = Product::where(['status' => '1'])->orderBy('name')->get();
 
-        return view('inventory.index', compact('inventories', 'products'));
+        return view('inventory.index', compact('categories', 'products'));
+    }
+
+    /**
+     * Display the products of one category with their available stock.
+     */
+    public function category(Category $category): View
+    {
+        $products = Product::where('category_id', $category->id)
+            ->where('status', '1')
+            ->orderBy('name')
+            ->paginate(15);
+
+        return view('inventory.category', compact('category', 'products'));
     }
 
     /**

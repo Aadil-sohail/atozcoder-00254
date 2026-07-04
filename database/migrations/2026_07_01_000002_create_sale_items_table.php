@@ -16,7 +16,7 @@ return new class extends Migration
             $table->decimal('returned_qty', 12, 2)->default(0);
             $table->decimal('selling_price', 12, 2);
             $table->decimal('subtotal', 12, 2);
-             $table->enum('status', ['1', '0'])->default('1');
+            $table->enum('status', ['1', '0'])->default('1');
             $table->enum('close', ['1', '0'])->default('1');
             $table->string('inserted_by', 50)->nullable();
             $table->timestamps();
