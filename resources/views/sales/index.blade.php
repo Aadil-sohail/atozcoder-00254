@@ -15,18 +15,36 @@
         </div>
     @endif
 
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('All recorded sales and invoices.') }}</p>
                 <span class="text-muted" style="font-size:12px;">{{ $sales->total() }} {{ Str::plural('sale', $sales->total()) }} total</span>
             </div>
-            @can('create sales')
-            <a href="{{ route('sales.create') }}" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
-                <i class="fa-solid fa-plus"></i>
-                {{ __('New Sale') }}
-            </a>
-            @endcan
+            <div class="d-flex align-items-center gap-2">
+                @can('sync ebay products')
+                <form method="POST" action="{{ route('ebay.sync-orders') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-2">
+                        <i class="fa-brands fa-ebay"></i>
+                        {{ __('Sync eBay Orders') }}
+                    </button>
+                </form>
+                @endcan
+                @can('create sales')
+                <a href="{{ route('sales.create') }}" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-plus"></i>
+                    {{ __('New Sale') }}
+                </a>
+                @endcan
+            </div>
         </div>
 
         <div class="table-responsive">

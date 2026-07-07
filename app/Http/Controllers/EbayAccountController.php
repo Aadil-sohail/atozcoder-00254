@@ -192,27 +192,53 @@ class EbayAccountController extends Controller
             return redirect()->route('ebay.index')->with('error', $e->getMessage());
         }
 
-        $account = EbayAccount::create([
-            'store_name' => $pending['store_name'],
-            'marketplace_id' => $pending['marketplace_id'],
+        $tokenFields = [
             'access_token' => $tokens['access_token'],
             'access_token_expires_at' => now()->addSeconds((int) ($tokens['expires_in'] ?? 7200)),
             'refresh_token' => $tokens['refresh_token'],
             'refresh_token_expires_at' => now()->addSeconds((int) ($tokens['refresh_token_expires_in'] ?? 47304000)),
-            'inserted_by' => auth()->user()->name,
-        ]);
+        ];
 
-        // Best effort: identify the seller and pre-select policies/location.
+        // Identify the seller with the fresh token so re-connecting updates
+        // the existing store row instead of creating a duplicate.
+        $username = $this->ebay->fetchUsername(new EbayAccount($tokenFields + ['store_name' => $pending['store_name']]));
+
+        $account = EbayAccount::where('marketplace_id', $pending['marketplace_id'])
+            ->where(function ($query) use ($username, $pending) {
+                $query->where('store_name', $pending['store_name']);
+
+                if ($username) {
+                    $query->orWhere('ebay_username', $username);
+                }
+            })
+            ->first();
+
+        $reconnected = $account !== null;
+
+        if ($reconnected) {
+            $account->update($tokenFields + ['store_name' => $pending['store_name']]);
+        } else {
+            $account = EbayAccount::create($tokenFields + [
+                'store_name' => $pending['store_name'],
+                'marketplace_id' => $pending['marketplace_id'],
+                'inserted_by' => auth()->user()->name,
+            ]);
+        }
+
+        // Best effort: identify the seller and pre-select policies/location
+        // (never overwriting choices already made on the setup page).
         try {
-            $account->ebay_username = $this->ebay->fetchUsername($account);
+            $account->ebay_username = $username ?: $account->ebay_username;
 
-            $policies = $this->ebay->fetchPolicies($account);
-            $account->fulfillment_policy_id = $policies['fulfillment'][0]['fulfillmentPolicyId'] ?? null;
-            $account->payment_policy_id = $policies['payment'][0]['paymentPolicyId'] ?? null;
-            $account->return_policy_id = $policies['return'][0]['returnPolicyId'] ?? null;
+            if (! $account->isFullyConfigured()) {
+                $policies = $this->ebay->fetchPolicies($account);
+                $account->fulfillment_policy_id = $account->fulfillment_policy_id ?? ($policies['fulfillment'][0]['fulfillmentPolicyId'] ?? null);
+                $account->payment_policy_id = $account->payment_policy_id ?? ($policies['payment'][0]['paymentPolicyId'] ?? null);
+                $account->return_policy_id = $account->return_policy_id ?? ($policies['return'][0]['returnPolicyId'] ?? null);
 
-            $locations = $this->ebay->fetchInventoryLocations($account);
-            $account->merchant_location_key = $locations[0]['merchantLocationKey'] ?? null;
+                $locations = $this->ebay->fetchInventoryLocations($account);
+                $account->merchant_location_key = $account->merchant_location_key ?? ($locations[0]['merchantLocationKey'] ?? null);
+            }
 
             $account->save();
         } catch (Throwable) {
@@ -224,6 +250,8 @@ class EbayAccountController extends Controller
                 ->with('info', 'Store connected. Finish the setup below so products can be published.');
         }
 
-        return redirect()->route('ebay.index')->with('status', "eBay store \"{$account->store_name}\" connected successfully.");
+        return redirect()->route('ebay.index')->with('status', $reconnected
+            ? "eBay store \"{$account->store_name}\" re-connected — permissions refreshed."
+            : "eBay store \"{$account->store_name}\" connected successfully.");
     }
 }

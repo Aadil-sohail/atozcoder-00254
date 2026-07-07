@@ -100,6 +100,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/ebay/stores/{ebayAccount}/policies/default', [EbayAccountController::class, 'createDefaultPolicies'])->name('ebay.policies.default');
     Route::delete('/ebay/stores/{ebayAccount}', [EbayAccountController::class, 'destroy'])->name('ebay.destroy');
     Route::post('/ebay/sync', [EbaySyncController::class, 'sync'])->name('ebay.sync');
+    Route::post('/ebay/sync-orders', [EbaySyncController::class, 'syncOrders'])->name('ebay.sync-orders');
     Route::delete('/ebay/listings/{ebayListing}', [EbaySyncController::class, 'destroy'])->name('ebay.listings.destroy');
 
     // Returns

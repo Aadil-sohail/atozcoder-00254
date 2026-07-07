@@ -6,6 +6,7 @@ use App\Jobs\SyncProductToEbay;
 use App\Models\EbayAccount;
 use App\Models\EbayListing;
 use App\Models\Product;
+use App\Services\EbayOrderImporter;
 use App\Services\EbayService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -111,6 +112,35 @@ class EbaySyncController extends Controller
         }
 
         return back();
+    }
+
+    /**
+     * Pull new orders from every connected store and create local sales.
+     */
+    public function syncOrders(EbayOrderImporter $importer): RedirectResponse
+    {
+        $accounts = EbayAccount::where('status', '1')->get();
+
+        if ($accounts->isEmpty()) {
+            return back()->with('error', 'No connected eBay stores.');
+        }
+
+        $created = 0;
+        $errors = [];
+
+        foreach ($accounts as $account) {
+            try {
+                $created += $importer->import($account)['created'];
+            } catch (Throwable $e) {
+                $errors[] = "{$account->store_name} — {$e->getMessage()}";
+            }
+        }
+
+        if ($errors !== []) {
+            session()->flash('error', implode(' • ', $errors));
+        }
+
+        return back()->with('status', "{$created} new eBay ".Str::plural('order', $created).' imported.');
     }
 
     /**

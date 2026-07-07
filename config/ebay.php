@@ -27,6 +27,9 @@ return [
     // Used when eBay cannot suggest a category from the product title.
     'fallback_category_id' => env('EBAY_FALLBACK_CATEGORY_ID'),
 
+    // How many days back the order sync looks when importing eBay orders.
+    'orders_lookback_days' => env('EBAY_ORDERS_LOOKBACK_DAYS', 30),
+
     /*
     |--------------------------------------------------------------------------
     | OAuth scopes requested when a user connects a store
@@ -36,6 +39,7 @@ return [
     'scopes' => [
         'https://api.ebay.com/oauth/api_scope/sell.inventory',
         'https://api.ebay.com/oauth/api_scope/sell.account',
+        'https://api.ebay.com/oauth/api_scope/sell.fulfillment',
         'https://api.ebay.com/oauth/api_scope/commerce.identity.readonly',
     ],
 

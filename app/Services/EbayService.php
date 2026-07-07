@@ -96,12 +96,13 @@ class EbayService
 
         Log::info("eBay: refreshing access token for store \"{$account->store_name}\" (#{$account->id})");
 
+        // No scope parameter: eBay then re-issues the scopes originally granted,
+        // so adding new scopes to the config never breaks existing connections.
         $response = Http::asForm()
             ->withBasicAuth(config('ebay.client_id'), config('ebay.client_secret'))
             ->post($this->apiBase().'/identity/v1/oauth2/token', [
                 'grant_type' => 'refresh_token',
                 'refresh_token' => $account->refresh_token,
-                'scope' => implode(' ', config('ebay.scopes')),
             ]);
 
         if ($response->failed()) {
@@ -530,6 +531,44 @@ class EbayService
         }
 
         Log::info("eBay: SKU {$listing->sku} removed from \"{$account->store_name}\"".($listing->listing_id ? " (listing {$listing->listing_id} ended)" : ''));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Orders (Fulfillment API)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Orders created on eBay within the lookback window. Requires the
+     * sell.fulfillment OAuth scope (re-connect stores authorized before it
+     * was added to the scope list).
+     */
+    public function fetchOrders(EbayAccount $account, int $lookbackDays = 30): array
+    {
+        $since = now()->utc()->subDays($lookbackDays)->format('Y-m-d\TH:i:s.v\Z');
+        $orders = [];
+        $offset = 0;
+
+        do {
+            $response = $this->api($account)->get('/sell/fulfillment/v1/order', [
+                'filter' => "creationdate:[{$since}..]",
+                'limit' => 100,
+                'offset' => $offset,
+            ]);
+
+            if ($response->failed()) {
+                $this->logFailure("order fetch failed for store \"{$account->store_name}\"", $response);
+                throw new RuntimeException('Could not fetch eBay orders: '.$this->errorMessage($response));
+            }
+
+            $orders = array_merge($orders, $response->json('orders', []));
+            $offset += 100;
+        } while ($response->json('next'));
+
+        Log::info('eBay: '.count($orders)." orders fetched for store \"{$account->store_name}\" (last {$lookbackDays} days)");
+
+        return $orders;
     }
 
     /*
