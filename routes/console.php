@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('ebay:sync-orders')->everyFiveMinutes();
+Schedule::command('ebay:sync-returns')->everyFifteenMinutes();

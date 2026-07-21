@@ -28,12 +28,23 @@
                 <p class="mb-0 text-muted small">{{ __('Sale returns recorded across all invoices.') }}</p>
                 <span class="text-muted" style="font-size:12px;">{{ $returns->total() }} {{ Str::plural('return', $returns->total()) }} total</span>
             </div>
-            @can('create returns')
-            <a href="{{ route('returns.create') }}" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
-                <i class="fa-solid fa-plus"></i>
-                {{ __('New Return') }}
-            </a>
-            @endcan
+            <div class="d-flex align-items-center gap-2">
+                @can('sync ebay products')
+                <form method="POST" action="{{ route('ebay.sync-returns') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-2">
+                        <i class="fa-brands fa-ebay"></i>
+                        {{ __('Sync eBay Returns') }}
+                    </button>
+                </form>
+                @endcan
+                @can('create returns')
+                <a href="{{ route('returns.create') }}" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-plus"></i>
+                    {{ __('New Return') }}
+                </a>
+                @endcan
+            </div>
         </div>
 
         <div class="table-responsive">

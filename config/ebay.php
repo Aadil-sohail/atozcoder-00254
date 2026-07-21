@@ -30,6 +30,9 @@ return [
     // How many days back the order sync looks when importing eBay orders.
     'orders_lookback_days' => env('EBAY_ORDERS_LOOKBACK_DAYS', 30),
 
+    // How many days back the return sync looks when importing eBay returns.
+    'returns_lookback_days' => env('EBAY_RETURNS_LOOKBACK_DAYS', 30),
+
     /*
     |--------------------------------------------------------------------------
     | OAuth scopes requested when a user connects a store

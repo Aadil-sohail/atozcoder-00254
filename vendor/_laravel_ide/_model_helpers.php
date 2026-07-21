@@ -2447,6 +2447,8 @@ namespace App\Models {
      * @property float $total_amount
      * @property float $discount
      * @property string $sale_date
+     * @property mixed $ebay_account_id
+     * @property string|null $ebay_order_id
      * @property string $invoice_no
      * @property mixed $customer_id
      * @property int $id
@@ -2458,6 +2460,8 @@ namespace App\Models {
      * @method static \Illuminate\Database\Eloquent\Builder<Sale>|Sale whereId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Sale>|Sale whereCustomerId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Sale>|Sale whereInvoiceNo($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<Sale>|Sale whereEbayOrderId($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<Sale>|Sale whereEbayAccountId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Sale>|Sale whereSaleDate($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Sale>|Sale whereDiscount($value)
      * @method static \Illuminate\Database\Eloquent\Builder<Sale>|Sale whereTotalAmount($value)
@@ -3143,6 +3147,7 @@ namespace App\Models {
      * @property string|null $inserted_by
      * @property mixed $close
      * @property mixed $status
+     * @property string|null $ebay_return_id
      * @property string $return_date
      * @property mixed $sale_id
      * @property int $id
@@ -3152,6 +3157,7 @@ namespace App\Models {
      * @method static \Illuminate\Database\Eloquent\Builder<SaleReturn>|SaleReturn whereId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<SaleReturn>|SaleReturn whereSaleId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<SaleReturn>|SaleReturn whereReturnDate($value)
+     * @method static \Illuminate\Database\Eloquent\Builder<SaleReturn>|SaleReturn whereEbayReturnId($value)
      * @method static \Illuminate\Database\Eloquent\Builder<SaleReturn>|SaleReturn whereStatus($value)
      * @method static \Illuminate\Database\Eloquent\Builder<SaleReturn>|SaleReturn whereClose($value)
      * @method static \Illuminate\Database\Eloquent\Builder<SaleReturn>|SaleReturn whereInsertedBy($value)

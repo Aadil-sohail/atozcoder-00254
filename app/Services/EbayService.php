@@ -573,6 +573,71 @@ class EbayService
 
     /*
     |--------------------------------------------------------------------------
+    | Returns (Post-Order API)
+    |--------------------------------------------------------------------------
+    |
+    | Buyer return requests are not part of the Fulfillment API: they live in
+    | eBay's Post-Order API (https://developer.ebay.com/devzone/post-order/).
+    | It accepts the same OAuth user token (sell.fulfillment scope) but with
+    | the legacy "IAF" authorization scheme instead of "Bearer".
+    */
+
+    /**
+     * Return requests opened against the seller within the lookback window.
+     * Each member is a ReturnSummary: returnId, orderId, state, currentType,
+     * creationInfo (item, reason, creationDate) and sellerTotalRefund.
+     */
+    public function fetchReturns(EbayAccount $account, int $lookbackDays = 30): array
+    {
+        // Both ends of the range are required when filtering by creation date.
+        $window = [
+            'creation_date_range_from' => now()->utc()->subDays($lookbackDays)->format('Y-m-d\TH:i:s.v\Z'),
+            'creation_date_range_to' => now()->utc()->format('Y-m-d\TH:i:s.v\Z'),
+        ];
+
+        $returns = [];
+        $offset = 0;
+
+        do {
+            $response = $this->postOrderApi($account)->get('/post-order/v2/return/search', $window + [
+                'role' => 'SELLER',
+                'limit' => 100,
+                'offset' => $offset,
+            ]);
+
+            if ($response->failed()) {
+                $this->logFailure("return search failed for store \"{$account->store_name}\"", $response);
+                throw new RuntimeException('Could not fetch eBay returns: '.$this->errorMessage($response));
+            }
+
+            $members = $response->json('members', []);
+            $returns = array_merge($returns, $members);
+            $offset += count($members);
+        } while ($members !== [] && $offset < (int) $response->json('total', 0));
+
+        Log::info('eBay: '.count($returns)." returns fetched for store \"{$account->store_name}\" (last {$lookbackDays} days)");
+
+        return $returns;
+    }
+
+    /**
+     * Full detail of a single return: shipment tracking, refund breakdown,
+     * response history. Used when the search summary is not enough.
+     */
+    public function fetchReturn(EbayAccount $account, string $returnId): array
+    {
+        $response = $this->postOrderApi($account)->get('/post-order/v2/return/'.rawurlencode($returnId));
+
+        if ($response->failed()) {
+            $this->logFailure("return {$returnId} fetch failed for store \"{$account->store_name}\"", $response);
+            throw new RuntimeException('Could not fetch the eBay return: '.$this->errorMessage($response));
+        }
+
+        return $response->json();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Helpers
     |--------------------------------------------------------------------------
     */
@@ -583,6 +648,20 @@ class EbayService
     private function api(EbayAccount $account): PendingRequest
     {
         return Http::withToken($this->ensureAccessToken($account))
+            ->baseUrl($this->apiBase())
+            ->acceptJson();
+    }
+
+    /**
+     * HTTP client for the Post-Order API, which rejects "Bearer" tokens and
+     * expects "IAF <token>" plus the marketplace header instead.
+     */
+    private function postOrderApi(EbayAccount $account): PendingRequest
+    {
+        return Http::withHeaders([
+                'Authorization' => 'IAF '.$this->ensureAccessToken($account),
+                'X-EBAY-C-MARKETPLACE-ID' => $account->marketplace_id,
+            ])
             ->baseUrl($this->apiBase())
             ->acceptJson();
     }

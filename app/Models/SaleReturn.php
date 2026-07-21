@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['sale_id', 'return_date', 'inserted_by'])]
+#[Fillable(['sale_id', 'return_date', 'ebay_return_id', 'inserted_by'])]
 class SaleReturn extends Model
 {
     public function sale(): BelongsTo
