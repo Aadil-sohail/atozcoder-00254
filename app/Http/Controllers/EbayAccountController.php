@@ -102,12 +102,30 @@ class EbayAccountController extends Controller
     {
         try {
             $this->ebay->createDefaultPolicies($ebayAccount);
+
+            // Also give the store a ship-from location so one click completes the
+            // whole setup. Reuse an existing eBay location if there already is one,
+            // otherwise create one from the default address in config/ebay.php.
+            if (! $ebayAccount->merchant_location_key) {
+                $locations = $this->ebay->fetchInventoryLocations($ebayAccount);
+
+                if ($locations !== []) {
+                    $ebayAccount->merchant_location_key = $locations[0]['merchantLocationKey'];
+                } else {
+                    $address = config('ebay.default_location');
+                    $ebayAccount->merchant_location_key = $this->ebay->createInventoryLocation(
+                        $ebayAccount, $address, $address['name']
+                    );
+                }
+
+                $ebayAccount->save();
+            }
         } catch (Throwable $e) {
             return redirect()->route('ebay.setup', $ebayAccount)->with('error', $e->getMessage());
         }
 
         return redirect()->route('ebay.setup', $ebayAccount)
-            ->with('status', 'Default policies created and selected. Now set the ship-from location below and save.');
+            ->with('status', 'Default policies and a ship-from location were set up. Review them below, then click Save Setup.');
     }
 
     /**
@@ -129,27 +147,50 @@ class EbayAccountController extends Controller
         ]);
 
         $locationKey = $request->merchant_location_key;
+        $address = null;
+        $usedDefaultLocation = false;
 
-        // No existing location picked: a filled-in new-location form is required.
+        // No existing location picked: figure out where to ship from without
+        // dead-ending on a required form.
         if (! $locationKey) {
-            $request->validate([
-                'new_location.name' => ['required', 'string', 'max:100'],
-                'new_location.address_line1' => ['required', 'string', 'max:180'],
-                'new_location.city' => ['required', 'string', 'max:100'],
-                'new_location.postal_code' => ['required', 'string', 'max:20'],
-                'new_location.country' => ['required', 'string', 'size:2'],
-            ], [
-                'new_location.*.required' => 'Fill in the new ship-from location (or pick an existing one) — it is required before products can be published.',
-            ]);
+            // Treat the new-location form as "in use" only once a real address
+            // has been typed (Country defaults to US, so it never counts alone).
+            $formFilled = filled($request->input('new_location.address_line1'))
+                || filled($request->input('new_location.city'))
+                || filled($request->input('new_location.postal_code'));
 
-            try {
-                $locationKey = $this->ebay->createInventoryLocation(
-                    $ebayAccount,
-                    $request->input('new_location'),
-                    $request->input('new_location.name'),
-                );
-            } catch (RuntimeException $e) {
-                return back()->withInput()->with('error', $e->getMessage());
+            if ($formFilled) {
+                // The user started an address: require the whole set.
+                $request->validate([
+                    'new_location.name' => ['required', 'string', 'max:100'],
+                    'new_location.address_line1' => ['required', 'string', 'max:180'],
+                    'new_location.city' => ['required', 'string', 'max:100'],
+                    'new_location.postal_code' => ['required', 'string', 'max:20'],
+                    'new_location.country' => ['required', 'string', 'size:2'],
+                ], [
+                    'new_location.*.required' => 'Fill in every ship-from location field, or clear them all to use a default location automatically.',
+                ]);
+
+                $address = $request->input('new_location');
+            } else {
+                // Nothing entered: reuse an existing eBay location, otherwise
+                // create one from the default address so Save always completes.
+                $existing = $this->ebay->fetchInventoryLocations($ebayAccount);
+
+                if ($existing !== []) {
+                    $locationKey = $existing[0]['merchantLocationKey'];
+                } else {
+                    $address = config('ebay.default_location');
+                    $usedDefaultLocation = true;
+                }
+            }
+
+            if (! $locationKey) {
+                try {
+                    $locationKey = $this->ebay->createInventoryLocation($ebayAccount, $address, $address['name']);
+                } catch (RuntimeException $e) {
+                    return back()->withInput()->with('error', $e->getMessage());
+                }
             }
         }
 
@@ -160,7 +201,13 @@ class EbayAccountController extends Controller
             'merchant_location_key' => $locationKey,
         ]);
 
-        return redirect()->route('ebay.index')->with('status', "Store \"{$ebayAccount->store_name}\" is ready to sync products.");
+        $message = "Store \"{$ebayAccount->store_name}\" is ready to sync products.";
+
+        if ($usedDefaultLocation) {
+            $message .= ' A default ship-from address was used — update it later if it is not correct.';
+        }
+
+        return redirect()->route('ebay.index')->with('status', $message);
     }
 
     /**

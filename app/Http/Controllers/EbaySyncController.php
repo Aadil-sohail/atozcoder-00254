@@ -6,6 +6,7 @@ use App\Jobs\SyncProductToEbay;
 use App\Models\EbayAccount;
 use App\Models\EbayListing;
 use App\Models\Product;
+use App\Services\EbayListingImporter;
 use App\Services\EbayOrderImporter;
 use App\Services\EbayReturnImporter;
 use App\Services\EbayService;
@@ -172,6 +173,36 @@ class EbaySyncController extends Controller
         }
 
         return back()->with('status', "{$created} new eBay ".Str::plural('return', $created).' imported.');
+    }
+
+    /**
+     * Pull listings from the chosen store and create local products for any
+     * that are on eBay but not in the software yet.
+     */
+    public function syncProducts(Request $request, EbayListingImporter $importer): RedirectResponse
+    {
+        $request->validate([
+            'ebay_account_id' => ['required', 'integer', 'exists:ebay_accounts,id'],
+        ]);
+
+        $account = EbayAccount::findOrFail($request->ebay_account_id);
+
+        // Each item can need a follow-up offers call, so allow generous time.
+        set_time_limit(300);
+
+        try {
+            $result = $importer->import($account);
+        } catch (Throwable $e) {
+            return back()->with('error', "{$account->store_name} — {$e->getMessage()}");
+        }
+
+        $message = "{$result['created']} new ".Str::plural('product', $result['created'])." imported from \"{$account->store_name}\".";
+
+        if ($result['linked'] > 0) {
+            $message .= " {$result['linked']} existing ".Str::plural('product', $result['linked']).' linked.';
+        }
+
+        return back()->with('status', $message);
     }
 
     /**

@@ -33,6 +33,19 @@ return [
     // How many days back the return sync looks when importing eBay returns.
     'returns_lookback_days' => env('EBAY_RETURNS_LOOKBACK_DAYS', 30),
 
+    // Ship-from address the "Create default policies" button uses when a store
+    // has no inventory location yet. A US example is used by default — override
+    // these in .env with your real warehouse address (city/postal must be valid
+    // for the country, so non-US stores should set all five).
+    'default_location' => [
+        'name' => env('EBAY_LOCATION_NAME', 'Main Warehouse'),
+        'address_line1' => env('EBAY_LOCATION_ADDRESS', '2025 Hamilton Ave'),
+        'city' => env('EBAY_LOCATION_CITY', 'San Jose'),
+        'state' => env('EBAY_LOCATION_STATE', 'CA'),
+        'postal_code' => env('EBAY_LOCATION_POSTAL', '95125'),
+        'country' => env('EBAY_LOCATION_COUNTRY', 'US'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | OAuth scopes requested when a user connects a store

@@ -25,10 +25,16 @@
         </div>
 
         <div class="card-body">
+            @foreach (['status' => 'success', 'info' => 'info', 'warning' => 'warning', 'error' => 'danger'] as $key => $type)
+                @if (session($key))
+                    <div class="alert alert-{{ $type }} small">{{ session($key) }}</div>
+                @endif
+            @endforeach
+
             @if ($errors->any())
                 <div class="alert alert-danger small">
                     <ul class="mb-0 ps-3">
-                        @foreach ($errors->all() as $error)
+                        @foreach (array_unique($errors->all()) as $error)
                             <li>{{ $error }}</li>
                         @endforeach
                     </ul>

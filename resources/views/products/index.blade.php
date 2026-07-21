@@ -17,6 +17,13 @@
         </div>
     @endif
 
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="card shadow-sm border-0 p-2">
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
@@ -26,6 +33,11 @@
             <div class="d-flex align-items-center gap-2">
                 @can('sync ebay products')
                     @if ($ebayAccounts->isNotEmpty())
+                    <button type="button" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-2"
+                        data-bs-toggle="modal" data-bs-target="#ebayImportModal">
+                        <i class="fa-brands fa-ebay"></i>
+                        {{ __('Import from eBay') }}
+                    </button>
                     <button type="button" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-2" onclick="openEbaySyncModal()">
                         <i class="fa-brands fa-ebay"></i>
                         {{ __('Sync Selected to eBay') }}
@@ -261,6 +273,40 @@
 
     @can('sync ebay products')
         @if ($ebayAccounts->isNotEmpty())
+        <div class="modal fade" id="ebayImportModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="POST" action="{{ route('ebay.sync-products') }}" class="modal-content">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fa-brands fa-ebay me-2"></i>{{ __('Import Products from eBay') }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small text-muted mb-3">
+                            {{ __('Products listed on the selected store but not yet in the software will be imported. Products already here are linked, not duplicated.') }}
+                        </p>
+                        <div class="mb-1">
+                            <label class="form-label small text-muted mb-1">{{ __('eBay store') }}</label>
+                            <select name="ebay_account_id" class="form-select form-select-sm" required>
+                                @foreach ($ebayAccounts as $account)
+                                    <option value="{{ $account->id }}">
+                                        {{ $account->store_name }}
+                                        ({{ config("ebay.marketplaces.{$account->marketplace_id}.label", $account->marketplace_id) }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                        <button type="submit" class="btn btn-dark btn-sm">
+                            <i class="fa-solid fa-download me-1"></i>{{ __('Import') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="modal fade" id="ebaySyncModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <form method="POST" action="{{ route('ebay.sync') }}" class="modal-content">

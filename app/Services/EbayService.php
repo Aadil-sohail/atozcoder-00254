@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Throwable;
 use RuntimeException;
 use App\Models\EbayAccount;
 use App\Models\EbayListing;
@@ -192,11 +193,23 @@ class EbayService
      * service tokens; the first one the account accepts is used.
      */
     private const DEFAULT_SHIPPING_SERVICES = [
-        'EBAY_US' => ['carrier' => 'USPS', 'services' => ['USPSPriority', 'USPSGroundAdvantage', 'USPSFirstClass', 'USPSParcel']],
-        'EBAY_GB' => ['carrier' => 'RoyalMail', 'services' => ['UK_RoyalMailSecondClassStandard', 'UK_RoyalMailFirstClassStandard']],
-        'EBAY_CA' => ['carrier' => 'CanadaPost', 'services' => ['CA_RegularParcel', 'CA_ExpeditedParcel']],
-        'EBAY_AU' => ['carrier' => 'AustraliaPost', 'services' => ['AU_Regular', 'AU_StandardDelivery']],
-        'EBAY_DE' => ['carrier' => 'DHL', 'services' => ['DE_DHLPaket', 'DE_DeutschePostBrief']],
+        'EBAY_US' => ['carrier' => 'USPS', 'services' => ['USPSPriority', 'USPSGroundAdvantage', 'USPSFirstClass', 'USPSParcel', 'ShippingMethodStandard']],
+        'EBAY_GB' => ['carrier' => 'RoyalMail', 'services' => ['UK_RoyalMailSecondClassStandard', 'UK_RoyalMailFirstClassStandard', 'UK_RoyalMail48', 'UK_RoyalMail24']],
+        'EBAY_CA' => ['carrier' => 'CanadaPost', 'services' => ['CA_RegularParcel', 'CA_ExpeditedParcel', 'CA_XpressPost']],
+        'EBAY_AU' => ['carrier' => 'AustraliaPost', 'services' => ['AU_RegularParcelWithTracking', 'AU_RegularParcel', 'AU_Express', 'AU_StandardDelivery']],
+        'EBAY_DE' => ['carrier' => 'DHL', 'services' => ['DE_DHLPaket', 'DE_DeutschePostBrief', 'DE_HermesPaket']],
+        'EBAY_IT' => ['carrier' => 'PosteItaliane', 'services' => ['IT_PostaRaccomandata', 'IT_PostaOrdinaria', 'IT_PaccoCelere3', 'IT_QuickMail']],
+        'EBAY_FR' => ['carrier' => 'LaPoste', 'services' => ['FR_LaPosteColissimo', 'FR_ColissimoAccess', 'FR_ColissimoAccessDomicileSansSignature']],
+        'EBAY_ES' => ['carrier' => 'Correos', 'services' => ['ES_Estandar', 'ES_CorreosPostalExpress', 'ES_CorreosPaqueteAzul']],
+    ];
+
+    /**
+     * eBay site IDs, needed by the Trading API (GeteBayDetails) to look up the
+     * shipping services that are actually valid for a marketplace.
+     */
+    private const SITE_IDS = [
+        'EBAY_US' => '0', 'EBAY_CA' => '2', 'EBAY_GB' => '3', 'EBAY_AU' => '15',
+        'EBAY_FR' => '71', 'EBAY_DE' => '77', 'EBAY_IT' => '101', 'EBAY_ES' => '186',
     ];
 
     /**
@@ -208,12 +221,21 @@ class EbayService
         $this->optInToBusinessPolicies($account);
 
         $categoryTypes = [['name' => 'ALL_EXCLUDING_MOTORS_VEHICLES']];
-        $shipping = self::DEFAULT_SHIPPING_SERVICES[$account->marketplace_id] ?? self::DEFAULT_SHIPPING_SERVICES['EBAY_US'];
 
         if (! $account->fulfillment_policy_id) {
             $response = null;
 
-            foreach ($shipping['services'] as $serviceCode) {
+            // Candidates come from eBay's own list of valid domestic services for
+            // this marketplace (so any marketplace works), with the hardcoded list
+            // as a backup if that lookup is unavailable.
+            foreach ($this->shippingServiceCandidates($account) as $candidate) {
+                $shippingService = array_filter([
+                    'sortOrder' => 1,
+                    'shippingCarrierCode' => $candidate['carrier'] ?: null,
+                    'shippingServiceCode' => $candidate['code'],
+                    'freeShipping' => true,
+                ], fn ($value) => $value !== null);
+
                 $response = $this->api($account)->post('/sell/account/v1/fulfillment_policy', [
                     'name' => 'Default Shipping',
                     'marketplaceId' => $account->marketplace_id,
@@ -222,26 +244,27 @@ class EbayService
                     'shippingOptions' => [[
                         'costType' => 'FLAT_RATE',
                         'optionType' => 'DOMESTIC',
-                        'shippingServices' => [[
-                            'sortOrder' => 1,
-                            'shippingCarrierCode' => $shipping['carrier'],
-                            'shippingServiceCode' => $serviceCode,
-                            'freeShipping' => true,
-                        ]],
+                        'shippingServices' => [$shippingService],
                     ]],
                 ]);
 
                 if ($response->successful()) {
-                    Log::info("eBay: fulfillment policy created with shipping service \"{$serviceCode}\"", ['policy_id' => $response->json('fulfillmentPolicyId')]);
+                    Log::info("eBay: fulfillment policy created with shipping service \"{$candidate['code']}\"", ['policy_id' => $response->json('fulfillmentPolicyId')]);
                     break;
                 }
 
-                Log::warning("eBay: shipping service \"{$serviceCode}\" rejected, trying next candidate", ['status' => $response->status()]);
+                Log::warning("eBay: shipping service \"{$candidate['code']}\" rejected, trying next candidate", ['status' => $response->status()]);
             }
 
             if (! $response || $response->failed()) {
-                $this->logFailure('all shipping service candidates rejected, fulfillment policy not created', $response);
-                throw new RuntimeException('Could not create shipping policy: '.$this->errorMessage($response));
+                $this->logFailure("all shipping service candidates rejected for {$account->marketplace_id}, fulfillment policy not created", $response);
+                throw new RuntimeException(
+                    "Could not create a default shipping policy for {$account->marketplace_id}. "
+                    ."This usually means the connected seller is not eligible to sell on that marketplace. "
+                    .'Reconnect this store choosing the marketplace that matches the seller, or create one shipping policy '
+                    .'in the eBay Seller Hub for this marketplace and reload this page — it will be selected automatically. '
+                    .'(eBay said: '.$this->errorMessage($response).')'
+                );
             }
 
             $account->fulfillment_policy_id = $response->json('fulfillmentPolicyId');
@@ -285,6 +308,98 @@ class EbayService
         }
 
         $account->save();
+    }
+
+    /**
+     * Ordered list of shipping services to try when auto-creating a fulfillment
+     * policy: eBay's own valid domestic services for the marketplace first (so
+     * any marketplace works without hardcoding), then the static list as backup.
+     *
+     * @return array<int, array{carrier: string, code: string}>
+     */
+    private function shippingServiceCandidates(EbayAccount $account): array
+    {
+        $dynamic = $this->fetchDomesticShippingServices($account);
+
+        $fallbackSet = self::DEFAULT_SHIPPING_SERVICES[$account->marketplace_id] ?? self::DEFAULT_SHIPPING_SERVICES['EBAY_US'];
+        $fallback = array_map(
+            fn (string $code) => ['carrier' => $fallbackSet['carrier'], 'code' => $code],
+            $fallbackSet['services'],
+        );
+
+        // De-duplicate by service code, keeping the dynamic (authoritative) ones.
+        return collect($dynamic)->merge($fallback)->unique('code')->values()->all();
+    }
+
+    /**
+     * Domestic shipping services eBay reports as valid for the account's
+     * marketplace, via the Trading API GeteBayDetails call. Returns an empty
+     * list (so the caller falls back to the static codes) if anything fails.
+     *
+     * @return array<int, array{carrier: string, code: string}>
+     */
+    private function fetchDomesticShippingServices(EbayAccount $account): array
+    {
+        $siteId = self::SITE_IDS[$account->marketplace_id] ?? null;
+
+        if ($siteId === null) {
+            return [];
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'X-EBAY-API-IAF-TOKEN' => $this->ensureAccessToken($account),
+                'X-EBAY-API-SITEID' => $siteId,
+                'X-EBAY-API-CALL-NAME' => 'GeteBayDetails',
+                'X-EBAY-API-COMPATIBILITY-LEVEL' => '1193',
+                'X-EBAY-API-DEV-NAME' => (string) config('ebay.dev_id'),
+                'X-EBAY-API-APP-NAME' => (string) config('ebay.client_id'),
+                'X-EBAY-API-CERT-NAME' => (string) config('ebay.client_secret'),
+                'Content-Type' => 'text/xml',
+            ])->withBody(
+                '<?xml version="1.0" encoding="utf-8"?>'
+                .'<GeteBayDetailsRequest xmlns="urn:ebay:apis:eBLBaseComponents">'
+                .'<DetailName>ShippingServiceDetails</DetailName>'
+                .'</GeteBayDetailsRequest>',
+                'text/xml'
+            )->post($this->apiBase().'/ws/api.dll');
+
+            if ($response->failed()) {
+                return [];
+            }
+
+            $xml = @simplexml_load_string($response->body());
+
+            if ($xml === false) {
+                return [];
+            }
+
+            $xml->registerXPathNamespace('e', 'urn:ebay:apis:eBLBaseComponents');
+            $services = [];
+
+            foreach ($xml->xpath('//e:ShippingServiceDetails') ?: [] as $node) {
+                $node->registerXPathNamespace('e', 'urn:ebay:apis:eBLBaseComponents');
+
+                $validForSelling = (string) ($node->xpath('e:ValidForSellingFlow')[0] ?? '') === 'true';
+                $isInternational = $node->xpath('e:InternationalService') !== [];
+                $code = (string) ($node->xpath('e:ShippingService')[0] ?? '');
+
+                // Domestic, currently sellable services only.
+                if ($validForSelling && ! $isInternational && $code !== '') {
+                    $services[] = [
+                        'carrier' => (string) ($node->xpath('e:ShippingCarrier')[0] ?? ''),
+                        'code' => $code,
+                    ];
+                }
+            }
+
+            // Try at most a handful so a bad run does not fire dozens of requests.
+            return array_slice($services, 0, 8);
+        } catch (Throwable $e) {
+            Log::warning("eBay: could not fetch shipping services for {$account->marketplace_id}: {$e->getMessage()}");
+
+            return [];
+        }
     }
 
     /**
@@ -378,6 +493,18 @@ class EbayService
 
         $marketplace = config("ebay.marketplaces.{$account->marketplace_id}", config('ebay.marketplaces.EBAY_US'));
         $quantity = max(0, (int) round($product->total_qty - $product->sold_qty));
+
+        // eBay rejects publishing a brand-new listing with zero available stock.
+        // Catch it here with a clear message instead of eBay's cryptic one. An
+        // already-live listing (has a listing_id) is allowed to drop to 0 so it
+        // can be marked out of stock.
+        if ($quantity < 1 && ! $listing->listing_id) {
+            throw new RuntimeException(sprintf(
+                'No available stock to list (%s in total, %s already sold). eBay needs at least 1 unit in stock to publish a new listing — add stock, then sync again.',
+                (float) $product->total_qty,
+                (float) $product->sold_qty,
+            ));
+        }
 
         // Step 1: create/replace the inventory item record (keyed by SKU).
         $item = [
@@ -531,6 +658,67 @@ class EbayService
         }
 
         Log::info("eBay: SKU {$listing->sku} removed from \"{$account->store_name}\"".($listing->listing_id ? " (listing {$listing->listing_id} ended)" : ''));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Listing import (eBay -> software)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Every inventory item on the seller account (paginated). Each item holds
+     * the SKU, product details (title, description, images, aspects) and the
+     * available quantity. Requires the sell.inventory scope.
+     */
+    public function fetchInventoryItems(EbayAccount $account): array
+    {
+        $items = [];
+        $offset = 0;
+
+        do {
+            $response = $this->api($account)->get('/sell/inventory/v1/inventory_item', [
+                'limit' => 100,
+                'offset' => $offset,
+            ]);
+
+            if ($response->failed()) {
+                $this->logFailure("inventory item fetch failed for store \"{$account->store_name}\"", $response);
+                throw new RuntimeException('Could not fetch eBay inventory: '.$this->errorMessage($response));
+            }
+
+            $items = array_merge($items, $response->json('inventoryItems', []));
+            $offset += 100;
+        } while ($response->json('next'));
+
+        Log::info('eBay: '.count($items)." inventory items fetched for store \"{$account->store_name}\"");
+
+        return $items;
+    }
+
+    /**
+     * Offers for a single SKU. A published offer carries the live listing id,
+     * price and eBay category, which is what makes an inventory item a real
+     * listing rather than an unlisted draft.
+     */
+    public function fetchOffers(EbayAccount $account, string $sku): array
+    {
+        $response = $this->api($account)->get('/sell/inventory/v1/offer', [
+            'sku' => $sku,
+            'marketplace_id' => $account->marketplace_id,
+        ]);
+
+        // 404 means the SKU simply has no offers yet: treat as empty, not fatal.
+        if ($response->status() === 404) {
+            return [];
+        }
+
+        if ($response->failed()) {
+            $this->logFailure("offer fetch failed for SKU {$sku}", $response);
+            throw new RuntimeException('Could not fetch eBay offers: '.$this->errorMessage($response));
+        }
+
+        return $response->json('offers', []);
     }
 
     /*
