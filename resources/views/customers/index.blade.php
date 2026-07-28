@@ -26,7 +26,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('Manage your customer records.') }}</p>
-                <span class="text-muted" style="font-size:12px;">{{ $customers->total() }} {{ Str::plural('customer', $customers->total()) }} total</span>
+                <span class="text-muted" style="font-size:12px;">{{ $customers->count() }} {{ Str::plural('customer', $customers->count()) }} total</span>
             </div>
             @can('create customers')
             <button type="button" onclick="openCustomerModal('create-customer-modal')" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
@@ -37,7 +37,7 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="customers-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>{{ __('Name') }}</th>
@@ -45,11 +45,11 @@
                         <th>{{ __('Phone') }}</th>
                         <th>{{ __('Address') }}</th>
                         <th>{{ __('Added') }}</th>
-                        <th class="text-end">{{ __('Actions') }}</th>
+                        <th class="text-end no-sort">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($customers as $customer)
+                    @foreach ($customers as $customer)
                         <tr>
                             <td class="fw-medium">{{ $customer->name }}</td>
                             <td class="text-secondary">{{ $customer->email ?? '—' }}</td>
@@ -59,7 +59,7 @@
                                     {{ $customer->address ?? '—' }}
                                 </span>
                             </td>
-                            <td class="text-secondary">{{ $customer->created_at?->format('M d, Y') ?? '—' }}</td>
+                            <td class="text-secondary" data-order="{{ $customer->created_at?->timestamp ?? 0 }}">{{ $customer->created_at?->format('M d, Y') ?? '—' }}</td>
                             <td class="text-end">
                                 <div class="d-flex align-items-center justify-content-end gap-2">
                                     @can('edit customers')
@@ -87,28 +87,10 @@
                                 </div>
                             </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <i class="fa-solid fa-user-group fs-2 text-secondary opacity-50 d-block mb-2"></i>
-                                <p class="text-muted mb-2">{{ __('No customers found.') }}</p>
-                                @can('create customers')
-                                    <button type="button" onclick="openCustomerModal('create-customer-modal')" class="btn btn-sm btn-dark">
-                                        {{ __('Add your first customer') }}
-                                    </button>
-                                @endcan
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
-
-        @if ($customers->hasPages())
-            <div class="card-footer bg-white">
-                {{ $customers->links() }}
-            </div>
-        @endif
     </div>
 
     @include('customers.partials.create-modal')
@@ -116,6 +98,15 @@
 
     @push('scripts')
     <script>
+        $(function () {
+            $('#customers-table').DataTable({
+                columnDefs: [
+                    { orderable: false, targets: 'no-sort' },
+                ],
+                order: [],
+            });
+        });
+
         function openCustomerModal(id) {
             new bootstrap.Modal(document.getElementById(id)).show();
         }

@@ -105,7 +105,7 @@ class ProductController extends Controller
             ->whereRaw('(total_qty - sold_qty) <= 0')
             ->with('category')
             ->orderBy('name')
-            ->paginate(15);
+            ->get();
 
         return view('products.out-of-stock', compact('products'));
     }

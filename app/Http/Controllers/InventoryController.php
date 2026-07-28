@@ -31,7 +31,7 @@ class InventoryController extends Controller
                 ->where('status', '1'),
             ])
             ->orderBy('name')
-            ->paginate(15);
+            ->get();
 
         $products = Product::where(['status' => '1'])->orderBy('name')->get();
 
@@ -46,7 +46,7 @@ class InventoryController extends Controller
         $products = Product::where('category_id', $category->id)
             ->where('status', '1')
             ->orderBy('name')
-            ->paginate(15);
+            ->get();
 
         return view('inventory.category', compact('category', 'products'));
     }
@@ -76,7 +76,7 @@ class InventoryController extends Controller
      */
     public function show(Product $product): View
     {
-        $entries = Inventory::where('product_id', $product->id)->latest()->paginate(15);
+        $entries = Inventory::where('product_id', $product->id)->latest()->get();
 
         return view('inventory.show', compact('product', 'entries'));
     }

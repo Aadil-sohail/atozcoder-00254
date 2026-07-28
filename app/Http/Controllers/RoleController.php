@@ -26,7 +26,7 @@ class RoleController extends Controller
      */
     public function index(): View
     {
-        $roles = Role::with('permissions')->withCount('permissions')->orderBy('name')->paginate(10);
+        $roles = Role::with('permissions')->withCount('permissions')->orderBy('name')->get();
 
         $permissionsByModule = Permission::orderBy('name')->get()
             ->groupBy(fn (Permission $permission) => Str::after($permission->name, ' '));

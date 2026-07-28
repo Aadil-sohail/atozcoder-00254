@@ -31,17 +31,17 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="inventory-categories-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>{{ __('Category') }}</th>
                         <th>{{ __('Products') }}</th>
                         <th>{{ __('Available Stock') }}</th>
-                        <th>{{ __('Actions') }}</th>
+                        <th class="no-sort">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($categories as $category)
+                    @foreach ($categories as $category)
                         <tr>
                             <td class="fw-medium">
                                 <a href="{{ route('inventories.category', $category) }}" class="text-decoration-none">
@@ -59,34 +59,26 @@
                                 </a>
                             </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="text-center py-5">
-                                <i class="fa-solid fa-warehouse fs-2 text-secondary opacity-50 d-block mb-2"></i>
-                                <p class="text-muted mb-2">{{ __('No categories found.') }}</p>
-                                @can('create inventories')
-                                    <button type="button" onclick="openStockModal()" class="btn btn-sm btn-dark">
-                                        {{ __('Add your first stock entry') }}
-                                    </button>
-                                @endcan
-                            </td>
-                        </tr>
-                    @endforelse
+                  
+                    @endforeach
                 </tbody>
             </table>
         </div>
-
-        @if ($categories->hasPages())
-            <div class="card-footer bg-white">
-                {{ $categories->links() }}
-            </div>
-        @endif
     </div>
 
     @include('inventory.partials.create-modal')
 
     @push('scripts')
     <script>
+        $(function () {
+            $('#inventory-categories-table').DataTable({
+                columnDefs: [
+                    { orderable: false, targets: 'no-sort' },
+                ],
+                order: [],
+            });
+        });
+
         function openStockModal() {
             new bootstrap.Modal(document.getElementById('create-inventory-modal')).show();
         }

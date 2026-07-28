@@ -26,7 +26,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('Manage roles and the permissions granted to each one.') }}</p>
-                <span class="text-muted" style="font-size:12px;">{{ $roles->total() }} {{ Str::plural('role', $roles->total()) }} total</span>
+                <span class="text-muted" style="font-size:12px;">{{ $roles->count() }} {{ Str::plural('role', $roles->count()) }} total</span>
             </div>
             @can('create roles')
             <button type="button" onclick="openRoleModal('create-role-modal')" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
@@ -37,16 +37,16 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="roles-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>Name</th>
                         <th>Permissions</th>
-                        <th>Actions</th>
+                        <th class="no-sort">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($roles as $role)
+                    @foreach ($roles as $role)
                         <tr>
                             <td class="fw-medium">{{ $role->name }}</td>
                             <td class="text-secondary">{{ $role->permissions_count }} {{ Str::plural('permission', $role->permissions_count) }}</td>
@@ -73,28 +73,10 @@
                                 </div>
                             </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="3" class="text-center py-5">
-                                <i class="fa-solid fa-user-shield fs-2 text-secondary opacity-50 d-block mb-2"></i>
-                                <p class="text-muted mb-2">{{ __('No roles found.') }}</p>
-                                @can('create roles')
-                                    <button type="button" onclick="openRoleModal('create-role-modal')" class="btn btn-sm btn-dark">
-                                        {{ __('Add your first role') }}
-                                    </button>
-                                @endcan
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
-
-        @if ($roles->hasPages())
-            <div class="card-footer bg-white">
-                {{ $roles->links() }}
-            </div>
-        @endif
     </div>
 
     @include('roles.partials.create-modal')
@@ -104,6 +86,15 @@
 
     @push('scripts')
     <script>
+        $(function () {
+            $('#roles-table').DataTable({
+                columnDefs: [
+                    { orderable: false, targets: 'no-sort' },
+                ],
+                order: [],
+            });
+        });
+
         function openRoleModal(id) {
             new bootstrap.Modal(document.getElementById(id)).show();
         }

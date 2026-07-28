@@ -28,7 +28,7 @@ class ReturnController extends Controller
      */
     public function index(): View
     {
-        $returns = SaleReturn::with('sale.customer', 'items')->latest()->paginate(15);
+        $returns = SaleReturn::with('sale.customer', 'items')->latest()->get();
 
         return view('returns.index', compact('returns'));
     }

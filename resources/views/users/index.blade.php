@@ -26,7 +26,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('Manage the user accounts that can access the system.') }}</p>
-                <span class="text-muted" style="font-size:12px;">{{ $users->total() }} {{ Str::plural('user', $users->total()) }} total</span>
+                <span class="text-muted" style="font-size:12px;">{{ $users->count() }} {{ Str::plural('user', $users->count()) }} total</span>
             </div>
             @can('create users')
             <button type="button" onclick="openUserModal('create-user-modal')" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
@@ -37,18 +37,18 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="users-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>Name</th>
                         <th>Username</th>
                         <th>Email</th>
                         <th>Role</th>
-                        <th>Actions</th>
+                        <th class="no-sort">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($users as $user)
+                    @foreach ($users as $user)
                         <tr>
                             <td class="fw-medium">{{ $user->name }}</td>
                             <td class="text-secondary">{{ $user->username ?? '—' }}</td>
@@ -77,28 +77,10 @@
                                 </div>
                             </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <i class="fa-solid fa-users fs-2 text-secondary opacity-50 d-block mb-2"></i>
-                                <p class="text-muted mb-2">{{ __('No users found.') }}</p>
-                                @can('create users')
-                                    <button type="button" onclick="openUserModal('create-user-modal')" class="btn btn-sm btn-dark">
-                                        {{ __('Add your first user') }}
-                                    </button>
-                                @endcan
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
-
-        @if ($users->hasPages())
-            <div class="card-footer bg-white">
-                {{ $users->links() }}
-            </div>
-        @endif
     </div>
 
     @include('users.partials.create-modal')
@@ -106,6 +88,15 @@
 
     @push('scripts')
     <script>
+        $(function () {
+            $('#users-table').DataTable({
+                columnDefs: [
+                    { orderable: false, targets: 'no-sort' },
+                ],
+                order: [],
+            });
+        });
+
         function openUserModal(id) {
             new bootstrap.Modal(document.getElementById(id)).show();
         }

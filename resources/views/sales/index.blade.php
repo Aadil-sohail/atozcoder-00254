@@ -26,7 +26,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('All recorded sales and invoices.') }}</p>
-                <span class="text-muted" style="font-size:12px;">{{ $sales->total() }} {{ Str::plural('sale', $sales->total()) }} total</span>
+                <span class="text-muted" style="font-size:12px;">{{ $sales->count() }} {{ Str::plural('sale', $sales->count()) }} total</span>
             </div>
             <div class="d-flex align-items-center gap-2">
                 @can('sync ebay products')
@@ -48,7 +48,7 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="sales-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>{{ __('Invoice No') }}</th>
@@ -56,7 +56,7 @@
                         <th>{{ __('Sale Date') }}</th>
                         <th>{{ __('Discount') }}</th>
                         <th>{{ __('Total') }}</th>
-                        <th>{{ __('Actions') }}</th>
+                        <th class="no-sort">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -68,7 +68,7 @@
                                 </a>
                             </td>
                             <td class="text-secondary">{{ $sale->customer->name }}</td>
-                            <td class="text-secondary">{{ \Carbon\Carbon::parse($sale->sale_date)->format('M d, Y') }}</td>
+                            <td class="text-secondary" data-order="{{ \Carbon\Carbon::parse($sale->sale_date)->timestamp }}">{{ \Carbon\Carbon::parse($sale->sale_date)->format('M d, Y') }}</td>
                             <td class="text-secondary">{{ number_format($sale->discount, 2) }}</td>
                             <td class="fw-medium">{{ number_format($sale->total_amount, 2) }}</td>
                             <td>
@@ -105,12 +105,19 @@
                 </tbody>
             </table>
         </div>
-
-        @if ($sales->hasPages())
-            <div class="card-footer bg-white">
-                {{ $sales->links() }}
-            </div>
-        @endif
     </div>
 
 @endsection
+
+@push('scripts')
+<script>
+    $(function () {
+        $('#sales-table').DataTable({
+            columnDefs: [
+                { orderable: false, targets: 'no-sort' },
+            ],
+            order: [],
+        });
+    });
+</script>
+@endpush

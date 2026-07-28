@@ -27,7 +27,7 @@ class UserController extends Controller
      */
     public function index(): View
     {
-        $users = User::with('roles')->orderBy('name')->paginate(10);
+        $users = User::with('roles')->orderBy('name')->get();
         $roles = Role::orderBy('name')->pluck('name');
 
         return view('users.index', compact('users', 'roles'));

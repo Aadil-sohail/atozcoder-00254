@@ -71,11 +71,11 @@
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white py-3">
             <p class="mb-0 text-muted small">{{ __('Products sold with a warranty and their remaining cover.') }}</p>
-            <span class="text-muted" style="font-size:12px;">{{ $warranties->total() }} {{ Str::plural('record', $warranties->total()) }} total</span>
+            <span class="text-muted" style="font-size:12px;">{{ $warranties->count() }} {{ Str::plural('record', $warranties->count()) }} total</span>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="warranties-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>{{ __('Invoice No') }}</th>
@@ -89,7 +89,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($warranties as $item)
+                    @foreach ($warranties as $item)
                         @php
                             $expiry = \Carbon\Carbon::parse($item->warranty_expiry)->startOfDay();
                             $daysLeft = (int) now()->startOfDay()->diffInDays($expiry, false);
@@ -103,7 +103,7 @@
                             </td>
                             <td class="text-secondary">{{ $item->sale->customer->name }}</td>
                             <td class="text-secondary">{{ $item->product->name }}</td>
-                            <td class="text-secondary">{{ \Carbon\Carbon::parse($item->sale->sale_date)->format('M d, Y') }}</td>
+                            <td class="text-secondary" data-order="{{ \Carbon\Carbon::parse($item->sale->sale_date)->timestamp }}">{{ \Carbon\Carbon::parse($item->sale->sale_date)->format('M d, Y') }}</td>
                             <td class="text-secondary">
                                 {{ ($item->quantity - $item->returned_qty) + 0 }}
                                 @if ($item->returned_qty > 0)
@@ -119,8 +119,8 @@
                                     <span class="badge bg-success">{{ __('In Warranty') }}</span>
                                 @endif
                             </td>
-                            <td class="fw-medium">{{ $expiry->format('M d, Y') }}</td>
-                            <td>
+                            <td class="fw-medium" data-order="{{ $expiry->timestamp }}">{{ $expiry->format('M d, Y') }}</td>
+                            <td data-order="{{ $daysLeft }}">
                                 @if ($fullyReturned)
                                     <span class="text-muted">—</span>
                                 @elseif ($daysLeft < 0)
@@ -134,23 +134,20 @@
                                 @endif
                             </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="text-center py-5">
-                                <i class="fa-solid fa-shield-halved fs-2 text-secondary opacity-50 d-block mb-2"></i>
-                                <p class="text-muted mb-0">{{ __('No warranty records found.') }}</p>
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
-
-        @if ($warranties->hasPages())
-            <div class="card-footer bg-white">
-                {{ $warranties->links() }}
-            </div>
-        @endif
     </div>
 
 @endsection
+
+@push('scripts')
+<script>
+    $(function () {
+        $('#warranties-table').DataTable({
+            order: [],
+        });
+    });
+</script>
+@endpush

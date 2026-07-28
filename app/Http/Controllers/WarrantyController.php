@@ -34,8 +34,7 @@ class WarrantyController extends Controller
             ->when($request->filled('expiry_to'), fn ($q) => $q->whereRaw("{$expirySql} <= ?", [$request->expiry_to]))
             ->with(['sale.customer', 'product'])
             ->orderByRaw("{$expirySql} asc")
-            ->paginate(15)
-            ->withQueryString();
+            ->get();
 
         $customers = Customer::orderBy('name')->get(['id', 'name']);
         $products = Product::whereNotNull('warranty_months')->orderBy('name')->get(['id', 'name']);

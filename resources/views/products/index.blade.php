@@ -83,7 +83,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($products as $product)
+                    @foreach ($products as $product)
                         <tr>
                             @can('sync ebay products')
                                 @if ($ebayAccounts->isNotEmpty())
@@ -252,19 +252,7 @@
                                 </div>
                             </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="10" class="text-center py-5">
-                                <i class="fa-solid fa-box fs-2 text-secondary opacity-50 d-block mb-2"></i>
-                                <p class="text-muted mb-2">{{ __('No products found.') }}</p>
-                                @can('create products')
-                                    <a href="{{ route('products.create') }}" class="btn btn-sm btn-dark">
-                                        {{ __('Add your first product') }}
-                                    </a>
-                                @endcan
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>

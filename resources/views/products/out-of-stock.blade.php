@@ -19,7 +19,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('Products with no stock left to sell.') }}</p>
-                <span class="text-muted" style="font-size:12px;">{{ $products->total() }} {{ Str::plural('product', $products->total()) }} out of stock</span>
+                <span class="text-muted" style="font-size:12px;">{{ $products->count() }} {{ Str::plural('product', $products->count()) }} out of stock</span>
             </div>
             @can('create inventories')
             <a href="{{ route('inventories.index') }}" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
@@ -30,7 +30,7 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="out-of-stock-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>{{ __('Product') }}</th>
@@ -42,7 +42,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($products as $product)
+                    @foreach ($products as $product)
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
@@ -68,23 +68,20 @@
                                 <span class="badge bg-danger">{{ ($product->total_qty - $product->sold_qty) + 0 }}</span>
                             </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <i class="fa-solid fa-box-open fs-2 text-secondary opacity-50 d-block mb-2"></i>
-                                <p class="text-muted mb-0">{{ __('No products are out of stock.') }}</p>
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
-
-        @if ($products->hasPages())
-            <div class="card-footer bg-white">
-                {{ $products->links() }}
-            </div>
-        @endif
     </div>
 
 @endsection
+
+@push('scripts')
+<script>
+    $(function () {
+        $('#out-of-stock-table').DataTable({
+            order: [],
+        });
+    });
+</script>
+@endpush

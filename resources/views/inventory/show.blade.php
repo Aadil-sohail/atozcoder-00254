@@ -26,7 +26,7 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="stock-entries-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>{{ __('Quantity Added') }}</th>
@@ -35,29 +35,26 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($entries as $entry)
+                    @foreach ($entries as $entry)
                         <tr>
                             <td class="fw-medium">{{ number_format($entry->quantity, 2) }}</td>
                             <td class="text-secondary">{{ $entry->inserted_by ?? '—' }}</td>
                             <td class="text-secondary">{{ $entry->created_at->format('Y-m-d H:i') }}</td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="3" class="text-center py-5">
-                                <i class="fa-solid fa-boxes-stacked fs-2 text-secondary opacity-50 d-block mb-2"></i>
-                                <p class="text-muted mb-0">{{ __('No stock entries found.') }}</p>
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
-
-        @if ($entries->hasPages())
-            <div class="card-footer bg-white">
-                {{ $entries->links() }}
-            </div>
-        @endif
     </div>
 
 @endsection
+
+@push('scripts')
+<script>
+    $(function () {
+        $('#stock-entries-table').DataTable({
+            order: [],
+        });
+    });
+</script>
+@endpush

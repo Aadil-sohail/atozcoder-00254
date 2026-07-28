@@ -21,7 +21,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <h5 class="mb-1 fw-semibold">{{ $category->name }}</h5>
-                <span class="text-muted small">{{ $products->total() }} {{ Str::plural('product', $products->total()) }} in this category</span>
+                <span class="text-muted small">{{ $products->count() }} {{ Str::plural('product', $products->count()) }} in this category</span>
             </div>
             <a href="{{ route('inventories.index') }}" class="btn btn-dark btn-sm">
                 <i class="fa-solid fa-arrow-left me-1"></i>{{ __('Back') }}
@@ -29,16 +29,16 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="category-products-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>{{ __('Product') }}</th>
                         <th>{{ __('Stock') }}</th>
-                        <th>{{ __('Actions') }}</th>
+                        <th class="no-sort">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($products as $product)
+                    @foreach ($products as $product)
                         <tr>
                             <td class="fw-medium">{{ $product->name }}</td>
                             @php $available = $product->total_qty - $product->sold_qty; @endphp
@@ -52,23 +52,23 @@
                                 </a>
                             </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="3" class="text-center py-5">
-                                <i class="fa-solid fa-box fs-2 text-secondary opacity-50 d-block mb-2"></i>
-                                <p class="text-muted mb-0">{{ __('No products in this category.') }}</p>
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
-
-        @if ($products->hasPages())
-            <div class="card-footer bg-white">
-                {{ $products->links() }}
-            </div>
-        @endif
     </div>
 
 @endsection
+
+@push('scripts')
+<script>
+    $(function () {
+        $('#category-products-table').DataTable({
+            columnDefs: [
+                { orderable: false, targets: 'no-sort' },
+            ],
+            order: [],
+        });
+    });
+</script>
+@endpush
