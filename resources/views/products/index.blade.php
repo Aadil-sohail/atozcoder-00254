@@ -28,7 +28,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('Manage the spare part products available across the system.') }}</p>
-                <span class="text-muted" style="font-size:12px;">{{ $products->total() }} {{ Str::plural('product', $products->total()) }} total</span>
+                <span class="text-muted" style="font-size:12px;">{{ $products->count() }} {{ Str::plural('product', $products->count()) }} total</span>
             </div>
             <div class="d-flex align-items-center gap-2">
                 @can('sync ebay products')
@@ -45,6 +45,11 @@
                     @endif
                 @endcan
                 @can('create products')
+                <button type="button" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-2"
+                    data-bs-toggle="modal" data-bs-target="#excelImportModal">
+                    <i class="fa-solid fa-file-excel"></i>
+                    {{ __('Import from Excel') }}
+                </button>
                 <a href="{{ route('products.create') }}" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
                     <i class="fa-solid fa-plus"></i>
                     {{ __('Add Product') }}
@@ -54,17 +59,17 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="products-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
                         @can('sync ebay products')
                             @if ($ebayAccounts->isNotEmpty())
-                            <th style="width:32px;">
+                            <th class="no-sort" style="width:32px;">
                                 <input type="checkbox" class="form-check-input" onclick="toggleAllProducts(this)" title="{{ __('Select all') }}">
                             </th>
                             @endif
                         @endcan
-                        <th style="width:60px;">{{ __('Image') }}</th>
+                        <th class="no-sort" style="width:60px;">{{ __('Image') }}</th>
                         <th>Name</th>
                         <th>SKU</th>
                         <th>Category</th>
@@ -74,7 +79,7 @@
                         @if ($ebayAccounts->isNotEmpty())
                         <th>eBay</th>
                         @endif
-                        <th>Actions</th>
+                        <th class="no-sort">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -263,12 +268,6 @@
                 </tbody>
             </table>
         </div>
-
-        @if ($products->hasPages())
-            <div class="card-footer bg-white">
-                {{ $products->links() }}
-            </div>
-        @endif
     </div>
 
     @can('sync ebay products')
@@ -358,10 +357,69 @@
         @endif
     @endcan
 
+    @can('create products')
+        <div class="modal fade" id="excelImportModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form id="excel-import-form" class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fa-solid fa-file-excel me-2"></i>{{ __('Import Products from Excel') }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small text-muted mb-3">
+                            {{ __('Upload a supplier spreadsheet (xlsx, xls or csv) .') }}
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">{{ __('Category') }}</label>
+                            <select id="excel-import-category" class="form-select form-select-sm" required>
+                                <option value="" disabled selected>{{ __('Select a category') }}</option>
+                                @foreach ($categories as $categoryOption)
+                                    <option value="{{ $categoryOption->id }}">{{ $categoryOption->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-1">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <label class="form-label small text-muted mb-1">{{ __('Spreadsheet file') }}</label>
+                                <a href="{{ asset('samples/product-import-sample.csv') }}" download class="small text-decoration-none">
+                                    <i class="fa-solid fa-download me-1"></i>{{ __('Sample file') }}
+                                </a>
+                            </div>
+                            <input type="file" id="excel-import-file" class="form-control form-control-sm" accept=".xlsx,.xls,.csv" required>
+                        </div>
+                        <div id="excel-import-progress" class="mt-3 d-none">
+                            <div class="progress" style="height: 6px;">
+                                <div id="excel-import-progress-bar" class="progress-bar bg-dark" style="width: 0%;"></div>
+                            </div>
+                            <p id="excel-import-progress-label" class="small text-muted mb-0 mt-1">{{ __('Uploading...') }}</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                        <button type="submit" id="excel-import-submit" class="btn btn-dark btn-sm">
+                            <i class="fa-solid fa-upload me-1"></i>{{ __('Import') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endcan
+
 @endsection
 
 @push('scripts')
 <script>
+    $(function () {
+        $('#products-table').DataTable({
+            columnDefs: [
+                { orderable: false, targets: 'no-sort' },
+            ],
+            order: [],
+            pageLength: 10,
+            lengthMenu: [10, 25, 50, 100],
+        });
+    });
+
     function toggleAllProducts(source) {
         document.querySelectorAll('.product-select').forEach(cb => cb.checked = source.checked);
     }
@@ -389,5 +447,117 @@
 
         new bootstrap.Modal(document.getElementById('ebaySyncModal')).show();
     }
+
+    // ── Chunked Excel import ─────────────────────────────────────
+    // Large supplier catalogs (embedded photos, hundreds of rows) can be
+    // tens of MB. Uploading in small chunks means the import never depends
+    // on the server's post_max_size/upload_max_filesize configuration.
+    const EXCEL_IMPORT_CHUNK_SIZE = 1 * 1024 * 1024;
+
+    function generateUploadId() {
+        if (window.crypto && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+    }
+
+    function uploadExcelChunk(uploadId, chunk) {
+        const formData = new FormData();
+        formData.append('_token', @json(csrf_token()));
+        formData.append('upload_id', uploadId);
+        formData.append('chunk', chunk);
+
+        return $.ajax({
+            url: @json(route('products.import.chunk')),
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+        });
+    }
+
+    function finalizeExcelImport(uploadId, filename, categoryId) {
+        return $.ajax({
+            url: @json(route('products.import.finalize')),
+            method: 'POST',
+            data: {
+                _token: @json(csrf_token()),
+                upload_id: uploadId,
+                filename: filename,
+                category_id: categoryId,
+            },
+        });
+    }
+
+    document.getElementById('excel-import-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const fileInput = document.getElementById('excel-import-file');
+        const categoryId = document.getElementById('excel-import-category').value;
+        const file = fileInput.files[0];
+
+        if (! file || ! categoryId) {
+            showAlert('warning', @json(__('Select a category and a file first.')));
+            return;
+        }
+
+        const submitBtn = document.getElementById('excel-import-submit');
+        const progress = document.getElementById('excel-import-progress');
+        const progressBar = document.getElementById('excel-import-progress-bar');
+        const progressLabel = document.getElementById('excel-import-progress-label');
+
+        submitBtn.disabled = true;
+        progress.classList.remove('d-none');
+
+        const uploadId = generateUploadId();
+        const totalChunks = Math.max(1, Math.ceil(file.size / EXCEL_IMPORT_CHUNK_SIZE));
+
+        const resetForm = function () {
+            submitBtn.disabled = false;
+            progress.classList.add('d-none');
+            progressBar.style.width = '0%';
+        };
+
+        const uploadNextChunk = function (index) {
+            if (index >= totalChunks) {
+                progressLabel.textContent = @json(__('Processing...'));
+                progressBar.style.width = '100%';
+
+                finalizeExcelImport(uploadId, file.name, categoryId)
+                    .done(function (response) {
+                        resetForm();
+                        bootstrap.Modal.getInstance(document.getElementById('excelImportModal'))?.hide();
+                        showAlert('success', response.message);
+                        setTimeout(() => window.location.reload(), 1500);
+                    })
+                    .fail(function (xhr) {
+                        resetForm();
+                        showAlert('error', xhr.responseJSON?.message || @json(__('Import failed.')));
+                    });
+
+                return;
+            }
+
+            const start = index * EXCEL_IMPORT_CHUNK_SIZE;
+            const chunk = file.slice(start, start + EXCEL_IMPORT_CHUNK_SIZE);
+
+            uploadExcelChunk(uploadId, chunk)
+                .done(function () {
+                    const percent = Math.round(((index + 1) / totalChunks) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressLabel.textContent = @json(__('Uploading...')) + ' ' + (index + 1) + '/' + totalChunks;
+                    uploadNextChunk(index + 1);
+                })
+                .fail(function (xhr) {
+                    resetForm();
+                    showAlert('error', xhr.responseJSON?.message || @json(__('Upload failed.')));
+                });
+        };
+
+        uploadNextChunk(0);
+    });
 </script>
 @endpush

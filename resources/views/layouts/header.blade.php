@@ -21,6 +21,9 @@
         <!-- Dropify -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dropify@0.2.2/dist/css/dropify.min.css">
 
+        <!-- DataTables -->
+        <link rel="stylesheet" href="https://cdn.datatables.net/v/bs5/dt-3.0.0/datatables.min.css">
+
         @stack('styles')
         <style>
             body { background-color: #f3f4f6; }

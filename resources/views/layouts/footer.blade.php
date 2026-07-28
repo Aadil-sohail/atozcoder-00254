@@ -6,6 +6,9 @@
 <!-- jQuery -->
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/v/bs5/dt-3.0.0/datatables.min.js"></script>
+
 <!-- Dropify -->
 <script src="https://cdn.jsdelivr.net/npm/dropify@0.2.2/dist/js/dropify.min.js"></script>
 

@@ -7,15 +7,21 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\EbayAccount;
 use App\Models\Product;
+use App\Services\ChunkedUploadStore;
+use App\Services\ProductExcelImporter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Throwable;
 
 class ProductController extends Controller
 {
     public function __construct()
     {
         $this->middleware('permission:view products')->only(['index', 'show', 'outOfStock']);
-        $this->middleware('permission:create products')->only(['create', 'store']);
+        $this->middleware('permission:create products')->only(['create', 'store', 'importChunk', 'importFinalize']);
         $this->middleware('permission:edit products')->only(['edit', 'update']);
         $this->middleware('permission:delete products')->only('destroy');
     }
@@ -25,10 +31,69 @@ class ProductController extends Controller
      */
     public function index(): View
     {
-        $products = Product::where(['status' => '1','status'=>'1'])->with(['category', 'ebayListings.ebayAccount'])->orderBy('name')->paginate(10);
+        $products = Product::where('status', '1')->with(['category', 'ebayListings.ebayAccount'])->orderBy('name')->get();
         $ebayAccounts = EbayAccount::where('status', '1')->orderBy('store_name')->get();
+        $categories = Category::where('status', '1')->orderBy('name')->get();
 
-        return view('products.index', compact('products', 'ebayAccounts'));
+        return view('products.index', compact('products', 'ebayAccounts', 'categories'));
+    }
+
+    /**
+     * Receive one chunk of a spreadsheet being uploaded for import and
+     * append it to the file being assembled for this upload_id. Uploading
+     * in small chunks means a large supplier catalog never needs a single
+     * oversized HTTP request that could exceed the host's upload limits.
+     */
+    public function importChunk(Request $request, ChunkedUploadStore $uploads): JsonResponse
+    {
+        $request->validate([
+            'upload_id' => ['required', 'uuid'],
+            'chunk' => ['required', 'file', 'max:5120'],
+        ]);
+
+        $uploads->appendChunk($request->upload_id, $request->file('chunk'));
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Assemble the uploaded chunks into a spreadsheet and import it into the
+     * chosen category. Rows matching an existing SKU are restocked; unknown
+     * SKUs are created fresh.
+     */
+    public function importFinalize(Request $request, ChunkedUploadStore $uploads, ProductExcelImporter $importer): JsonResponse
+    {
+        $request->validate([
+            'upload_id' => ['required', 'uuid'],
+            'filename' => ['required', 'string', 'max:255'],
+            'category_id' => ['required', 'exists:categories,id'],
+        ]);
+
+        $category = Category::findOrFail($request->category_id);
+
+        try {
+            $path = $uploads->finalize($request->upload_id, $request->filename);
+            $result = $importer->import($path, $category, auth()->user()->name);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => 'Import failed: '.$e->getMessage()], 422);
+        } finally {
+            $uploads->cleanup($request->upload_id);
+        }
+
+        if ($result['created'] === 0 && $result['restocked'] === 0) {
+            return response()->json(['message' => 'No matching rows were found in the file. Make sure it has columns for SKU/chassis number, product name, price and quantity.'], 422);
+        }
+
+        $message = "{$result['created']} new ".Str::plural('product', $result['created']).' created, '
+            ."{$result['restocked']} existing ".Str::plural('product', $result['restocked']).' restocked.';
+
+        if ($result['skipped'] > 0) {
+            $message .= " {$result['skipped']} ".Str::plural('row', $result['skipped']).' skipped.';
+        }
+
+        return response()->json(['message' => $message]);
     }
 
     /**
