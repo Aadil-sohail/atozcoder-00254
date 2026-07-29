@@ -1,6 +1,6 @@
 <aside id="sidebar">
     @php($sidebarCompany = $globalCompany ?? \App\Models\Company::first())
-    <div class="d-flex align-items-center gap-2 px-3 border-bottom border-secondary" style="height:64px;">
+    <div id="sidebar-brand" class="d-flex align-items-center gap-2 px-3 border-bottom border-secondary" style="height:64px;">
         @if ($sidebarCompany?->company_logo)
             <img src="{{ asset($sidebarCompany->company_logo) }}" alt="{{ $sidebarCompany->company_name ?? config('app.name') }}"
                 class="bg-white flex-shrink-0" style="width: 200px; height:60px; object-fit:cover;">

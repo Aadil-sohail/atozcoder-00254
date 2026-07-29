@@ -29,11 +29,40 @@
             body { background-color: #f3f4f6; }
             #sidebar {
                 width: 256px;
-                min-height: 100vh;
                 background-color: #111827;
                 flex-shrink: 0;
                 transition: transform 0.2s ease-in-out;
+                display: flex;
+                flex-direction: column;
             }
+            @media (min-width: 992px) {
+                /* Pin the sidebar to the viewport so the nav stays reachable
+                   however far the page content scrolls. */
+                #sidebar {
+                    position: sticky;
+                    top: 0;
+                    align-self: flex-start;
+                    height: 100vh;
+                }
+            }
+            /* The brand stays put; only the nav scrolls, and only when it has to. */
+            #sidebar-brand { flex-shrink: 0; }
+            #sidebar nav {
+                flex: 1;
+                min-height: 0;                  /* lets the nav shrink so overflow can kick in */
+                overflow-y: auto;
+                overscroll-behavior: contain;   /* don't chain the scroll to the page */
+                padding-bottom: 12px;
+                scrollbar-width: thin;
+                scrollbar-color: #374151 transparent;
+            }
+            #sidebar nav::-webkit-scrollbar { width: 6px; }
+            #sidebar nav::-webkit-scrollbar-track { background: transparent; }
+            #sidebar nav::-webkit-scrollbar-thumb {
+                background: #374151;
+                border-radius: 3px;
+            }
+            #sidebar nav:hover::-webkit-scrollbar-thumb { background: #4b5563; }
             #sidebar-overlay {
                 display: none;
                 position: fixed;
