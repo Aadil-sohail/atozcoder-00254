@@ -29,9 +29,9 @@
             <table id="stock-entries-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>{{ __('Quantity Added') }}</th>
-                        <th>{{ __('Added By') }}</th>
-                        <th>{{ __('Date') }}</th>
+                        <th>Quantity Added</th>
+                        <th>Added By</th>
+                        <th>Date</th>
                     </tr>
                 </thead>
                 <tbody>

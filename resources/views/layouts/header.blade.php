@@ -113,6 +113,30 @@
             }
             .user-dropdown-menu a:hover,
             .user-dropdown-menu button:hover { background-color: #f3f4f6; }
+
+            /* ── DataTables column alignment ──────────────────────────────
+               DataTables 3 auto-detects numeric/date columns, right-aligns
+               them and flips the sort arrow to the opposite edge. In a wide
+               table that strands each heading and its arrow at opposite
+               sides and makes the alignment look arbitrary. Keep every
+               column left-aligned with its arrow beside the title.
+               Selectors mirror DataTables' own so they win on source order
+               rather than !important. */
+            table.dataTable th.dt-type-numeric,
+            table.dataTable th.dt-type-date,
+            table.dataTable td.dt-type-numeric,
+            table.dataTable td.dt-type-date { text-align: left; }
+
+            table.dataTable th.dt-type-numeric div.dt-column-header,
+            table.dataTable th.dt-type-date div.dt-column-header,
+            table.dataTable td.dt-type-numeric div.dt-column-header,
+            table.dataTable td.dt-type-date div.dt-column-header { flex-direction: row; }
+
+            table.dataTable thead > tr > th div.dt-column-header,
+            table.dataTable thead > tr > td div.dt-column-header { justify-content: flex-start; }
+
+            table.dataTable thead > tr > th div.dt-column-header .dt-column-title,
+            table.dataTable thead > tr > td div.dt-column-header .dt-column-title { flex-grow: 0; }
         </style>
     </head>
     <body>
