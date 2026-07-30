@@ -52,8 +52,17 @@
                 </div>
 
                 <div class="col-md-6">
+                    <p class="text-muted small mb-1">{{ __('Variant') }}</p>
+                    <p class="fw-medium mb-0">{{ $product->variant ?? '—' }}</p>
+                </div>
+
+                <div class="col-md-6">
                     <p class="text-muted small mb-1">{{ __('Category') }}</p>
                     <p class="fw-medium mb-0">{{ $product->category->name ?? '—' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="text-muted small mb-1">{{ __('Subcategory') }}</p>
+                    <p class="fw-medium mb-0">{{ $product->subcategory->name ?? '—' }}</p>
                 </div>
 
                 <div class="col-md-6">

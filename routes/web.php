@@ -15,6 +15,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\SmtpSettingController;
+use App\Http\Controllers\SubcategoryController;
 use App\Http\Controllers\WarrantyController;
 
 Route::get('/', function () {
@@ -73,6 +74,13 @@ Route::middleware('auth')->group(function () {
     Route::match(['put', 'patch'], '/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
     Route::post('/categories/check-name', [CategoryController::class, 'checkName'])->name('categories.check-name');
+
+    // Sub Categories
+    Route::get('/subcategories', [SubcategoryController::class, 'index'])->name('subcategories.index');
+    Route::post('/subcategories', [SubcategoryController::class, 'store'])->name('subcategories.store');
+    Route::match(['put', 'patch'], '/subcategories/{subcategory}', [SubcategoryController::class, 'update'])->name('subcategories.update');
+    Route::delete('/subcategories/{subcategory}', [SubcategoryController::class, 'destroy'])->name('subcategories.destroy');
+    Route::post('/subcategories/check-name', [SubcategoryController::class, 'checkName'])->name('subcategories.check-name');
 
     // Out of stock products
     Route::get('/out-of-stock', [ProductController::class, 'outOfStock'])->name('out-of-stock.index');

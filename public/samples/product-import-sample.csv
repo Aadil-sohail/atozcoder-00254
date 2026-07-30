@@ -1,4 +1,5 @@
-Chassis Number,Product Name,Price,Quantity
-F20,BMW 1 Series 2012-2016 Xenon Headlight,800,10
-F22,BMW 2 Series 2017-2021 LED Headlight,1050,40
-F35,BMW 3 Series 2013-2015 Xenon Headlight,550,25
+Chassis Number,Product Name,Price,Quantity,Variant,Product SKU
+F20,BMW 1 Series 2012-2016 Headlight,800,10,Xenon Left,BMW-F20-XEN-L
+F20,BMW 1 Series 2012-2016 Headlight,800,6,Xenon Right,BMW-F20-XEN-R
+F22,BMW 2 Series 2017-2021 Headlight,1050,40,LED Left,BMW-F22-LED-L
+F35,BMW 3 Series 2013-2015 Headlight,550,25,Xenon Right,BMW-F35-XEN-R

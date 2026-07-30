@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\EbayAccount;
 use App\Models\Product;
+use App\Models\Subcategory;
 use App\Services\ChunkedUploadStore;
 use App\Services\ProductExcelImporter;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,8 @@ use Throwable;
 
 class ProductController extends Controller
 {
+    protected $filter = ['status' => '1', 'close' => '1'];
+
     public function __construct()
     {
         $this->middleware('permission:view products')->only(['index', 'show', 'outOfStock']);
@@ -33,9 +36,8 @@ class ProductController extends Controller
     {
         $products = Product::where('status', '1')->with(['category', 'ebayListings.ebayAccount'])->orderBy('name')->get();
         $ebayAccounts = EbayAccount::where('status', '1')->orderBy('store_name')->get();
-        $categories = Category::where('status', '1')->orderBy('name')->get();
 
-        return view('products.index', compact('products', 'ebayAccounts', 'categories'));
+        return view('products.index', compact('products', 'ebayAccounts'));
     }
 
     /**
@@ -57,23 +59,21 @@ class ProductController extends Controller
     }
 
     /**
-     * Assemble the uploaded chunks into a spreadsheet and import it into the
-     * chosen category. Rows matching an existing SKU are restocked; unknown
-     * SKUs are created fresh.
+     * Assemble the uploaded chunks into a spreadsheet and import it. Rows
+     * matching an existing product SKU are restocked; unknown SKUs are created
+     * fresh, filed under the sub category (and its category) named by the
+     * row's chassis number.
      */
     public function importFinalize(Request $request, ChunkedUploadStore $uploads, ProductExcelImporter $importer): JsonResponse
     {
         $request->validate([
             'upload_id' => ['required', 'uuid'],
             'filename' => ['required', 'string', 'max:255'],
-            'category_id' => ['required', 'exists:categories,id'],
         ]);
-
-        $category = Category::findOrFail($request->category_id);
 
         try {
             $path = $uploads->finalize($request->upload_id, $request->filename);
-            $result = $importer->import($path, $category, auth()->user()->name);
+            $result = $importer->import($path, auth()->user()->name);
         } catch (Throwable $e) {
             report($e);
 
@@ -83,17 +83,35 @@ class ProductController extends Controller
         }
 
         if ($result['created'] === 0 && $result['restocked'] === 0) {
-            return response()->json(['message' => 'No matching rows were found in the file. Make sure it has columns for SKU/chassis number, product name, price and quantity.'], 422);
+            return response()->json(['message' => 'No matching rows were found in the file. Make sure it has columns for chassis number, product name, product SKU, price and quantity.'], 422);
         }
 
         $message = "{$result['created']} new ".Str::plural('product', $result['created']).' created, '
             ."{$result['restocked']} existing ".Str::plural('product', $result['restocked']).' restocked.';
 
-        if ($result['skipped'] > 0) {
-            $message .= " {$result['skipped']} ".Str::plural('row', $result['skipped']).' skipped.';
+        if ($result['subcategories_created'] !== []) {
+            $count = count($result['subcategories_created']);
+            $message .= " {$count} new ".Str::plural('sub category', $count)
+                .' added under "Excel Imports": '.$this->listNames($result['subcategories_created']).'.';
         }
 
         return response()->json(['message' => $message]);
+    }
+
+    /**
+     * Render a list of names for a status message, capped so a large import
+     * cannot produce a wall of text.
+     *
+     * @param  list<string>  $names
+     */
+    private function listNames(array $names): string
+    {
+        $shown = array_slice($names, 0, 5);
+        $list = implode(', ', $shown);
+
+        return count($names) > count($shown)
+            ? $list.' and '.(count($names) - count($shown)).' more'
+            : $list;
     }
 
     /**
@@ -125,9 +143,10 @@ class ProductController extends Controller
      */
     public function create(): View
     {
-        $categories = Category::where(['status' => '1','status'=>'1'])->orderBy('name')->get();
+        $categories = Category::where($this->filter)->orderBy('name')->get();
+        $Subcategories = Subcategory::where($this->filter)->orderBy('name')->get();
 
-        return view('products.create', compact('categories'));
+        return view('products.create', compact('categories', 'Subcategories'));
     }
 
     /**
@@ -140,6 +159,7 @@ class ProductController extends Controller
         Product::create([
             'name' => $request->name,
             'sku' => $request->sku,
+            'variant' => $request->variant,
             'description' => $request->description,
             'image' => $images === [] ? null : $images,
             'cost_price' => $request->cost_price,
@@ -150,6 +170,7 @@ class ProductController extends Controller
                 ? now()->addMonths((int) $request->warranty_months)->toDateString()
                 : null,
             'category_id' => $request->category_id,
+            'subcategory_id' => $request->subcategory_id,
             'inserted_by' => auth()->user()->name,
         ]);
 
@@ -161,9 +182,10 @@ class ProductController extends Controller
      */
     public function edit(Product $product): View
     {
-        $categories = Category::where(['status' => '1','close'=>'1'])->orderBy('name')->get();
+        $categories = Category::where($this->filter)->orderBy('name')->get();
+        $Subcategories = Subcategory::where($this->filter)->orderBy('name')->get();
 
-        return view('products.edit', compact('product', 'categories'));
+        return view('products.edit', compact('product', 'categories', 'Subcategories'));
     }
 
     /**
@@ -179,6 +201,7 @@ class ProductController extends Controller
         $product->update([
             'name' => $request->name,
             'sku' => $request->sku,
+            'variant' => $request->variant,
             'description' => $request->description,
             'image' => $images->isEmpty() ? null : $images->all(),
             'cost_price' => $request->cost_price,
@@ -189,6 +212,7 @@ class ProductController extends Controller
                 ? $product->created_at->copy()->addMonths((int) $request->warranty_months)->toDateString()
                 : null,
             'category_id' => $request->category_id,
+            'subcategory_id' => $request->subcategory_id,
         ]);
 
         return redirect()->route('products.index')->with('status', 'Product updated successfully.');

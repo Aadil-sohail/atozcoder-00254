@@ -354,22 +354,25 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <p class="small text-muted mb-3">
+                        <p class="small text-muted mb-2">
                             {{ __('Upload a supplier spreadsheet (xlsx, xls or csv) .') }}
                         </p>
-                        <div class="mb-3">
-                            <label class="form-label small text-muted mb-1">{{ __('Category') }}</label>
-                            <select id="excel-import-category" class="form-select form-select-sm" required>
-                                <option value="" disabled selected>{{ __('Select a category') }}</option>
-                                @foreach ($categories as $categoryOption)
-                                    <option value="{{ $categoryOption->id }}">{{ $categoryOption->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                        <ul class="small text-muted ps-3 mb-3">
+                            <li>{{ __('Rows are matched on Product SKU — an existing product is restocked, a new one is created.') }}</li>
+                            <li>{{ __('Each row\'s chassis number is its sub category — the product is filed under it and its category automatically.') }}</li>
+                            <li>{{ __('A chassis number that isn\'t in the system yet is added as a sub category under "Excel Imports", ready to be moved to the right category.') }}</li>
+                        </ul>
                         <div class="mb-1">
                             <div class="d-flex align-items-center justify-content-between">
                                 <label class="form-label small text-muted mb-1">{{ __('Spreadsheet file') }}</label>
-                                <a href="{{ asset('samples/product-import-sample.csv') }}" download class="small text-decoration-none">
+                                @php
+                                    // Stamped with the file's mtime so editing the sample invalidates
+                                    // whatever copy the browser cached from an earlier download.
+                                    $samplePath = public_path('samples/product-import-sample.csv');
+                                    $sampleUrl = asset('samples/product-import-sample.csv')
+                                        .(is_file($samplePath) ? '?v='.filemtime($samplePath) : '');
+                                @endphp
+                                <a href="{{ $sampleUrl }}" download class="small text-decoration-none">
                                     <i class="fa-solid fa-download me-1"></i>{{ __('Sample file') }}
                                 </a>
                             </div>
@@ -467,7 +470,7 @@
         });
     }
 
-    function finalizeExcelImport(uploadId, filename, categoryId) {
+    function finalizeExcelImport(uploadId, filename) {
         return $.ajax({
             url: @json(route('products.import.finalize')),
             method: 'POST',
@@ -475,7 +478,6 @@
                 _token: @json(csrf_token()),
                 upload_id: uploadId,
                 filename: filename,
-                category_id: categoryId,
             },
         });
     }
@@ -484,11 +486,10 @@
         e.preventDefault();
 
         const fileInput = document.getElementById('excel-import-file');
-        const categoryId = document.getElementById('excel-import-category').value;
         const file = fileInput.files[0];
 
-        if (! file || ! categoryId) {
-            showAlert('warning', @json(__('Select a category and a file first.')));
+        if (! file) {
+            showAlert('warning', @json(__('Select a file first.')));
             return;
         }
 
@@ -514,7 +515,7 @@
                 progressLabel.textContent = @json(__('Processing...'));
                 progressBar.style.width = '100%';
 
-                finalizeExcelImport(uploadId, file.name, categoryId)
+                finalizeExcelImport(uploadId, file.name)
                     .done(function (response) {
                         resetForm();
                         bootstrap.Modal.getInstance(document.getElementById('excelImportModal'))?.hide();

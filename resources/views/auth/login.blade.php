@@ -108,7 +108,7 @@
         }
 
         .logo-plate img {
-            max-height: 40px;
+            max-height: 100px;
             max-width: 190px;
             object-fit: contain;
             display: block;
