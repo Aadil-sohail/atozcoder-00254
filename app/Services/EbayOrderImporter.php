@@ -13,9 +13,7 @@ use Illuminate\Support\Str;
 
 class EbayOrderImporter
 {
-    public function __construct(private EbayService $ebay)
-    {
-    }
+    public function __construct(private EbayService $ebay) {}
 
     /**
      * Pull recent orders for the store and create a local sale for each one
@@ -45,7 +43,17 @@ class EbayOrderImporter
     {
         $orderId = $order['orderId'] ?? null;
 
-        if (! $orderId || Sale::where('ebay_order_id', $orderId)->exists()) {
+        if (! $orderId) {
+            return false;
+        }
+
+        // An order recovered from the Trading API is keyed by its legacy id;
+        // the same order, once searchable via the Fulfillment API, arrives
+        // under a different orderId but still reports that legacy id. Checking
+        // both keeps it from being imported a second time.
+        $ids = array_filter([$orderId, $order['legacyOrderId'] ?? null]);
+
+        if (Sale::whereIn('ebay_order_id', $ids)->exists()) {
             return false;
         }
 

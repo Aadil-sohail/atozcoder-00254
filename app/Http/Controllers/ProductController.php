@@ -13,7 +13,9 @@ use App\Services\ProductExcelImporter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
 
@@ -24,7 +26,7 @@ class ProductController extends Controller
     public function __construct()
     {
         $this->middleware('permission:view products')->only(['index', 'show', 'outOfStock']);
-        $this->middleware('permission:create products')->only(['create', 'store', 'importChunk', 'importFinalize']);
+        $this->middleware('permission:create products')->only(['create', 'store', 'importChunk', 'importFinalize', 'importResolve']);
         $this->middleware('permission:edit products')->only(['edit', 'update']);
         $this->middleware('permission:delete products')->only('destroy');
     }
@@ -36,8 +38,11 @@ class ProductController extends Controller
     {
         $products = Product::where('status', '1')->with(['category', 'ebayListings.ebayAccount'])->orderBy('name')->get();
         $ebayAccounts = EbayAccount::where('status', '1')->orderBy('store_name')->get();
+        // Offered in the import modal for rows whose chassis number matched no
+        // sub category, so they can be assigned one without leaving the page.
+        $subcategories = Subcategory::where($this->filter)->with('category')->orderBy('name')->get();
 
-        return view('products.index', compact('products', 'ebayAccounts'));
+        return view('products.index', compact('products', 'ebayAccounts', 'subcategories'));
     }
 
     /**
@@ -82,36 +87,110 @@ class ProductController extends Controller
             $uploads->cleanup($request->upload_id);
         }
 
-        if ($result['created'] === 0 && $result['restocked'] === 0) {
+        if ($result['created'] === 0 && $result['restocked'] === 0 && $result['pending'] === []) {
             return response()->json(['message' => 'No matching rows were found in the file. Make sure it has columns for chassis number, product name, product SKU, price and quantity.'], 422);
         }
 
-        $message = "{$result['created']} new ".Str::plural('product', $result['created']).' created, '
-            ."{$result['restocked']} existing ".Str::plural('product', $result['restocked']).' restocked.';
-
-        if ($result['subcategories_created'] !== []) {
-            $count = count($result['subcategories_created']);
-            $message .= " {$count} new ".Str::plural('sub category', $count)
-                .' added under "Excel Imports": '.$this->listNames($result['subcategories_created']).'.';
-        }
-
-        return response()->json(['message' => $message]);
+        return response()->json([
+            'message' => $this->importSummary($result['created'], $result['restocked']),
+            'pending' => $this->stashPending($request->upload_id, $result['pending']),
+        ]);
     }
 
     /**
-     * Render a list of names for a status message, capped so a large import
-     * cannot produce a wall of text.
-     *
-     * @param  list<string>  $names
+     * Import the rows held back by importFinalize, against the sub category
+     * the user picked for each chassis number.
      */
-    private function listNames(array $names): string
+    public function importResolve(Request $request, ProductExcelImporter $importer): JsonResponse
     {
-        $shown = array_slice($names, 0, 5);
-        $list = implode(', ', $shown);
+        $validated = $request->validate([
+            'upload_id' => ['required', 'uuid'],
+            'mappings' => ['required', 'array', 'min:1'],
+            'mappings.*.chassis' => ['required', 'string'],
+            'mappings.*.subcategory_id' => [
+                'required',
+                Rule::exists('subcategories', 'id')->where('status', '1')->where('close', '1'),
+            ],
+        ]);
 
-        return count($names) > count($shown)
-            ? $list.' and '.(count($names) - count($shown)).' more'
-            : $list;
+        $rows = Cache::get($this->pendingCacheKey($validated['upload_id']));
+
+        if (! $rows) {
+            return response()->json(['message' => 'This import is no longer available — please upload the file again.'], 422);
+        }
+
+        $subcategories = Subcategory::whereIn('id', array_column($validated['mappings'], 'subcategory_id'))
+            ->get()
+            ->keyBy('id');
+
+        $subcategoryByChassis = [];
+
+        foreach ($validated['mappings'] as $mapping) {
+            $subcategoryByChassis[$mapping['chassis']] = $subcategories[$mapping['subcategory_id']];
+        }
+
+        try {
+            $result = $importer->importPending($rows, $subcategoryByChassis, auth()->user()->name);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => 'Import failed: '.$e->getMessage()], 422);
+        }
+
+        Cache::forget($this->pendingCacheKey($validated['upload_id']));
+
+        return response()->json(['message' => $this->importSummary($result['created'], $result['restocked'])]);
+    }
+
+    /**
+     * Hold the rows that still need a sub category server-side for the
+     * follow-up request, and return them grouped by chassis number for the
+     * modal to render. Keeping the parsed rows here rather than round-tripping
+     * them through the browser means the prices and quantities that get
+     * imported are the ones that were actually in the file.
+     *
+     * @param  list<array{chassis: string, sku: string, name: string, variant: ?string, price: float, quantity: float}>  $pending
+     * @return list<array{chassis: string, products: list<array{name: string, sku: string, variant: ?string, quantity: float}>}>
+     */
+    private function stashPending(string $uploadId, array $pending): array
+    {
+        if ($pending === []) {
+            return [];
+        }
+
+        Cache::put($this->pendingCacheKey($uploadId), $pending, now()->addMinutes(30));
+
+        $groups = [];
+
+        foreach ($pending as $row) {
+            // Grouped on the normalized spelling so "F20" and "f20 " ask for a
+            // sub category once, while the group still shows it as written.
+            $key = mb_strtolower((string) preg_replace('/\s+/', ' ', trim($row['chassis'])));
+
+            $groups[$key] ??= ['chassis' => $row['chassis'], 'products' => []];
+            $groups[$key]['products'][] = [
+                'name' => $row['name'],
+                'sku' => $row['sku'],
+                'variant' => $row['variant'],
+                'quantity' => $row['quantity'],
+            ];
+        }
+
+        return array_values($groups);
+    }
+
+    private function pendingCacheKey(string $uploadId): string
+    {
+        return 'product-import-pending:'.auth()->id().':'.$uploadId;
+    }
+
+    /**
+     * One-line summary of what an import pass did.
+     */
+    private function importSummary(int $created, int $restocked): string
+    {
+        return "{$created} new ".Str::plural('product', $created).' created, '
+            ."{$restocked} existing ".Str::plural('product', $restocked).' restocked.';
     }
 
     /**

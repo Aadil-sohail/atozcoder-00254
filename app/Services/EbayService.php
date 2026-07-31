@@ -2,16 +2,17 @@
 
 namespace App\Services;
 
-use Throwable;
-use RuntimeException;
 use App\Models\EbayAccount;
 use App\Models\EbayListing;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use RuntimeException;
+use SimpleXMLElement;
+use Throwable;
 
 class EbayService
 {
@@ -260,7 +261,7 @@ class EbayService
                 $this->logFailure("all shipping service candidates rejected for {$account->marketplace_id}, fulfillment policy not created", $response);
                 throw new RuntimeException(
                     "Could not create a default shipping policy for {$account->marketplace_id}. "
-                    ."This usually means the connected seller is not eligible to sell on that marketplace. "
+                    .'This usually means the connected seller is not eligible to sell on that marketplace. '
                     .'Reconnect this store choosing the marketplace that matches the seller, or create one shipping policy '
                     .'in the eBay Seller Hub for this marketplace and reload this page — it will be selected automatically. '
                     .'(eBay said: '.$this->errorMessage($response).')'
@@ -756,7 +757,164 @@ class EbayService
 
         Log::info('eBay: '.count($orders)." orders fetched for store \"{$account->store_name}\" (last {$lookbackDays} days)");
 
+        $missing = $this->fetchLegacyOrders($account, $lookbackDays, $orders);
+
+        if ($missing !== []) {
+            Log::info('eBay: '.count($missing)." further orders recovered from the Trading API for store \"{$account->store_name}\"");
+        }
+
+        return array_merge($orders, $missing);
+    }
+
+    /**
+     * Orders the Fulfillment search above cannot see.
+     *
+     * eBay only indexes an order for /sell/fulfillment/v1/order once its
+     * payment has settled, so an unpaid order is invisible to that search
+     * while being perfectly readable elsewhere — routinely the case in the
+     * sandbox, where checkouts can sit at orderPaymentStatus=PENDING
+     * indefinitely. The legacy Trading API lists those orders, so it is used
+     * to fill the gap and the results are reshaped to look like Fulfillment
+     * API orders, leaving EbayOrderImporter none the wiser.
+     *
+     * Orders already present in $known are skipped: an order that appears in
+     * both is the same order, identified there by its legacyOrderId.
+     *
+     * @param  list<array<string, mixed>>  $known  orders the Fulfillment search returned
+     * @return list<array<string, mixed>>
+     */
+    private function fetchLegacyOrders(EbayAccount $account, int $lookbackDays, array $known = []): array
+    {
+        $from = now()->utc()->subDays($lookbackDays)->format('Y-m-d\TH:i:s.v\Z');
+        $to = now()->utc()->format('Y-m-d\TH:i:s.v\Z');
+
+        $body = '<?xml version="1.0" encoding="utf-8"?>'
+            .'<GetOrdersRequest xmlns="urn:ebay:apis:eBLBaseComponents">'
+            ."<CreateTimeFrom>{$from}</CreateTimeFrom><CreateTimeTo>{$to}</CreateTimeTo>"
+            .'<OrderRole>Seller</OrderRole><OrderStatus>All</OrderStatus>'
+            .'<DetailLevel>ReturnAll</DetailLevel></GetOrdersRequest>';
+
+        try {
+            $response = Http::withHeaders([
+                'X-EBAY-API-CALL-NAME' => 'GetOrders',
+                'X-EBAY-API-SITEID' => (string) config("ebay.marketplaces.{$account->marketplace_id}.site", 0),
+                'X-EBAY-API-COMPATIBILITY-LEVEL' => '1155',
+                'X-EBAY-API-IAF-TOKEN' => $this->ensureAccessToken($account),
+                'Content-Type' => 'text/xml',
+            ])->withBody($body, 'text/xml')->post($this->tradingApiUrl());
+        } catch (Throwable $e) {
+            // A best-effort top-up: never let it break a sync that already
+            // fetched orders successfully.
+            Log::warning('eBay: Trading API order lookup failed: '.$e->getMessage());
+
+            return [];
+        }
+
+        if ($response->failed()) {
+            Log::warning('eBay: Trading API order lookup returned HTTP '.$response->status());
+
+            return [];
+        }
+
+        $xml = @simplexml_load_string($response->body());
+
+        if ($xml === false) {
+            Log::warning('eBay: Trading API order lookup returned unreadable XML');
+
+            return [];
+        }
+
+        $xml->registerXPathNamespace('e', 'urn:ebay:apis:eBLBaseComponents');
+
+        // Both ids are compared: an order imported from this fallback is keyed
+        // by its legacy id, which is what a Fulfillment order reports as its
+        // legacyOrderId once the payment settles and it becomes searchable.
+        $seen = collect($known)
+            ->flatMap(fn (array $order) => [$order['orderId'] ?? null, $order['legacyOrderId'] ?? null])
+            ->filter()
+            ->all();
+
+        $orders = [];
+
+        foreach ($xml->xpath('//e:OrderArray/e:Order') ?: [] as $order) {
+            $legacyId = (string) $order->OrderID;
+
+            if ($legacyId === '' || in_array($legacyId, $seen, true)) {
+                continue;
+            }
+
+            $orders[] = $this->legacyOrderToFulfillmentShape($order, $legacyId);
+        }
+
         return $orders;
+    }
+
+    /**
+     * Reshape one Trading API <Order> into the subset of the Fulfillment API
+     * order shape that EbayOrderImporter reads.
+     *
+     * @return array<string, mixed>
+     */
+    private function legacyOrderToFulfillmentShape(SimpleXMLElement $order, string $legacyId): array
+    {
+        $lineItems = [];
+
+        foreach ($order->TransactionArray->Transaction ?? [] as $transaction) {
+            $quantity = (float) $transaction->QuantityPurchased;
+            $unitPrice = (float) $transaction->TransactionPrice;
+
+            $lineItems[] = [
+                // The variation SKU wins where present, matching how the
+                // Fulfillment API reports a variation's own SKU.
+                'sku' => (string) ($transaction->Variation->SKU ?? '') ?: (string) ($transaction->Item->SKU ?? ''),
+                'legacyItemId' => (string) $transaction->Item->ItemID,
+                'title' => (string) $transaction->Item->Title,
+                'quantity' => $quantity,
+                // Fulfillment reports the line total; Trading reports unit price.
+                'lineItemCost' => ['value' => (string) round($unitPrice * $quantity, 2)],
+            ];
+        }
+
+        $address = $order->ShippingAddress ?? null;
+
+        return [
+            'orderId' => $legacyId,
+            'legacyOrderId' => $legacyId,
+            'creationDate' => (string) $order->CreatedTime,
+            'orderPaymentStatus' => (string) ($order->CheckoutStatus->Status ?? ''),
+            'cancelStatus' => [
+                'cancelState' => (string) $order->OrderStatus === 'Cancelled' ? 'CANCELED' : 'NONE_REQUESTED',
+            ],
+            'buyer' => ['username' => (string) $order->BuyerUserID],
+            'fulfillmentStartInstructions' => [[
+                'shippingStep' => [
+                    'shipTo' => [
+                        'fullName' => (string) ($address->Name ?? ''),
+                        'email' => (string) ($order->TransactionArray->Transaction[0]->Buyer->Email ?? '') ?: null,
+                        'primaryPhone' => ['phoneNumber' => (string) ($address->Phone ?? '')],
+                        'contactAddress' => [
+                            'addressLine1' => (string) ($address->Street1 ?? ''),
+                            'addressLine2' => (string) ($address->Street2 ?? ''),
+                            'city' => (string) ($address->CityName ?? ''),
+                            'stateOrProvince' => (string) ($address->StateOrProvince ?? ''),
+                            'postalCode' => (string) ($address->PostalCode ?? ''),
+                            'countryCode' => (string) ($address->Country ?? ''),
+                        ],
+                    ],
+                ],
+            ]],
+            'lineItems' => $lineItems,
+        ];
+    }
+
+    /**
+     * Legacy Trading API endpoint for the active environment.
+     */
+    private function tradingApiUrl(): string
+    {
+        return config('ebay.sandbox')
+            ? 'https://api.sandbox.ebay.com/ws/api.dll'
+            : 'https://api.ebay.com/ws/api.dll';
     }
 
     /*
@@ -847,9 +1005,9 @@ class EbayService
     private function postOrderApi(EbayAccount $account): PendingRequest
     {
         return Http::withHeaders([
-                'Authorization' => 'IAF '.$this->ensureAccessToken($account),
-                'X-EBAY-C-MARKETPLACE-ID' => $account->marketplace_id,
-            ])
+            'Authorization' => 'IAF '.$this->ensureAccessToken($account),
+            'X-EBAY-C-MARKETPLACE-ID' => $account->marketplace_id,
+        ])
             ->baseUrl($this->apiBase())
             ->acceptJson();
     }

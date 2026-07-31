@@ -91,6 +91,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/products', [ProductController::class, 'store'])->name('products.store');
     Route::post('/products/import/chunk', [ProductController::class, 'importChunk'])->name('products.import.chunk');
     Route::post('/products/import/finalize', [ProductController::class, 'importFinalize'])->name('products.import.finalize');
+    Route::post('/products/import/resolve', [ProductController::class, 'importResolve'])->name('products.import.resolve');
     Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
     Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
     Route::match(['put', 'patch'], '/products/{product}', [ProductController::class, 'update'])->name('products.update');

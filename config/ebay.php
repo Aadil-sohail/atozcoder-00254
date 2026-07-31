@@ -65,15 +65,17 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    // "site" is the legacy numeric site ID, required by the Trading API that
+    // the order sync falls back to (see EbayService::fetchLegacyOrders).
     'marketplaces' => [
-        'EBAY_US' => ['label' => 'United States', 'currency' => 'USD', 'language' => 'en-US'],
-        'EBAY_GB' => ['label' => 'United Kingdom', 'currency' => 'GBP', 'language' => 'en-GB'],
-        'EBAY_CA' => ['label' => 'Canada', 'currency' => 'CAD', 'language' => 'en-CA'],
-        'EBAY_AU' => ['label' => 'Australia', 'currency' => 'AUD', 'language' => 'en-AU'],
-        'EBAY_DE' => ['label' => 'Germany', 'currency' => 'EUR', 'language' => 'de-DE'],
-        'EBAY_FR' => ['label' => 'France', 'currency' => 'EUR', 'language' => 'fr-FR'],
-        'EBAY_IT' => ['label' => 'Italy', 'currency' => 'EUR', 'language' => 'it-IT'],
-        'EBAY_ES' => ['label' => 'Spain', 'currency' => 'EUR', 'language' => 'es-ES'],
+        'EBAY_US' => ['label' => 'United States', 'currency' => 'USD', 'language' => 'en-US', 'site' => 0],
+        'EBAY_GB' => ['label' => 'United Kingdom', 'currency' => 'GBP', 'language' => 'en-GB', 'site' => 3],
+        'EBAY_CA' => ['label' => 'Canada', 'currency' => 'CAD', 'language' => 'en-CA', 'site' => 2],
+        'EBAY_AU' => ['label' => 'Australia', 'currency' => 'AUD', 'language' => 'en-AU', 'site' => 15],
+        'EBAY_DE' => ['label' => 'Germany', 'currency' => 'EUR', 'language' => 'de-DE', 'site' => 77],
+        'EBAY_FR' => ['label' => 'France', 'currency' => 'EUR', 'language' => 'fr-FR', 'site' => 71],
+        'EBAY_IT' => ['label' => 'Italy', 'currency' => 'EUR', 'language' => 'it-IT', 'site' => 101],
+        'EBAY_ES' => ['label' => 'Spain', 'currency' => 'EUR', 'language' => 'es-ES', 'site' => 186],
     ],
 
     /*

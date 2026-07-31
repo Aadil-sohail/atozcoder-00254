@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Category;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\Subcategory;
@@ -50,15 +49,16 @@ class ProductExcelImporter
      *
      * A row's chassis number names the sub category the product is filed
      * under, and the category that sub category belongs to is applied along
-     * with it. A chassis number the system hasn't seen before is registered as
-     * a sub category on the spot, so an import never stalls on a supplier's
-     * new model code.
+     * with it. Rows whose chassis number matches no sub category are not
+     * imported and not guessed at — they are handed back as "pending" so the
+     * user can pick a sub category for them and import them in a second pass
+     * (see importPending).
      *
      * The file is uploaded to the server in small chunks and reassembled
      * before this runs (see ChunkedUploadStore), so it is always a plain
      * path on disk rather than an UploadedFile tied to a single request.
      *
-     * @return array{created: int, restocked: int, subcategories_created: list<string>}
+     * @return array{created: int, restocked: int, pending: list<array{chassis: string, sku: string, name: string, variant: ?string, price: float, quantity: float}>}
      */
     public function import(string $filePath, string $insertedBy): array
     {
@@ -77,22 +77,20 @@ class ProductExcelImporter
 
         $created = 0;
         $restocked = 0;
-        $newSubcategories = [];
+        $pending = [];
 
-        DB::transaction(function () use ($spreadsheet, $subcategories, $insertedBy, &$created, &$restocked, &$newSubcategories) {
+        DB::transaction(function () use ($spreadsheet, $subcategories, $insertedBy, &$created, &$restocked, &$pending) {
             foreach ($spreadsheet->getAllSheets() as $sheet) {
                 foreach ($this->parseSheet($sheet) as $row) {
-                    $key = $this->normalize($row['chassis']);
+                    $subcategory = $subcategories[$this->normalize($row['chassis'])] ?? null;
 
-                    if (! isset($subcategories[$key])) {
-                        // Added to the lookup as well as the database, so the
-                        // later rows carrying this same chassis number reuse it
-                        // instead of creating a duplicate sub category.
-                        $subcategories[$key] = $this->createSubcategory($row['chassis'], $insertedBy);
-                        $newSubcategories[] = $row['chassis'];
+                    if (! $subcategory) {
+                        $pending[] = $row;
+
+                        continue;
                     }
 
-                    match ($this->importRow($row, $subcategories[$key], $insertedBy)) {
+                    match ($this->importRow($row, $subcategory, $insertedBy)) {
                         'created' => $created++,
                         default => $restocked++,
                     };
@@ -103,37 +101,46 @@ class ProductExcelImporter
         return [
             'created' => $created,
             'restocked' => $restocked,
-            'subcategories_created' => $newSubcategories,
+            'pending' => $pending,
         ];
     }
 
     /**
-     * Register a chassis number the system hasn't seen before as a sub
-     * category. Its category cannot be inferred from the sheet, so it is filed
-     * under a shared import category rather than guessed at — mirroring where
-     * eBay imports park their products — and appears under Sub Categories
-     * ready to be moved somewhere more specific.
+     * Import rows that import() held back, now that a sub category has been
+     * chosen for each chassis number. Rows whose chassis number was left
+     * unassigned are simply not imported.
+     *
+     * @param  list<array{chassis: string, sku: string, name: string, variant: ?string, price: float, quantity: float}>  $rows
+     * @param  array<string, Subcategory>  $subcategoryByChassis  keyed by chassis number, in any spelling
+     * @return array{created: int, restocked: int}
      */
-    private function createSubcategory(string $chassis, string $insertedBy): Subcategory
+    public function importPending(array $rows, array $subcategoryByChassis, string $insertedBy): array
     {
-        return Subcategory::create([
-            'name' => $chassis,
-            'category_id' => $this->importCategory($insertedBy)->id,
-            'inserted_by' => $insertedBy,
-        ]);
-    }
+        $lookup = [];
 
-    /**
-     * Shared category that sub categories created during an import are filed
-     * under. The active flags are part of the match, so a category that was
-     * deleted from the Categories screen is never silently resurrected.
-     */
-    private function importCategory(string $insertedBy): Category
-    {
-        return Category::firstOrCreate(
-            ['name' => 'Excel Imports', 'status' => '1', 'close' => '1'],
-            ['inserted_by' => $insertedBy],
-        );
+        foreach ($subcategoryByChassis as $chassis => $subcategory) {
+            $lookup[$this->normalize((string) $chassis)] = $subcategory;
+        }
+
+        $created = 0;
+        $restocked = 0;
+
+        DB::transaction(function () use ($rows, $lookup, $insertedBy, &$created, &$restocked) {
+            foreach ($rows as $row) {
+                $subcategory = $lookup[$this->normalize($row['chassis'])] ?? null;
+
+                if (! $subcategory) {
+                    continue;
+                }
+
+                match ($this->importRow($row, $subcategory, $insertedBy)) {
+                    'created' => $created++,
+                    default => $restocked++,
+                };
+            }
+        });
+
+        return ['created' => $created, 'restocked' => $restocked];
     }
 
     /**

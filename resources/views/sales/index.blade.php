@@ -60,7 +60,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($sales as $sale)
+                    @foreach ($sales as $sale)
                         <tr>
                             <td>
                                 <a href="{{ route('sales.show', $sale) }}" class="fw-medium text-decoration-none">
@@ -89,19 +89,7 @@
                                 </div>
                             </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <i class="fa-solid fa-receipt fs-2 text-secondary opacity-50 d-block mb-2"></i>
-                                <p class="text-muted mb-2">{{ __('No sales recorded yet.') }}</p>
-                                @can('create sales')
-                                    <a href="{{ route('sales.create') }}" class="btn btn-sm btn-dark">
-                                        {{ __('Create first sale') }}
-                                    </a>
-                                @endcan
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
