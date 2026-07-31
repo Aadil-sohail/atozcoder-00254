@@ -8,17 +8,20 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
+use App\Support\ServerTable;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ReturnController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:view returns')->only(['index', 'show', 'lookupInvoice']);
+        $this->middleware('permission:view returns')->only(['index', 'data', 'show', 'lookupInvoice']);
         $this->middleware('permission:create returns')->only(['create', 'store']);
         $this->middleware('permission:delete returns')->only('destroy');
     }
@@ -28,9 +31,42 @@ class ReturnController extends Controller
      */
     public function index(): View
     {
-        $returns = SaleReturn::with('sale.customer', 'items')->latest()->get();
+        // Rows come from data() a page at a time; only the header count is needed here.
+        $returnCount = SaleReturn::count();
 
-        return view('returns.index', compact('returns'));
+        return view('returns.index', compact('returnCount'));
+    }
+
+    /**
+     * Rows for the returns grid.
+     *
+     * The invoice and customer are joined so both columns sort and search in
+     * SQL; the item count is a withCount sub-query rather than a join, which
+     * keeps one row per return however many items it holds.
+     */
+    public function data(Request $request): JsonResponse
+    {
+        $query = SaleReturn::query()
+            // select() before withCount(): it replaces the select list, and
+            // would otherwise drop the count sub-query withCount just added.
+            ->select('sale_returns.*', 'sales.invoice_no', 'customers.name as customer_name')
+            ->join('sales', 'sales.id', '=', 'sale_returns.sale_id')
+            ->leftJoin('customers', 'customers.id', '=', 'sales.customer_id')
+            ->withCount('items');
+
+        return ServerTable::make($request, $query, [
+            'invoice_no' => 'sales.invoice_no',
+            'customer_name' => 'customers.name',
+            'return_date' => 'sale_returns.return_date',
+            // Sortable only — a count alias cannot appear in a WHERE clause.
+            'items_count' => ['order' => 'items_count'],
+        ], fn (SaleReturn $return) => [
+            'invoice_no' => view('returns.partials.cells.invoice', compact('return'))->render(),
+            'customer_name' => e($return->customer_name ?? '—'),
+            'return_date' => e(Carbon::parse($return->return_date)->format('M d, Y')),
+            'items_count' => e(($count = (int) $return->items_count).' '.Str::plural('item', $count)),
+            'actions' => view('returns.partials.cells.actions', compact('return'))->render(),
+        ]);
     }
 
     /**
@@ -63,21 +99,21 @@ class ReturnController extends Controller
             $remaining = max(0, (float) $saleItem->quantity - $alreadyReturned);
 
             return [
-                'sale_item_id'      => $saleItem->id,
-                'product_id'        => $saleItem->product_id,
-                'name'              => $saleItem->product->name . ($saleItem->product->sku ? ' (' . $saleItem->product->sku . ')' : ''),
-                'quantity'          => (float) $saleItem->quantity,
-                'already_returned'  => $alreadyReturned,
-                'remaining'         => $remaining,
+                'sale_item_id' => $saleItem->id,
+                'product_id' => $saleItem->product_id,
+                'name' => $saleItem->product->name.($saleItem->product->sku ? ' ('.$saleItem->product->sku.')' : ''),
+                'quantity' => (float) $saleItem->quantity,
+                'already_returned' => $alreadyReturned,
+                'remaining' => $remaining,
             ];
         })->values();
 
         return response()->json([
-            'sale_id'    => $sale->id,
+            'sale_id' => $sale->id,
             'invoice_no' => $sale->invoice_no,
-            'customer'   => $sale->customer->name,
-            'sale_date'  => $sale->sale_date,
-            'items'      => $items,
+            'customer' => $sale->customer->name,
+            'sale_date' => $sale->sale_date,
+            'items' => $items,
         ]);
     }
 
@@ -88,7 +124,7 @@ class ReturnController extends Controller
     {
         DB::transaction(function () use ($request) {
             $saleReturn = SaleReturn::create([
-                'sale_id'     => $request->sale_id,
+                'sale_id' => $request->sale_id,
                 'return_date' => $request->return_date,
                 'inserted_by' => auth()->user()->name,
             ]);
@@ -98,11 +134,11 @@ class ReturnController extends Controller
 
                 SaleReturnItem::create([
                     'sale_return_id' => $saleReturn->id,
-                    'sale_item_id'   => $saleItem->id,
-                    'product_id'     => $saleItem->product_id,
-                    'quantity'       => $item['quantity'],
-                    'condition'      => $item['condition'],
-                    'inserted_by'    => auth()->user()->name,
+                    'sale_item_id' => $saleItem->id,
+                    'product_id' => $saleItem->product_id,
+                    'quantity' => $item['quantity'],
+                    'condition' => $item['condition'],
+                    'inserted_by' => auth()->user()->name,
                 ]);
 
                 $saleItem->increment('returned_qty', $item['quantity']);

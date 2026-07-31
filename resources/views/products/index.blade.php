@@ -28,7 +28,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('Manage the spare part products available across the system.') }}</p>
-                <span class="text-muted" style="font-size:12px;">{{ $products->count() }} {{ Str::plural('product', $products->count()) }} total</span>
+                <span class="text-muted" style="font-size:12px;">{{ $productCount }} {{ Str::plural('product', $productCount) }} total</span>
             </div>
             <div class="d-flex align-items-center gap-2">
                 @can('sync ebay products')
@@ -82,178 +82,7 @@
                         <th class="no-sort">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach ($products as $product)
-                        <tr>
-                            @can('sync ebay products')
-                                @if ($ebayAccounts->isNotEmpty())
-                                <td>
-                                    <input type="checkbox" class="form-check-input product-select" value="{{ $product->id }}">
-                                </td>
-                                @endif
-                            @endcan
-                            <td>
-                                @if (! empty($product->image))
-                                    <img src="{{ asset($product->image[0]) }}" alt="{{ $product->name }}"
-                                        class="rounded" style="width:40px; height:40px; object-fit:cover;">
-                                @else
-                                    <div class="d-flex align-items-center justify-content-center rounded bg-light"
-                                        style="width:40px; height:40px;">
-                                        <i class="fa-solid fa-image text-secondary"></i>
-                                    </div>
-                                @endif
-                            </td>
-                            <td>
-                                <a href="{{ route('products.show', $product) }}" class="fw-medium text-dark text-decoration-none">
-                                    {{ $product->name }}
-                                </a>
-                            </td>
-                            <td class="text-secondary">{{ $product->sku ?? '—' }}</td>
-                            <td class="text-secondary">{{ $product->category->name ?? '—' }}</td>
-                            <td class="text-secondary">{{ $product->size ?? '—' }}</td>
-                            <td class="fw-medium">{{ number_format($product->cost_price, 2) }}</td>
-                            <td class="fw-medium">{{ number_format($product->selling_price, 2) }}</td>
-                            @if ($ebayAccounts->isNotEmpty())
-                            <td>
-                                @if ($product->ebayListings->isEmpty())
-                                    <span class="text-muted small">—</span>
-                                @else
-                                    @php
-                                        $statuses = $product->ebayListings->pluck('sync_status');
-                                        $overall = $statuses->contains('failed') ? 'failed'
-                                            : ($statuses->contains('pending') || $statuses->contains('syncing') ? 'pending' : 'synced');
-                                        $badge = match ($overall) {
-                                            'failed' => 'danger',
-                                            'pending' => 'secondary',
-                                            default => 'success',
-                                        };
-                                        $label = match ($overall) {
-                                            'failed' => __('Attention'),
-                                            'pending' => __('Pending'),
-                                            default => __('Synced'),
-                                        };
-                                    @endphp
-                                    <button type="button" class="btn p-0 border-0" data-bs-toggle="modal"
-                                        data-bs-target="#ebayDetails{{ $product->id }}" title="{{ __('View eBay details') }}">
-                                        <span class="badge bg-{{ $badge }}-subtle text-{{ $badge }}-emphasis border border-{{ $badge }}-subtle">
-                                            <i class="fa-brands fa-ebay me-1"></i>{{ $label }}
-                                            @if ($product->ebayListings->count() > 1)
-                                                ({{ $product->ebayListings->count() }})
-                                            @endif
-                                        </span>
-                                    </button>
-
-                                    <div class="modal fade" id="ebayDetails{{ $product->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-lg modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h6 class="modal-title">
-                                                        <i class="fa-brands fa-ebay me-2"></i>{{ $product->name }} — {{ __('eBay Status') }}
-                                                    </h6>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body p-0">
-                                                    <table class="table table-sm align-middle mb-0">
-                                                        <thead class="table-light">
-                                                            <tr>
-                                                                <th class="ps-3">{{ __('Store') }}</th>
-                                                                <th>{{ __('Status') }}</th>
-                                                                <th>{{ __('Last Synced') }}</th>
-                                                                <th class="text-end pe-3">{{ __('Actions') }}</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach ($product->ebayListings as $listing)
-                                                                @php
-                                                                    $rowBadge = match ($listing->sync_status) {
-                                                                        'synced' => 'success',
-                                                                        'failed' => 'danger',
-                                                                        'syncing' => 'info',
-                                                                        default => 'secondary',
-                                                                    };
-                                                                @endphp
-                                                                <tr>
-                                                                    <td class="ps-3 fw-medium">{{ $listing->ebayAccount->store_name ?? 'eBay' }}</td>
-                                                                    <td>
-                                                                        <span class="badge bg-{{ $rowBadge }}-subtle text-{{ $rowBadge }}-emphasis border border-{{ $rowBadge }}-subtle">
-                                                                            {{ ucfirst($listing->sync_status) }}
-                                                                        </span>
-                                                                        @if ($listing->sync_status === 'failed' && $listing->last_error)
-                                                                            <div class="text-danger mt-1" style="font-size:11px; max-width:320px;">
-                                                                                {{ Str::limit($listing->last_error, 180) }}
-                                                                            </div>
-                                                                        @endif
-                                                                    </td>
-                                                                    <td class="text-secondary small">{{ $listing->last_synced_at?->format('M d, H:i') ?? '—' }}</td>
-                                                                    <td class="text-end pe-3">
-                                                                        <div class="d-flex justify-content-end gap-2">
-                                                                            @if ($listing->listing_id)
-                                                                                <a href="{{ (config('ebay.sandbox') ? 'https://sandbox.ebay.com/itm/' : 'https://www.ebay.com/itm/').$listing->listing_id }}"
-                                                                                    target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary"
-                                                                                    title="{{ __('View listing on eBay') }}">
-                                                                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                                                                </a>
-                                                                            @endif
-                                                                            @can('sync ebay products')
-                                                                            <form method="POST" action="{{ route('ebay.listings.destroy', $listing) }}"
-                                                                                onsubmit="return confirmDelete(event, '{{ __('Remove this product from eBay? The live listing will be ended.') }}');">
-                                                                                @csrf
-                                                                                @method('DELETE')
-                                                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ __('Remove from eBay') }}">
-                                                                                    <i class="fa-solid fa-link-slash"></i>
-                                                                                </button>
-                                                                            </form>
-                                                                            @endcan
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-                            </td>
-                            @endif
-                            <td class="text-left">
-                                <div class="d-flex align-items-left justify-content-start gap-2">
-                                    <a href="{{ route('products.show', $product) }}"
-                                        class="btn btn-sm btn-outline-secondary" title="{{ __('View') }}">
-                                        <i class="fa-solid fa-eye"></i>
-                                    </a>
-                                    @can('sync ebay products')
-                                        @if ($ebayAccounts->isNotEmpty())
-                                        <button type="button" class="btn btn-sm btn-outline-dark" title="{{ __('Sync to eBay') }}"
-                                            onclick="openEbaySyncModal({{ $product->id }})">
-                                            <i class="fa-brands fa-ebay"></i>
-                                        </button>
-                                        @endif
-                                    @endcan
-                                    @can('edit products')
-                                    <a href="{{ route('products.edit', $product) }}"
-                                        class="btn btn-sm btn-outline-primary" title="{{ __('Edit') }}">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </a>
-                                    @endcan
-                                    @can('delete products')
-                                        @if ($product->status === '1')
-                                            <form method="POST" action="{{ route('products.destroy', $product) }}" class="d-inline"
-                                                onsubmit="return confirm('{{ __('Disable this product?') }}');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ __('Disable') }}">
-                                                    <i class="fa-solid fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        @endif
-                                    @endcan
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>
@@ -351,14 +180,35 @@
 
 @push('scripts')
 <script>
+    // Rows are fetched a page at a time from products.data — the catalog can
+    // run to thousands of products, which is far too many to render up front.
+    // The column list must line up with the <thead> above, including the
+    // columns that only exist when an eBay store is connected.
     $(function () {
-        $('#products-table').DataTable({
-            columnDefs: [
-                { orderable: false, targets: 'no-sort' },
+        serverTable('#products-table', {
+            url: @json(route('products.data')),
+            columns: [
+                @can('sync ebay products')
+                    @if ($ebayAccounts->isNotEmpty())
+                    { data: 'select', orderable: false, searchable: false },
+                    @endif
+                @endcan
+                { data: 'image', orderable: false, searchable: false },
+                { data: 'name' },
+                { data: 'sku' },
+                { data: 'category_name' },
+                { data: 'size' },
+                { data: 'cost_price' },
+                { data: 'selling_price' },
+                @if ($ebayAccounts->isNotEmpty())
+                { data: 'ebay', orderable: false, searchable: false },
+                @endif
+                { data: 'actions', orderable: false, searchable: false },
             ],
-            order: [],
-            pageLength: 10,
-            lengthMenu: [10, 25, 50, 100],
+            createdRow: function (row) {
+                // Matches the cell classes the server-rendered table used.
+                $('td', row).eq(-1).addClass('text-left');
+            },
         });
     });
 

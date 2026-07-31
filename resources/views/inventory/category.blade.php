@@ -21,7 +21,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <h5 class="mb-1 fw-semibold">{{ $category->name }}</h5>
-                <span class="text-muted small">{{ $products->count() }} {{ Str::plural('product', $products->count()) }} in this category</span>
+                <span class="text-muted small">{{ $productCount }} {{ Str::plural('product', $productCount) }} in this category</span>
             </div>
             <a href="{{ route('inventories.index') }}" class="btn btn-dark btn-sm">
                 <i class="fa-solid fa-arrow-left me-1"></i>{{ __('Back') }}
@@ -37,23 +37,7 @@
                         <th class="no-sort">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach ($products as $product)
-                        <tr>
-                            <td class="fw-medium">{{ $product->name }}</td>
-                            @php $available = $product->total_qty - $product->sold_qty; @endphp
-                            <td class="{{ $available <= 0 ? 'text-danger fw-semibold' : '' }}">
-                                {{ number_format($available, 2) }}
-                            </td>
-                            <td>
-                                <a href="{{ route('inventories.show', $product) }}"
-                                    class="btn btn-sm btn-outline-secondary" title="{{ __('View') }}">
-                                    <i class="fa-solid fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>
@@ -62,12 +46,16 @@
 
 @push('scripts')
 <script>
+    // Rows are fetched a page at a time — see App\Support\ServerTable.
     $(function () {
-        $('#category-products-table').DataTable({
-            columnDefs: [
-                { orderable: false, targets: 'no-sort' },
+        serverTable('#category-products-table', {
+            url: @json(route('inventories.category.data', $category)),
+            columns: [
+                { data: 'name' },
+                { data: 'available_stock', searchable: false },
+                { data: 'actions', orderable: false, searchable: false },
             ],
-            order: [],
+            order: [[0, 'asc']],
         });
     });
 </script>

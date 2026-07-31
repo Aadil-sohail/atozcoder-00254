@@ -26,7 +26,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('Sale returns recorded across all invoices.') }}</p>
-                <span class="text-muted" style="font-size:12px;">{{ $returns->count() }} {{ Str::plural('return', $returns->count()) }} total</span>
+                <span class="text-muted" style="font-size:12px;">{{ $returnCount }} {{ Str::plural('return', $returnCount) }} total</span>
             </div>
             <div class="d-flex align-items-center gap-2">
                 @can('sync ebay products')
@@ -58,37 +58,7 @@
                         <th class="no-sort">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach ($returns as $return)
-                        <tr>
-                            <td>
-                                <a href="{{ route('returns.show', $return) }}" class="fw-medium text-decoration-none">
-                                    {{ $return->sale->invoice_no }}
-                                </a>
-                            </td>
-                            <td class="text-secondary">{{ $return->sale->customer->name }}</td>
-                            <td class="text-secondary" data-order="{{ \Carbon\Carbon::parse($return->return_date)->timestamp }}">{{ \Carbon\Carbon::parse($return->return_date)->format('M d, Y') }}</td>
-                            <td class="text-secondary">{{ $return->items->count() }} {{ Str::plural('item', $return->items->count()) }}</td>
-                            <td>
-                                <div class="d-flex gap-2">
-                                    <a href="{{ route('returns.show', $return) }}" class="btn btn-sm btn-outline-secondary">
-                                        <i class="fa-solid fa-eye"></i>
-                                    </a>
-                                    @can('delete returns')
-                                    <form method="POST" action="{{ route('returns.destroy', $return) }}" class="d-inline"
-                                        onsubmit="return confirmDelete(event, {{ json_encode(__('Delete this return? Any restocked quantity will be removed again.')) }});">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </form>
-                                    @endcan
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>
@@ -97,12 +67,19 @@
 
 @push('scripts')
 <script>
+    // Rows are fetched a page at a time — see App\Support\ServerTable.
     $(function () {
-        $('#returns-table').DataTable({
-            columnDefs: [
-                { orderable: false, targets: 'no-sort' },
+        serverTable('#returns-table', {
+            url: @json(route('returns.data')),
+            columns: [
+                { data: 'invoice_no' },
+                { data: 'customer_name' },
+                { data: 'return_date' },
+                { data: 'items_count', searchable: false },
+                { data: 'actions', orderable: false, searchable: false },
             ],
-            order: [],
+            // Newest returns first, as the page has always shown them.
+            order: [[2, 'desc']],
         });
     });
 </script>

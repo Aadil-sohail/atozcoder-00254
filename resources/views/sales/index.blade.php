@@ -26,7 +26,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('All recorded sales and invoices.') }}</p>
-                <span class="text-muted" style="font-size:12px;">{{ $sales->count() }} {{ Str::plural('sale', $sales->count()) }} total</span>
+                <span class="text-muted" style="font-size:12px;">{{ $saleCount }} {{ Str::plural('sale', $saleCount) }} total</span>
             </div>
             <div class="d-flex align-items-center gap-2">
                 @can('sync ebay products')
@@ -59,38 +59,7 @@
                         <th class="no-sort">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach ($sales as $sale)
-                        <tr>
-                            <td>
-                                <a href="{{ route('sales.show', $sale) }}" class="fw-medium text-decoration-none">
-                                    {{ $sale->invoice_no }}
-                                </a>
-                            </td>
-                            <td class="text-secondary">{{ $sale->customer->name }}</td>
-                            <td class="text-secondary" data-order="{{ \Carbon\Carbon::parse($sale->sale_date)->timestamp }}">{{ \Carbon\Carbon::parse($sale->sale_date)->format('M d, Y') }}</td>
-                            <td class="text-secondary">{{ number_format($sale->discount, 2) }}</td>
-                            <td class="fw-medium">{{ number_format($sale->total_amount, 2) }}</td>
-                            <td>
-                                <div class="d-flex gap-2">
-                                    <a href="{{ route('sales.show', $sale) }}" class="btn btn-sm btn-outline-secondary">
-                                        <i class="fa-solid fa-eye"></i>
-                                    </a>
-                                    @can('delete sales')
-                                    <form method="POST" action="{{ route('sales.destroy', $sale) }}" class="d-inline"
-                                        onsubmit="return confirm('{{ __('Delete this sale? This cannot be undone.') }}');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </form>
-                                    @endcan
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>
@@ -99,12 +68,20 @@
 
 @push('scripts')
 <script>
+    // Rows are fetched a page at a time — see App\Support\ServerTable.
     $(function () {
-        $('#sales-table').DataTable({
-            columnDefs: [
-                { orderable: false, targets: 'no-sort' },
+        serverTable('#sales-table', {
+            url: @json(route('sales.data')),
+            columns: [
+                { data: 'invoice_no' },
+                { data: 'customer_name' },
+                { data: 'sale_date' },
+                { data: 'discount' },
+                { data: 'total_amount' },
+                { data: 'actions', orderable: false, searchable: false },
             ],
-            order: [],
+            // Newest sales first, as the page has always shown them.
+            order: [[2, 'desc']],
         });
     });
 </script>

@@ -60,6 +60,7 @@ Route::middleware('auth')->group(function () {
 
     // Sales
     Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
+    Route::get('/sales/data', [SaleController::class, 'data'])->name('sales.data');
     Route::get('/sales/create', [SaleController::class, 'create'])->name('sales.create');
     Route::post('/sales', [SaleController::class, 'store'])->name('sales.store');
     Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
@@ -67,6 +68,7 @@ Route::middleware('auth')->group(function () {
 
     // Warranties
     Route::get('/warranties', [WarrantyController::class, 'index'])->name('warranties.index');
+    Route::get('/warranties/data', [WarrantyController::class, 'data'])->name('warranties.data');
 
     // Categories
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
@@ -87,6 +89,7 @@ Route::middleware('auth')->group(function () {
 
     // Products
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+    Route::get('/products/data', [ProductController::class, 'data'])->name('products.data');
     Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
     Route::post('/products', [ProductController::class, 'store'])->name('products.store');
     Route::post('/products/import/chunk', [ProductController::class, 'importChunk'])->name('products.import.chunk');
@@ -99,8 +102,10 @@ Route::middleware('auth')->group(function () {
 
     // Inventories
     Route::get('/inventories', [InventoryController::class, 'index'])->name('inventories.index');
+    Route::get('/inventories/data', [InventoryController::class, 'data'])->name('inventories.data');
     Route::post('/inventories', [InventoryController::class, 'store'])->name('inventories.store');
     Route::get('/inventories/category/{category}', [InventoryController::class, 'category'])->name('inventories.category');
+    Route::get('/inventories/category/{category}/data', [InventoryController::class, 'categoryData'])->name('inventories.category.data');
     Route::get('/inventories/{product}', [InventoryController::class, 'show'])->name('inventories.show');
 
     // eBay stores & product sync
@@ -119,6 +124,7 @@ Route::middleware('auth')->group(function () {
 
     // Returns
     Route::get('/returns', [ReturnController::class, 'index'])->name('returns.index');
+    Route::get('/returns/data', [ReturnController::class, 'data'])->name('returns.data');
     Route::get('/returns/create', [ReturnController::class, 'create'])->name('returns.create');
     Route::post('/returns', [ReturnController::class, 'store'])->name('returns.store');
     Route::post('/returns/lookup-invoice', [ReturnController::class, 'lookupInvoice'])->name('returns.lookup-invoice'); //ajax invoice lookup

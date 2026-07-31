@@ -24,6 +24,9 @@
         <!-- DataTables -->
         <link rel="stylesheet" href="https://cdn.datatables.net/v/bs5/dt-3.0.0/datatables.min.css">
 
+        <!-- Loading state for server-side grids, paired with public/js/server-table.js -->
+        <link rel="stylesheet" href="{{ asset('css/server-table.css') }}?v={{ filemtime(public_path('css/server-table.css')) }}">
+
         @stack('styles')
         <style>
             body { background-color: #f3f4f6; }

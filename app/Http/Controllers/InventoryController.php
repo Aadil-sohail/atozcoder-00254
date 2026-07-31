@@ -6,7 +6,10 @@ use App\Http\Requests\StoreInventoryRequest;
 use App\Models\Category;
 use App\Models\Inventory;
 use App\Models\Product;
+use App\Support\ServerTable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -14,7 +17,7 @@ class InventoryController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:view inventories')->only(['index', 'category', 'show']);
+        $this->middleware('permission:view inventories')->only(['index', 'data', 'category', 'categoryData', 'show']);
         $this->middleware('permission:create inventories')->only('store');
     }
 
@@ -23,19 +26,54 @@ class InventoryController extends Controller
      */
     public function index(): View
     {
-        $categories = Category::query()
-            ->where('status', '1')
-            ->withCount(['products as products_count' => fn ($q) => $q->where('status', '1')])
-            ->addSelect(['available_stock' => Product::selectRaw('COALESCE(SUM(total_qty - sold_qty), 0)')
-                ->whereColumn('category_id', 'categories.id')
-                ->where('status', '1'),
-            ])
-            ->orderBy('name')
-            ->get();
+        $categoryCount = Category::where('status', '1')->count();
 
+        // Still loaded in full: this feeds the "Add Stock" modal's product
+        // picker, not the grid.
         $products = Product::where(['status' => '1'])->orderBy('name')->get();
 
-        return view('inventory.index', compact('categories', 'products'));
+        return view('inventory.index', compact('categoryCount', 'products'));
+    }
+
+    /**
+     * Rows for the stock-by-category grid.
+     *
+     * The product count and available stock are correlated sub-queries rather
+     * than aggregates over a join, so one row comes back per category however
+     * many products it holds — which is what keeps the paging counts honest.
+     */
+    public function data(Request $request): JsonResponse
+    {
+        $query = Category::query()
+            ->where('categories.status', '1')
+            ->select('categories.*')
+            ->selectSub(
+                Product::selectRaw('COUNT(*)')
+                    ->whereColumn('category_id', 'categories.id')
+                    ->where('status', '1'),
+                'products_count'
+            )
+            ->selectSub(
+                Product::selectRaw('COALESCE(SUM(total_qty - sold_qty), 0)')
+                    ->whereColumn('category_id', 'categories.id')
+                    ->where('status', '1'),
+                'available_stock'
+            );
+
+        return ServerTable::make($request, $query, [
+            'name' => 'categories.name',
+            // Sortable only: MySQL takes a SELECT alias in ORDER BY but not in
+            // the WHERE clause a search would build.
+            'products_count' => ['order' => 'products_count'],
+            'available_stock' => ['order' => 'available_stock'],
+        ], fn (Category $category) => [
+            'name' => view('inventory.partials.cells.category', compact('category'))->render(),
+            'products_count' => (string) $category->products_count,
+            'available_stock' => view('inventory.partials.cells.stock', [
+                'available' => $category->available_stock,
+            ])->render(),
+            'actions' => view('inventory.partials.cells.category-actions', compact('category'))->render(),
+        ]);
     }
 
     /**
@@ -43,12 +81,33 @@ class InventoryController extends Controller
      */
     public function category(Category $category): View
     {
-        $products = Product::where('category_id', $category->id)
-            ->where('status', '1')
-            ->orderBy('name')
-            ->get();
+        $productCount = Product::where('category_id', $category->id)->where('status', '1')->count();
 
-        return view('inventory.category', compact('category', 'products'));
+        return view('inventory.category', compact('category', 'productCount'));
+    }
+
+    /**
+     * Rows for one category's products, with stock computed in SQL so the
+     * column sorts on the real number rather than the formatted text.
+     */
+    public function categoryData(Request $request, Category $category): JsonResponse
+    {
+        $query = Product::query()
+            ->where('category_id', $category->id)
+            ->where('status', '1')
+            ->select('products.*')
+            ->selectRaw('(products.total_qty - products.sold_qty) as available_stock');
+
+        return ServerTable::make($request, $query, [
+            'name' => 'products.name',
+            'available_stock' => ['order' => 'available_stock'],
+        ], fn (Product $product) => [
+            'name' => e($product->name),
+            'available_stock' => view('inventory.partials.cells.stock', [
+                'available' => $product->available_stock,
+            ])->render(),
+            'actions' => view('inventory.partials.cells.product-actions', compact('product'))->render(),
+        ]);
     }
 
     /**

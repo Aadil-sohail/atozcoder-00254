@@ -40,28 +40,7 @@
                         <th class="no-sort">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach ($categories as $category)
-                        <tr>
-                            <td class="fw-medium">
-                                <a href="{{ route('inventories.category', $category) }}" class="text-decoration-none">
-                                    {{ $category->name }}
-                                </a>
-                            </td>
-                            <td class="text-secondary">{{ $category->products_count }}</td>
-                            <td class="{{ $category->available_stock <= 0 ? 'text-danger fw-semibold' : '' }}">
-                                {{ number_format($category->available_stock, 2) }}
-                            </td>
-                            <td>
-                                <a href="{{ route('inventories.category', $category) }}"
-                                    class="btn btn-sm btn-outline-secondary" title="{{ __('View') }}">
-                                    <i class="fa-solid fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                  
-                    @endforeach
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>
@@ -70,12 +49,19 @@
 
     @push('scripts')
     <script>
+        // Rows are fetched a page at a time — see App\Support\ServerTable.
+        // Product count and stock are SQL sub-queries, so they sort on the real
+        // totals, but they are not text and so are left out of the search.
         $(function () {
-            $('#inventory-categories-table').DataTable({
-                columnDefs: [
-                    { orderable: false, targets: 'no-sort' },
+            serverTable('#inventory-categories-table', {
+                url: @json(route('inventories.data')),
+                columns: [
+                    { data: 'name' },
+                    { data: 'products_count', searchable: false },
+                    { data: 'available_stock', searchable: false },
+                    { data: 'actions', orderable: false, searchable: false },
                 ],
-                order: [],
+                order: [[0, 'asc']],
             });
         });
 

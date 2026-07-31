@@ -1,0 +1,128 @@
+/**
+ * Loading state for server-side DataTables grids (see public/js/server-table.js).
+ *
+ * Every draw is a round trip now, so the wait needed to look deliberate rather
+ * than like a stalled page: a progress bar along the top edge of the table, a
+ * floating pill with a spinner, and the old rows dimmed but still readable so
+ * the layout never jumps.
+ */
+
+/* The pill and progress bar are positioned against the grid's own box. */
+div.dt-container {
+    position: relative;
+}
+
+/* ── Indeterminate progress bar along the top of the table ────── */
+div.dt-container::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg,
+        rgba(33, 37, 41, 0) 0%,
+        rgba(33, 37, 41, 0.85) 50%,
+        rgba(33, 37, 41, 0) 100%);
+    background-size: 40% 100%;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 4;
+}
+
+div.dt-container.st-busy::before {
+    opacity: 1;
+    animation: st-sweep 1.1s ease-in-out infinite;
+}
+
+@keyframes st-sweep {
+    0% { background-position: -40% 0; }
+    100% { background-position: 140% 0; }
+}
+
+/* ── Floating "loading" pill ──────────────────────────────────── */
+div.dt-container div.dt-processing {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: auto;
+    margin: 0;
+    padding: 0.6rem 1.05rem;
+    transform: translate(-50%, -50%);
+    display: flex;
+    /* The bs5 integration also puts .card on this element, which would
+       otherwise stack the spinner above the label. */
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.14), 0 0 0 1px rgba(16, 24, 40, 0.06);
+    color: #344054;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    z-index: 5;
+    animation: st-pop 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+/* DataTables appends its four-dot indicator as the element's only <div>
+   child, after the language string. The pill above replaces it. */
+div.dt-container div.dt-processing > div {
+    display: none;
+}
+
+@keyframes st-pop {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.94); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.st-spinner {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: 2px solid rgba(16, 24, 40, 0.14);
+    border-top-color: #212529;
+    animation: st-spin 0.65s linear infinite;
+}
+
+@keyframes st-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Rows underneath ──────────────────────────────────────────── */
+/* Dimmed rather than blanked, so the table keeps its height and the
+   page does not jump as pages are flipped. */
+div.dt-container.st-busy table.dataTable > tbody {
+    opacity: 0.35;
+    transition: opacity 0.15s ease;
+}
+
+div.dt-container table.dataTable > tbody {
+    transition: opacity 0.2s ease;
+}
+
+/* ── First load, when there are no rows to dim yet ────────────── */
+/* The row is deliberately empty while loading (see server-table.js), and
+   carries "No data available in table" once a draw comes back empty. The
+   padding gives the pill room to float over either way. */
+div.dt-container table.dataTable td.dt-empty {
+    padding: 2.25rem 1rem;
+    color: #98a2b3;
+    font-size: 0.875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    div.dt-container::before,
+    div.dt-container div.dt-processing,
+    .st-spinner {
+        animation: none;
+    }
+}

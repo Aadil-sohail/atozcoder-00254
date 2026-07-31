@@ -17,7 +17,9 @@
 
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body py-3">
-            <form method="GET" action="{{ route('warranties.index') }}" class="row g-2 align-items-end">
+            {{-- Filtering reloads the grid in place rather than the page; the
+                 values ride along with every draw (see the script below). --}}
+            <form id="warranty-filters" method="GET" action="{{ route('warranties.index') }}" class="row g-2 align-items-end">
 
                 <div class="col-md-3">
                     <label for="customer_id" class="form-label small text-muted mb-1">{{ __('Customer') }}</label>
@@ -59,9 +61,9 @@
                     <button type="submit" class="btn btn-dark btn-sm">
                         <i class="fa-solid fa-filter me-1"></i>{{ __('Filter') }}
                     </button>
-                    <a href="{{ route('warranties.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <button type="reset" class="btn btn-outline-secondary btn-sm">
                         {{ __('Reset') }}
-                    </a>
+                    </button>
                 </div>
 
             </form>
@@ -71,7 +73,7 @@
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white py-3">
             <p class="mb-0 text-muted small">{{ __('Products sold with a warranty and their remaining cover.') }}</p>
-            <span class="text-muted" style="font-size:12px;">{{ $warranties->count() }} {{ Str::plural('record', $warranties->count()) }} total</span>
+            <span class="text-muted" style="font-size:12px;" id="warranties-count">{{ $recordCount }} {{ Str::plural('record', $recordCount) }} total</span>
         </div>
 
         <div class="table-responsive">
@@ -88,54 +90,7 @@
                         <th>{{ __('Days Left') }}</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach ($warranties as $item)
-                        @php
-                            $expiry = \Carbon\Carbon::parse($item->warranty_expiry)->startOfDay();
-                            $daysLeft = (int) now()->startOfDay()->diffInDays($expiry, false);
-                            $fullyReturned = $item->returned_qty >= $item->quantity;
-                        @endphp
-                        <tr>
-                            <td>
-                                <a href="{{ route('sales.show', $item->sale_id) }}" class="fw-medium text-decoration-none">
-                                    {{ $item->sale->invoice_no }}
-                                </a>
-                            </td>
-                            <td class="text-secondary">{{ $item->sale->customer->name }}</td>
-                            <td class="text-secondary">{{ $item->product->name }}</td>
-                            <td class="text-secondary" data-order="{{ \Carbon\Carbon::parse($item->sale->sale_date)->timestamp }}">{{ \Carbon\Carbon::parse($item->sale->sale_date)->format('M d, Y') }}</td>
-                            <td class="text-secondary">
-                                {{ ($item->quantity - $item->returned_qty) + 0 }}
-                                @if ($item->returned_qty > 0)
-                                    <span class="text-danger small">({{ $item->returned_qty + 0 }} {{ __('returned') }})</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if ($fullyReturned)
-                                    <span class="badge bg-danger">{{ __('Warranty Cancelled') }}</span>
-                                @elseif ($daysLeft < 0)
-                                    <span class="badge bg-secondary">{{ __('Warranty Ended') }}</span>
-                                @else
-                                    <span class="badge bg-success">{{ __('In Warranty') }}</span>
-                                @endif
-                            </td>
-                            <td class="fw-medium" data-order="{{ $expiry->timestamp }}">{{ $expiry->format('M d, Y') }}</td>
-                            <td data-order="{{ $daysLeft }}">
-                                @if ($fullyReturned)
-                                    <span class="text-muted">—</span>
-                                @elseif ($daysLeft < 0)
-                                    <span class="badge bg-danger">{{ __('Expired') }} {{ abs($daysLeft) }} {{ Str::plural('day', abs($daysLeft)) }} {{ __('ago') }}</span>
-                                @elseif ($daysLeft === 0)
-                                    <span class="badge bg-danger">{{ __('Expires today') }}</span>
-                                @elseif ($daysLeft <= 30)
-                                    <span class="badge bg-warning text-dark">{{ $daysLeft }} {{ Str::plural('day', $daysLeft) }} {{ __('left') }}</span>
-                                @else
-                                    <span class="badge bg-success">{{ $daysLeft }} {{ Str::plural('day', $daysLeft) }} {{ __('left') }}</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>
@@ -144,9 +99,51 @@
 
 @push('scripts')
 <script>
+    // Rows are fetched a page at a time — see App\Support\ServerTable. The
+    // filter form's values are sent with every draw, so paging and filtering
+    // stay in step instead of the filter applying to one page only.
     $(function () {
-        $('#warranties-table').DataTable({
-            order: [],
+        const filters = document.getElementById('warranty-filters');
+
+        const table = serverTable('#warranties-table', {
+            url: @json(route('warranties.data')),
+            columns: [
+                { data: 'invoice_no' },
+                { data: 'customer_name' },
+                { data: 'product_name' },
+                { data: 'sale_date' },
+                { data: 'qty', searchable: false },
+                { data: 'status', orderable: false, searchable: false },
+                { data: 'expiry', searchable: false },
+                { data: 'days_left', searchable: false },
+            ],
+            // Soonest to expire first, as before.
+            order: [[6, 'asc']],
+            ajax: {
+                data: function (params) {
+                    new FormData(filters).forEach(function (value, key) {
+                        params[key] = value;
+                    });
+                },
+            },
+        });
+
+        // The count in the header describes the filtered set, so it is
+        // refreshed from whatever the server just reported.
+        table.on('draw', function () {
+            const total = table.page.info().recordsTotal;
+            document.getElementById('warranties-count').textContent =
+                total + ' ' + (total === 1 ? @json(__('record')) : @json(__('records'))) + ' ' + @json(__('total'));
+        });
+
+        filters.addEventListener('submit', function (e) {
+            e.preventDefault();
+            table.ajax.reload();
+        });
+
+        // reset() clears the fields after this event, so reload once it has.
+        filters.addEventListener('reset', function () {
+            setTimeout(() => table.ajax.reload(), 0);
         });
     });
 </script>

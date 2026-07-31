@@ -9,6 +9,9 @@
 <!-- DataTables -->
 <script src="https://cdn.datatables.net/v/bs5/dt-3.0.0/datatables.min.js"></script>
 
+<!-- serverTable(): server-side DataTables, paired with App\Support\ServerTable -->
+<script src="{{ asset('js/server-table.js') }}?v={{ filemtime(public_path('js/server-table.js')) }}"></script>
+
 <!-- Dropify -->
 <script src="https://cdn.jsdelivr.net/npm/dropify@0.2.2/dist/js/dropify.min.js"></script>
 

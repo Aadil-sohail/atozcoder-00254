@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Subcategory;
 use App\Services\ChunkedUploadStore;
 use App\Services\ProductExcelImporter;
+use App\Support\ServerTable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,7 +26,7 @@ class ProductController extends Controller
 
     public function __construct()
     {
-        $this->middleware('permission:view products')->only(['index', 'show', 'outOfStock']);
+        $this->middleware('permission:view products')->only(['index', 'data', 'show', 'outOfStock']);
         $this->middleware('permission:create products')->only(['create', 'store', 'importChunk', 'importFinalize', 'importResolve']);
         $this->middleware('permission:edit products')->only(['edit', 'update']);
         $this->middleware('permission:delete products')->only('destroy');
@@ -36,13 +37,59 @@ class ProductController extends Controller
      */
     public function index(): View
     {
-        $products = Product::where('status', '1')->with(['category', 'ebayListings.ebayAccount'])->orderBy('name')->get();
-        $ebayAccounts = EbayAccount::where('status', '1')->orderBy('store_name')->get();
+        // The rows themselves are fetched a page at a time by data() below, so
+        // only the count the header shows is needed here.
+        $productCount = Product::where($this->filter)->count();
+        $ebayAccounts = EbayAccount::where($this->filter)->orderBy('store_name')->get();
         // Offered in the import modal for rows whose chassis number matched no
         // sub category, so they can be assigned one without leaving the page.
         $subcategories = Subcategory::where($this->filter)->with('category')->orderBy('name')->get();
 
-        return view('products.index', compact('products', 'ebayAccounts', 'subcategories'));
+        return view('products.index', compact('productCount', 'ebayAccounts', 'subcategories'));
+    }
+
+    /**
+     * Rows for the products grid, one page at a time.
+     *
+     * The category is joined rather than eager-loaded so it can be sorted and
+     * searched in SQL alongside the product's own columns; the eBay listings
+     * stay an eager-load because a product can have several and joining them
+     * would multiply the rows.
+     */
+    public function data(Request $request): JsonResponse
+    {
+        $hasEbayAccounts = EbayAccount::where($this->filter)->exists();
+
+        $query = Product::query()
+            ->where('products.status', '1')
+            ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+            ->with('ebayListings.ebayAccount')
+            ->select('products.*', 'categories.name as category_name');
+
+        return ServerTable::make($request, $query, [
+            'name' => 'products.name',
+            'sku' => 'products.sku',
+            'category_name' => 'categories.name',
+            'size' => 'products.size',
+            'cost_price' => 'products.cost_price',
+            'selling_price' => 'products.selling_price',
+        ], fn (Product $product) => [
+            'select' => '<input type="checkbox" class="form-check-input product-select" value="'.$product->id.'">',
+            'image' => view('products.partials.cells.image', compact('product'))->render(),
+            'name' => view('products.partials.cells.name', compact('product'))->render(),
+            'sku' => e($product->sku ?? '—'),
+            'category_name' => e($product->category_name ?? '—'),
+            'size' => e($product->size ?? '—'),
+            'cost_price' => number_format((float) $product->cost_price, 2),
+            'selling_price' => number_format((float) $product->selling_price, 2),
+            'ebay' => view('products.partials.cells.ebay', compact('product'))->render(),
+            // Passed explicitly: an arrow function only captures variables it
+            // mentions by name, and compact() hides $hasEbayAccounts in a string.
+            'actions' => view('products.partials.cells.actions', [
+                'product' => $product,
+                'hasEbayAccounts' => $hasEbayAccounts,
+            ])->render(),
+        ]);
     }
 
     /**
@@ -148,9 +195,6 @@ class ProductController extends Controller
      * modal to render. Keeping the parsed rows here rather than round-tripping
      * them through the browser means the prices and quantities that get
      * imported are the ones that were actually in the file.
-     *
-     * @param  list<array{chassis: string, sku: string, name: string, variant: ?string, price: float, quantity: float}>  $pending
-     * @return list<array{chassis: string, products: list<array{name: string, sku: string, variant: ?string, quantity: float}>}>
      */
     private function stashPending(string $uploadId, array $pending): array
     {
@@ -198,7 +242,7 @@ class ProductController extends Controller
      */
     public function outOfStock(): View
     {
-        $products = Product::where('status', '1')
+        $products = Product::where($this->filter)
             ->whereRaw('(total_qty - sold_qty) <= 0')
             ->with('category')
             ->orderBy('name')
