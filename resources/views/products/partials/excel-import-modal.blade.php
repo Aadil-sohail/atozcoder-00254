@@ -4,7 +4,9 @@
     Two steps in one modal: the file is uploaded in chunks and imported, then
     any rows whose chassis number matched no sub category come back here to be
     assigned one (or skipped) — see ProductController@importFinalize and
-    @importResolve. Expects $subcategories from the parent view.
+    @importResolve. Expects $subcategories and $ebayAccounts from the parent
+    view: rows are identified by their eBay listing id, so the import needs a
+    store to record that id against.
 --}}
 @can('create products')
     <div class="modal fade" id="excelImportModal" tabindex="-1" aria-hidden="true">
@@ -20,10 +22,29 @@
                             {{ __('Upload a supplier spreadsheet (xlsx, xls or csv) .') }}
                         </p>
                         <ul class="small text-muted ps-3 mb-3">
-                            <li>{{ __('Rows are matched on Product SKU — an existing product is restocked, a new one is created.') }}</li>
+                            <li>{{ __('Rows are matched on eBay Listing ID — an existing product is restocked, a new one is created and linked to that listing.') }}</li>
                             <li>{{ __('Each row\'s chassis number is its sub category — the product is filed under it and its category automatically.') }}</li>
                             <li>{{ __('A chassis number that isn\'t in the system yet is not imported; you pick a sub category for it in the next step.') }}</li>
                         </ul>
+
+                        {{-- The listing ids in the file are recorded against this store, the
+                             same place the eBay sync keeps them. --}}
+                        @if ($ebayAccounts->isEmpty())
+                            <div class="alert alert-warning small py-2 px-3 mb-0">
+                                {{ __('Connect an eBay store first — the file identifies products by their eBay listing ID, which is stored against a store.') }}
+                            </div>
+                        @else
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">{{ __('eBay store') }}</label>
+                            <select name="ebay_account_id" id="excel-import-account" class="form-select form-select-sm" required>
+                                @foreach ($ebayAccounts as $account)
+                                    <option value="{{ $account->id }}">
+                                        {{ $account->store_name }}
+                                        ({{ config("ebay.marketplaces.{$account->marketplace_id}.label", $account->marketplace_id) }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="mb-1">
                             <div class="d-flex align-items-center justify-content-between">
                                 <label class="form-label small text-muted mb-1">{{ __('Spreadsheet file') }}</label>
@@ -47,6 +68,7 @@
                             </div>
                             <p id="excel-import-progress-label" class="small text-muted mb-0 mt-1">{{ __('Uploading...') }}</p>
                         </div>
+                        @endif
                     </div>
 
                     {{-- Shown after an upload when some rows carried a chassis number
@@ -68,7 +90,7 @@
                     <button type="button" id="excel-import-skip" class="btn btn-outline-secondary btn-sm d-none">
                         <i class="fa-solid fa-forward me-1"></i>{{ __('Skip & Finish') }}
                     </button>
-                    <button type="submit" id="excel-import-submit" class="btn btn-dark btn-sm">
+                    <button type="submit" id="excel-import-submit" class="btn btn-dark btn-sm" @disabled($ebayAccounts->isEmpty())>
                         <i class="fa-solid fa-upload me-1"></i>{{ __('Import') }}
                     </button>
                     <button type="button" id="excel-import-assign-submit" class="btn btn-dark btn-sm d-none">
@@ -107,6 +129,14 @@
                 const modal = document.getElementById('excelImportModal');
                 const form = document.getElementById('excel-import-form');
                 const fileInput = document.getElementById('excel-import-file');
+                const accountSelect = document.getElementById('excel-import-account');
+
+                // Without a connected eBay store the upload step isn't rendered at
+                // all — there is nowhere to record the listing ids from the file.
+                if (! fileInput || ! accountSelect) {
+                    return;
+                }
+
                 const stepUpload = document.getElementById('excel-import-step-upload');
                 const stepAssign = document.getElementById('excel-import-step-assign');
                 const pendingList = document.getElementById('excel-import-pending-list');
@@ -156,6 +186,8 @@
                             _token: @json(csrf_token()),
                             upload_id: id,
                             filename: filename,
+                            // The store the file's listing ids are recorded against.
+                            ebay_account_id: accountSelect.value,
                         },
                     });
                 }
@@ -180,6 +212,11 @@
 
                     if (! file) {
                         showAlert('warning', @json(__('Select a file first.')));
+                        return;
+                    }
+
+                    if (! accountSelect.value) {
+                        showAlert('warning', @json(__('Choose the eBay store the listing IDs belong to first.')));
                         return;
                     }
 
@@ -293,7 +330,7 @@
                             const item = document.createElement('li');
                             item.textContent = product.name
                                 + (product.variant ? ' — ' + product.variant : '')
-                                + ' (' + @json(__('SKU')) + ' ' + product.sku + ', ' + @json(__('qty')) + ' ' + product.quantity + ')';
+                                + ' (' + @json(__('Listing')) + ' ' + product.listing_id + ', ' + @json(__('qty')) + ' ' + product.quantity + ')';
                             items.appendChild(item);
                         });
                         wrap.appendChild(items);

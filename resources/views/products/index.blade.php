@@ -71,7 +71,7 @@
                         @endcan
                         <th class="no-sort" style="width:60px;">{{ __('Image') }}</th>
                         <th>Name</th>
-                        <th>SKU</th>
+                        <th>eBay Listing ID</th>
                         <th>Category</th>
                         <th>Size</th>
                         <th>Cost</th>
@@ -195,7 +195,7 @@
                 @endcan
                 { data: 'image', orderable: false, searchable: false },
                 { data: 'name' },
-                { data: 'sku' },
+                { data: 'listing_ids' },
                 { data: 'category_name' },
                 { data: 'size' },
                 { data: 'cost_price' },

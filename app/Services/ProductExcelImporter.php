@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\EbayAccount;
+use App\Models\EbayListing;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\Subcategory;
@@ -19,11 +21,13 @@ class ProductExcelImporter
      *
      * The two identifying columns play different roles: the chassis number
      * names the sub category a row belongs to (and through it the category),
-     * while the product SKU identifies the product itself and is what an
-     * existing product is matched on.
+     * while the eBay listing id identifies the product itself and is what an
+     * existing product is matched on. Supplier sheets carry no local SKU —
+     * the listing id is the only identifier shared with the software, and it
+     * is kept on the product's eBay listing link (see importRow).
      */
     private const HEADER_KEYWORDS = [
-        'sku' => ['product sku', 'sku'],
+        'listing_id' => ['ebay listing id', 'listing id', 'ebay item id', 'item id', 'item number', 'ebay id'],
         'chassis' => ['chassis', 'sub category', 'subcategory'],
         'name' => ['product name', 'name'],
         'variant' => ['variant'],
@@ -44,8 +48,9 @@ class ProductExcelImporter
 
     /**
      * Import products and stock from a spreadsheet on disk. Existing products
-     * (matched by product SKU) are restocked via a new inventory entry;
-     * unknown SKUs are created fresh with an opening stock.
+     * (matched by the row's eBay listing id) are restocked via a new inventory
+     * entry; listing ids the software doesn't know yet are created fresh with
+     * an opening stock and linked to $account under that listing id.
      *
      * A row's chassis number names the sub category the product is filed
      * under, and the category that sub category belongs to is applied along
@@ -58,9 +63,9 @@ class ProductExcelImporter
      * before this runs (see ChunkedUploadStore), so it is always a plain
      * path on disk rather than an UploadedFile tied to a single request.
      *
-     * @return array{created: int, restocked: int, pending: list<array{chassis: string, sku: string, name: string, variant: ?string, price: float, quantity: float}>}
+     * @return array{created: int, restocked: int, pending: list<array{chassis: string, listing_id: string, name: string, variant: ?string, price: float, quantity: float}>}
      */
-    public function import(string $filePath, string $insertedBy): array
+    public function import(string $filePath, EbayAccount $account, string $insertedBy): array
     {
         // Supplier sheets often embed a product photo per row (see the "picture"
         // column in the sample invoice); we only read cell values, so skip
@@ -79,7 +84,7 @@ class ProductExcelImporter
         $restocked = 0;
         $pending = [];
 
-        DB::transaction(function () use ($spreadsheet, $subcategories, $insertedBy, &$created, &$restocked, &$pending) {
+        DB::transaction(function () use ($spreadsheet, $subcategories, $account, $insertedBy, &$created, &$restocked, &$pending) {
             foreach ($spreadsheet->getAllSheets() as $sheet) {
                 foreach ($this->parseSheet($sheet) as $row) {
                     $subcategory = $subcategories[$this->normalize($row['chassis'])] ?? null;
@@ -90,7 +95,7 @@ class ProductExcelImporter
                         continue;
                     }
 
-                    match ($this->importRow($row, $subcategory, $insertedBy)) {
+                    match ($this->importRow($row, $subcategory, $account, $insertedBy)) {
                         'created' => $created++,
                         default => $restocked++,
                     };
@@ -110,11 +115,11 @@ class ProductExcelImporter
      * chosen for each chassis number. Rows whose chassis number was left
      * unassigned are simply not imported.
      *
-     * @param  list<array{chassis: string, sku: string, name: string, variant: ?string, price: float, quantity: float}>  $rows
+     * @param  list<array{chassis: string, listing_id: string, name: string, variant: ?string, price: float, quantity: float}>  $rows
      * @param  array<string, Subcategory>  $subcategoryByChassis  keyed by chassis number, in any spelling
      * @return array{created: int, restocked: int}
      */
-    public function importPending(array $rows, array $subcategoryByChassis, string $insertedBy): array
+    public function importPending(array $rows, array $subcategoryByChassis, EbayAccount $account, string $insertedBy): array
     {
         $lookup = [];
 
@@ -125,7 +130,7 @@ class ProductExcelImporter
         $created = 0;
         $restocked = 0;
 
-        DB::transaction(function () use ($rows, $lookup, $insertedBy, &$created, &$restocked) {
+        DB::transaction(function () use ($rows, $lookup, $account, $insertedBy, &$created, &$restocked) {
             foreach ($rows as $row) {
                 $subcategory = $lookup[$this->normalize($row['chassis'])] ?? null;
 
@@ -133,7 +138,7 @@ class ProductExcelImporter
                     continue;
                 }
 
-                match ($this->importRow($row, $subcategory, $insertedBy)) {
+                match ($this->importRow($row, $subcategory, $account, $insertedBy)) {
                     'created' => $created++,
                     default => $restocked++,
                 };
@@ -167,10 +172,11 @@ class ProductExcelImporter
      * Supplier sheets commonly merge the chassis/name cells across the rows
      * that carry the price and quantity (see the sample proforma invoice), so
      * a blank chassis/name cell inherits the last non-blank value seen above
-     * it. The SKU and variant describe an individual row, so they are never
-     * inherited — a row without its own SKU cannot identify a product.
+     * it. The listing id and variant describe an individual row, so they are
+     * never inherited — a row without its own listing id cannot identify a
+     * product.
      *
-     * @return list<array{chassis: string, sku: string, name: string, variant: ?string, price: float, quantity: float}>
+     * @return list<array{chassis: string, listing_id: string, name: string, variant: ?string, price: float, quantity: float}>
      */
     private function parseSheet(Worksheet $sheet): array
     {
@@ -196,7 +202,7 @@ class ProductExcelImporter
             $lastChassis = $chassis !== '' ? $chassis : $lastChassis;
             $lastName = $name !== '' ? $name : $lastName;
 
-            $sku = trim((string) ($cells[$columns['sku']] ?? ''));
+            $listingId = $this->toIdentifier($cells[$columns['listing_id']] ?? null);
             $variant = $columns['variant'] === null
                 ? ''
                 : trim((string) ($cells[$columns['variant']] ?? ''));
@@ -204,13 +210,13 @@ class ProductExcelImporter
             $price = $this->toFloat($cells[$columns['price']] ?? null);
             $quantity = $this->toFloat($cells[$columns['quantity']] ?? null);
 
-            if ($sku === '' || $price === null || $quantity === null || $quantity <= 0 || ! $lastChassis || ! $lastName) {
+            if ($listingId === '' || $price === null || $quantity === null || $quantity <= 0 || ! $lastChassis || ! $lastName) {
                 continue;
             }
 
             $rows[] = [
                 'chassis' => $lastChassis,
-                'sku' => $sku,
+                'listing_id' => $listingId,
                 'name' => $lastName,
                 'variant' => $variant === '' ? null : $variant,
                 'price' => $price,
@@ -228,7 +234,7 @@ class ProductExcelImporter
      * if the sheet doesn't match.
      *
      * @param  list<array<int, mixed>>  $grid
-     * @return array{header_row: int, sku: int, chassis: int, name: int, variant: ?int, price: int, quantity: int}|null
+     * @return array{header_row: int, listing_id: int, chassis: int, name: int, variant: ?int, price: int, quantity: int}|null
      */
     private function detectColumns(array $grid): ?array
     {
@@ -269,27 +275,39 @@ class ProductExcelImporter
 
     /**
      * Create a fresh product with opening stock, or add stock to an existing
-     * one matched by SKU. Either way an inventory entry is recorded and the
-     * product's running total is kept in sync, mirroring how stock intake
-     * works elsewhere in the app.
+     * one matched by its eBay listing id. Either way an inventory entry is
+     * recorded and the product's running total is kept in sync, mirroring how
+     * stock intake works elsewhere in the app.
      *
-     * @param  array{chassis: string, sku: string, name: string, variant: ?string, price: float, quantity: float}  $row
+     * The listing id is matched across every store rather than just $account:
+     * it is unique on eBay, so a product already linked under one store must
+     * not be duplicated because the import was run against another.
+     *
+     * @param  array{chassis: string, listing_id: string, name: string, variant: ?string, price: float, quantity: float}  $row
      * @return 'created'|'restocked'
      */
-    private function importRow(array $row, Subcategory $subcategory, string $insertedBy): string
+    private function importRow(array $row, Subcategory $subcategory, EbayAccount $account, string $insertedBy): string
     {
-        $product = Product::where('sku', $row['sku'])->first();
+        $listing = EbayListing::where('listing_id', $row['listing_id'])->first();
+        $product = $listing?->product;
+
+        if ($listing && ! $product) {
+            // Link left behind by a product deleted outside the app: drop it so
+            // the listing id can be imported as a fresh product below.
+            $listing->delete();
+        }
 
         if (! $product) {
             $product = Product::create([
                 'name' => $row['name'],
-                'sku' => $row['sku'],
                 'variant' => $row['variant'],
                 'selling_price' => $row['price'],
                 'category_id' => $subcategory->category_id,
                 'subcategory_id' => $subcategory->id,
                 'inserted_by' => $insertedBy,
             ]);
+
+            $this->linkListing($product, $account, $row['listing_id'], $insertedBy);
         }
 
         Inventory::create([
@@ -301,6 +319,41 @@ class ProductExcelImporter
         $product->increment('total_qty', $row['quantity']);
 
         return $product->wasRecentlyCreated ? 'created' : 'restocked';
+    }
+
+    /**
+     * Record the spreadsheet's listing id against the store, which is what the
+     * next import matches on and what the products grid shows under the SKU.
+     *
+     * The item is already live on eBay, so the link is marked synced but left
+     * without a last_synced_at — nothing was pushed to eBay here. The sheet
+     * carries no eBay inventory SKU, so the same placeholder the manual sync
+     * falls back to is used (see EbaySyncController@sync).
+     */
+    private function linkListing(Product $product, EbayAccount $account, string $listingId, string $insertedBy): void
+    {
+        EbayListing::create([
+            'product_id' => $product->id,
+            'ebay_account_id' => $account->id,
+            'sku' => 'PRD-'.$product->id,
+            'listing_id' => $listingId,
+            'sync_status' => 'synced',
+            'inserted_by' => $insertedBy,
+        ]);
+    }
+
+    /**
+     * Read an identifier cell as plain text. A listing id is all digits, so a
+     * spreadsheet hands it over as a number — casting that straight to a string
+     * would leave "1105862345.0" or exponent notation in place of the id.
+     */
+    private function toIdentifier(mixed $value): string
+    {
+        if (is_float($value) || is_int($value)) {
+            return rtrim(rtrim(number_format((float) $value, 4, '.', ''), '0'), '.');
+        }
+
+        return trim((string) $value);
     }
 
     /**

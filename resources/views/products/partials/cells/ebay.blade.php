@@ -41,6 +41,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="ps-3">{{ __('Store') }}</th>
+                                <th>{{ __('Listing ID') }}</th>
                                 <th>{{ __('Status') }}</th>
                                 <th>{{ __('Last Synced') }}</th>
                                 <th class="text-end pe-3">{{ __('Actions') }}</th>
@@ -58,6 +59,7 @@
                                 @endphp
                                 <tr>
                                     <td class="ps-3 fw-medium">{{ $listing->ebayAccount->store_name ?? 'eBay' }}</td>
+                                    <td class="font-monospace small">{{ $listing->listing_id ?? '—' }}</td>
                                     <td>
                                         <span class="badge bg-{{ $rowBadge }}-subtle text-{{ $rowBadge }}-emphasis border border-{{ $rowBadge }}-subtle">
                                             {{ ucfirst($listing->sync_status) }}

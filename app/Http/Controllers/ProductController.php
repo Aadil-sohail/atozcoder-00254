@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -55,29 +56,42 @@ class ProductController extends Controller
      * searched in SQL alongside the product's own columns; the eBay listings
      * stay an eager-load because a product can have several and joining them
      * would multiply the rows.
+     *
+     * The grid shows eBay listing ids where it used to show SKUs, so they are
+     * also pulled in as a scalar subquery — one row per product, listing ids
+     * joined — which keeps that column sortable and searchable in SQL.
      */
     public function data(Request $request): JsonResponse
     {
         $hasEbayAccounts = EbayAccount::where($this->filter)->exists();
 
+        $listingIds = '(select group_concat(ebay_listings.listing_id)
+            from ebay_listings where ebay_listings.product_id = products.id)';
+
         $query = Product::query()
             ->where('products.status', '1')
             ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
             ->with('ebayListings.ebayAccount')
-            ->select('products.*', 'categories.name as category_name');
+            ->select('products.*', 'categories.name as category_name')
+            ->selectRaw($listingIds.' as listing_ids');
 
         return ServerTable::make($request, $query, [
             'name' => 'products.name',
-            'sku' => 'products.sku',
+            // Ordered on the alias and searched on the subquery itself: MySQL
+            // takes an alias in ORDER BY but not in WHERE.
+            'listing_ids' => ['order' => 'listing_ids', 'search' => DB::raw($listingIds)],
             'category_name' => 'categories.name',
             'size' => 'products.size',
             'cost_price' => 'products.cost_price',
             'selling_price' => 'products.selling_price',
+            // No longer a column in the grid, but products added before the
+            // switch to listing ids still carry a SKU worth finding them by.
+            'sku' => ['search' => 'products.sku'],
         ], fn (Product $product) => [
             'select' => '<input type="checkbox" class="form-check-input product-select" value="'.$product->id.'">',
             'image' => view('products.partials.cells.image', compact('product'))->render(),
             'name' => view('products.partials.cells.name', compact('product'))->render(),
-            'sku' => e($product->sku ?? '—'),
+            'listing_ids' => view('products.partials.cells.listing-ids', compact('product'))->render(),
             'category_name' => e($product->category_name ?? '—'),
             'size' => e($product->size ?? '—'),
             'cost_price' => number_format((float) $product->cost_price, 2),
@@ -111,21 +125,25 @@ class ProductController extends Controller
     }
 
     /**
-     * Assemble the uploaded chunks into a spreadsheet and import it. Rows
-     * matching an existing product SKU are restocked; unknown SKUs are created
-     * fresh, filed under the sub category (and its category) named by the
-     * row's chassis number.
+     * Assemble the uploaded chunks into a spreadsheet and import it. Rows are
+     * identified by their eBay listing id: one already known to the software is
+     * restocked, an unknown one is created fresh and linked to the chosen store
+     * under that listing id, filed under the sub category (and its category)
+     * named by the row's chassis number.
      */
     public function importFinalize(Request $request, ChunkedUploadStore $uploads, ProductExcelImporter $importer): JsonResponse
     {
         $request->validate([
             'upload_id' => ['required', 'uuid'],
             'filename' => ['required', 'string', 'max:255'],
+            'ebay_account_id' => ['required', 'integer', 'exists:ebay_accounts,id'],
         ]);
+
+        $account = EbayAccount::findOrFail($request->ebay_account_id);
 
         try {
             $path = $uploads->finalize($request->upload_id, $request->filename);
-            $result = $importer->import($path, auth()->user()->name);
+            $result = $importer->import($path, $account, auth()->user()->name);
         } catch (Throwable $e) {
             report($e);
 
@@ -135,12 +153,12 @@ class ProductController extends Controller
         }
 
         if ($result['created'] === 0 && $result['restocked'] === 0 && $result['pending'] === []) {
-            return response()->json(['message' => 'No matching rows were found in the file. Make sure it has columns for chassis number, product name, product SKU, price and quantity.'], 422);
+            return response()->json(['message' => 'No matching rows were found in the file. Make sure it has columns for chassis number, product name, eBay listing ID, price and quantity.'], 422);
         }
 
         return response()->json([
             'message' => $this->importSummary($result['created'], $result['restocked']),
-            'pending' => $this->stashPending($request->upload_id, $result['pending']),
+            'pending' => $this->stashPending($request->upload_id, $account, $result['pending']),
         ]);
     }
 
@@ -160,9 +178,13 @@ class ProductController extends Controller
             ],
         ]);
 
-        $rows = Cache::get($this->pendingCacheKey($validated['upload_id']));
+        // The store picked for the upload was stashed with the rows, so this
+        // pass links to the same one without trusting the browser for it.
+        $stash = Cache::get($this->pendingCacheKey($validated['upload_id']));
+        $rows = $stash['rows'] ?? null;
+        $account = $stash ? EbayAccount::find($stash['ebay_account_id']) : null;
 
-        if (! $rows) {
+        if (! $rows || ! $account) {
             return response()->json(['message' => 'This import is no longer available — please upload the file again.'], 422);
         }
 
@@ -177,7 +199,7 @@ class ProductController extends Controller
         }
 
         try {
-            $result = $importer->importPending($rows, $subcategoryByChassis, auth()->user()->name);
+            $result = $importer->importPending($rows, $subcategoryByChassis, $account, auth()->user()->name);
         } catch (Throwable $e) {
             report($e);
 
@@ -196,13 +218,17 @@ class ProductController extends Controller
      * them through the browser means the prices and quantities that get
      * imported are the ones that were actually in the file.
      */
-    private function stashPending(string $uploadId, array $pending): array
+    private function stashPending(string $uploadId, EbayAccount $account, array $pending): array
     {
         if ($pending === []) {
             return [];
         }
 
-        Cache::put($this->pendingCacheKey($uploadId), $pending, now()->addMinutes(30));
+        Cache::put(
+            $this->pendingCacheKey($uploadId),
+            ['ebay_account_id' => $account->id, 'rows' => $pending],
+            now()->addMinutes(30),
+        );
 
         $groups = [];
 
@@ -214,7 +240,7 @@ class ProductController extends Controller
             $groups[$key] ??= ['chassis' => $row['chassis'], 'products' => []];
             $groups[$key]['products'][] = [
                 'name' => $row['name'],
-                'sku' => $row['sku'],
+                'listing_id' => $row['listing_id'],
                 'variant' => $row['variant'],
                 'quantity' => $row['quantity'],
             ];

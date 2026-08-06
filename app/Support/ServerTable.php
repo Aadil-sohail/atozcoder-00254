@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Closure;
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,7 +37,10 @@ use Illuminate\Http\Request;
  * A column defined as a plain string is both sortable and searchable. Give it
  * ['order' => …] or ['search' => …] instead to allow only one of the two —
  * which a SELECT alias such as a computed total needs, since MySQL accepts an
- * alias in ORDER BY but not in WHERE.
+ * alias in ORDER BY but not in WHERE. A 'search' entry may also be a DB::raw()
+ * expression, so a value selected as a subquery can still be searched:
+ *
+ *     'listing_ids' => ['order' => 'listing_ids', 'search' => DB::raw($subquery)],
  *
  * Two rules for the query passed in:
  *  - it must not multiply rows (a hasMany join would break the row counts);
@@ -50,7 +54,7 @@ class ServerTable
      * Build the JSON payload DataTables expects for one draw.
      *
      * @param  Builder  $query  rows the user is allowed to see, before paging
-     * @param  array<string, string|array{order?: string, search?: string}|null>  $columns  DataTables column key => DB column
+     * @param  array<string, string|array{order?: string, search?: string|Expression}|null>  $columns  DataTables column key => DB column
      * @param  Closure  $row  receives one model, returns that row's cells keyed by column key
      */
     public static function make(Request $request, Builder $query, array $columns, Closure $row): JsonResponse
@@ -83,8 +87,8 @@ class ServerTable
      * which is how a SELECT alias stays sortable without being dropped into a
      * WHERE clause that the database would reject.
      *
-     * @param  array<string, string|array{order?: string, search?: string}|null>  $columns
-     * @return array{0: array<string, string>, 1: array<string, string>}
+     * @param  array<string, string|array{order?: string, search?: string|Expression}|null>  $columns
+     * @return array{0: array<string, string>, 1: array<string, string|Expression>}
      */
     private static function resolveColumns(array $columns): array
     {
@@ -112,7 +116,7 @@ class ServerTable
      * Apply the search box to every searchable column at once, wrapped so the
      * OR group cannot leak past the query's own constraints.
      *
-     * @param  array<string, string>  $sortable
+     * @param  array<string, string|Expression>  $sortable
      */
     private static function applySearch(Request $request, Builder $query, array $sortable): void
     {
