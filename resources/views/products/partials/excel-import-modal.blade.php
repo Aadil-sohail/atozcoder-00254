@@ -126,6 +126,15 @@
                     'label' => ($s->category->name ?? __('No category')).' › '.$s->name,
                 ])->values());
 
+                // A chassis number that is in no sub category yet can be created
+                // as one from here, which needs a main category to file it under.
+                const CATEGORIES = @json($categories->map(fn ($c) => [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                ])->values());
+                const CAN_CREATE_SUBCATEGORY = @json(auth()->user()->can('create subcategories') && $categories->isNotEmpty());
+                const SUBCATEGORY_STORE_URL = @json(route('subcategories.store'));
+
                 const modal = document.getElementById('excelImportModal');
                 const form = document.getElementById('excel-import-form');
                 const fileInput = document.getElementById('excel-import-file');
@@ -275,6 +284,118 @@
                     uploadNextChunk(0);
                 });
 
+                // Offers a newly created sub category everywhere at once: the same
+                // chassis can appear in more than one group's list, and the next
+                // import reads this list rather than reloading the page.
+                function addSubcategoryOption(subcategory) {
+                    SUBCATEGORIES.push({ id: subcategory.id, label: subcategory.label });
+
+                    pendingList.querySelectorAll('.pending-subcategory').forEach(function (select) {
+                        const option = document.createElement('option');
+                        option.value = subcategory.id;
+                        option.textContent = subcategory.label;
+                        select.appendChild(option);
+                    });
+                }
+
+                // Inline "create a sub category" form for one chassis number. The name
+                // is prefilled with the chassis itself, which is what the importer
+                // matches on — created as-is, the next upload files these rows on its
+                // own. Returns the (hidden) element and a way to focus it.
+                function buildCreator(chassis, targetSelect) {
+                    const element = document.createElement('div');
+                    element.className = 'border rounded bg-light p-2 mt-2 d-none';
+
+                    const row = document.createElement('div');
+                    row.className = 'row g-2';
+
+                    const nameCol = document.createElement('div');
+                    nameCol.className = 'col-12 col-sm-5';
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.className = 'form-control form-control-sm';
+                    nameInput.placeholder = @json(__('Sub category name'));
+                    nameInput.value = chassis;
+                    nameCol.appendChild(nameInput);
+
+                    const categoryCol = document.createElement('div');
+                    categoryCol.className = 'col-12 col-sm-4';
+                    const categorySelect = document.createElement('select');
+                    categorySelect.className = 'form-select form-select-sm';
+                    const categoryPlaceholder = document.createElement('option');
+                    categoryPlaceholder.value = '';
+                    categoryPlaceholder.textContent = @json(__('Main category'));
+                    categorySelect.appendChild(categoryPlaceholder);
+                    CATEGORIES.forEach(function (category) {
+                        const option = document.createElement('option');
+                        option.value = category.id;
+                        option.textContent = category.name;
+                        categorySelect.appendChild(option);
+                    });
+                    categoryCol.appendChild(categorySelect);
+
+                    const buttonCol = document.createElement('div');
+                    buttonCol.className = 'col-12 col-sm-3 d-grid';
+                    const saveBtn = document.createElement('button');
+                    saveBtn.type = 'button';
+                    saveBtn.className = 'btn btn-sm btn-dark';
+                    saveBtn.textContent = @json(__('Create & select'));
+                    buttonCol.appendChild(saveBtn);
+
+                    row.append(nameCol, categoryCol, buttonCol);
+                    element.appendChild(row);
+
+                    const hint = document.createElement('p');
+                    hint.className = 'small text-muted mb-0 mt-1';
+                    hint.textContent = @json(__('Keeping the chassis number as the name means future imports match it automatically.'));
+                    element.appendChild(hint);
+
+                    saveBtn.addEventListener('click', function () {
+                        const name = nameInput.value.trim();
+
+                        if (! name || ! categorySelect.value) {
+                            showAlert('warning', @json(__('Enter a name and pick a main category first.')));
+                            return;
+                        }
+
+                        saveBtn.disabled = true;
+
+                        $.ajax({
+                            url: SUBCATEGORY_STORE_URL,
+                            method: 'POST',
+                            // Without this the controller answers with a redirect
+                            // to the sub categories page instead of the new record.
+                            headers: { Accept: 'application/json' },
+                            data: {
+                                _token: @json(csrf_token()),
+                                name: name,
+                                category_id: categorySelect.value,
+                            },
+                        })
+                            .done(function (subcategory) {
+                                saveBtn.disabled = false;
+                                addSubcategoryOption(subcategory);
+                                targetSelect.value = subcategory.id;
+                                element.classList.add('d-none');
+                                showAlert('success', @json(__('Sub category created.')));
+                            })
+                            .fail(function (xhr) {
+                                saveBtn.disabled = false;
+                                // 422 carries the validation message, e.g. the name
+                                // already existing under the chosen main category.
+                                showAlert('error', xhr.responseJSON?.message || @json(__('Could not create the sub category.')));
+                            });
+                    });
+
+                    return {
+                        element: element,
+                        focus: function () {
+                            nameInput.focus();
+                            nameInput.select();
+                        },
+                    };
+                }
+
                 // ── Step 2: assign a sub category to what wasn't imported ────
                 // The parsed rows stay on the server; the browser only sends back which
                 // sub category each unmatched chassis number should be filed under.
@@ -321,8 +442,35 @@
                             option.textContent = s.label;
                             select.appendChild(option);
                         });
-                        head.appendChild(select);
+                        // Select and its "add" button share the right-hand side.
+                        const controls = document.createElement('div');
+                        controls.className = 'd-flex align-items-center gap-2 flex-grow-1 justify-content-end';
+                        controls.appendChild(select);
+                        head.appendChild(controls);
                         wrap.appendChild(head);
+
+                        // The chassis number is what a sub category is matched on, so
+                        // one can be created for it right here instead of leaving the
+                        // import to go and add it on the sub categories page.
+                        if (CAN_CREATE_SUBCATEGORY) {
+                            const addBtn = document.createElement('button');
+                            addBtn.type = 'button';
+                            addBtn.className = 'btn btn-sm btn-outline-dark flex-shrink-0';
+                            addBtn.title = @json(__('Create a sub category for this chassis'));
+                            addBtn.innerHTML = '<i class="fa-solid fa-plus"></i>';
+                            controls.appendChild(addBtn);
+
+                            const creator = buildCreator(group.chassis, select);
+                            wrap.appendChild(creator.element);
+
+                            addBtn.addEventListener('click', function () {
+                                creator.element.classList.toggle('d-none');
+
+                                if (! creator.element.classList.contains('d-none')) {
+                                    creator.focus();
+                                }
+                            });
+                        }
 
                         const items = document.createElement('ul');
                         items.className = 'small text-muted mb-0 ps-3';

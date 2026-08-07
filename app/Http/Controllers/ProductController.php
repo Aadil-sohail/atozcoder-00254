@@ -45,8 +45,11 @@ class ProductController extends Controller
         // Offered in the import modal for rows whose chassis number matched no
         // sub category, so they can be assigned one without leaving the page.
         $subcategories = Subcategory::where($this->filter)->with('category')->orderBy('name')->get();
+        // The same modal can create a missing sub category on the spot, which
+        // needs a main category to file it under.
+        $categories = Category::where($this->filter)->orderBy('name')->get();
 
-        return view('products.index', compact('productCount', 'ebayAccounts', 'subcategories'));
+        return view('products.index', compact('productCount', 'ebayAccounts', 'subcategories', 'categories'));
     }
 
     /**

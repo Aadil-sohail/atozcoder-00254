@@ -21,7 +21,7 @@
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('Manage the categories available across the system.') }}</p>
-                <span class="text-muted" style="font-size:12px;">{{ $categories->total() }} {{ Str::plural('category', $categories->total()) }} total</span>
+                <span class="text-muted" style="font-size:12px;">{{ $categories->count() }} {{ Str::plural('category', $categories->count()) }} total</span>
             </div>
             @can('create categories')
             <button type="button" onclick="openCreateModal()" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
@@ -32,18 +32,18 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="categories-table" class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th style="width:33%">#</th>
+                        <th class="no-sort" style="width:33%">#</th>
                         <th style="width:34%">Name</th>
-                        <th style="width:33%">Actions</th>
+                        <th class="no-sort" style="width:33%">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($categories as $index => $category)
+                    @forelse ($categories as $category)
                         <tr>
-                            <td class="text-secondary">{{ $categories->firstItem() + $index }}</td>
+                            <td class="text-secondary">{{ $loop->iteration }}</td>
                             <td class="fw-medium">{{ $category->name }}</td>
                             <td>
                                 <div class="d-flex gap-2">
@@ -72,7 +72,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="text-center py-5">
+                            <td colspan="3" class="text-center py-5">
                                 <i class="fa-solid fa-tags fs-2 text-secondary opacity-50 d-block mb-2"></i>
                                 <p class="text-muted mb-2">{{ __('No categories found.') }}</p>
                                 @can('create categories')
@@ -86,12 +86,6 @@
                 </tbody>
             </table>
         </div>
-
-        @if ($categories->hasPages())
-            <div class="card-footer bg-white">
-                {{ $categories->links() }}
-            </div>
-        @endif
     </div>
 
     @include('categories.partials.create-modal')
@@ -131,6 +125,25 @@
         }
 
         $(function () {
+            @if ($categories->isNotEmpty())
+            const categoriesTable = $('#categories-table').DataTable({
+                columnDefs: [
+                    { orderable: false, targets: 'no-sort' },
+                    // Counter column: its numbers are not data to search on.
+                    { searchable: false, targets: 0 },
+                ],
+                order: [],
+            });
+
+            // The # column is a plain row counter, so it is rewritten after
+            // every draw instead of travelling with its row.
+            categoriesTable.on('draw.dt', function () {
+                categoriesTable.column(0, { page: 'current' }).nodes().each(function (cell, i) {
+                    cell.textContent = categoriesTable.page.info().start + i + 1;
+                });
+            }).draw();
+            @endif
+
             $('#create_name').on('keyup', function () {
                 checkCategoryName('create_name', 'create_name_feedback', 0);
             });

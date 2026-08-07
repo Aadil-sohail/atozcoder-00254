@@ -27,9 +27,14 @@ class SubcategoryController extends Controller
      */
     public function index(): View
     {
+        // Ordered main category first, then sub category, so the listing is
+        // already grouped by main category before DataTables takes over.
         $subcategories = Subcategory::with('category')
-            ->where(['status' => '1', 'close' => '1'])
-            ->latest('id')
+            ->leftJoin('categories', 'categories.id', '=', 'subcategories.category_id')
+            ->where(['subcategories.status' => '1', 'subcategories.close' => '1'])
+            ->orderBy('categories.name')
+            ->orderBy('subcategories.name')
+            ->select('subcategories.*')
             ->get();
 
         $categories = Category::where(['status' => '1', 'close' => '1'])->orderBy('name')->get();
@@ -39,14 +44,31 @@ class SubcategoryController extends Controller
 
     /**
      * Store a newly created resource in storage.
+     *
+     * Answers with the new record when asked for JSON: the Excel import modal
+     * creates missing sub categories without leaving the page and adds them
+     * straight to its dropdowns, so it needs the id and label back rather
+     * than a redirect. Validation failures come back as 422 JSON on their own.
      */
-    public function store(StoreSubcategoryRequest $request): RedirectResponse
+    public function store(StoreSubcategoryRequest $request): RedirectResponse|JsonResponse
     {
-        Subcategory::create([
+        $subcategory = Subcategory::create([
             'name' => $request->name,
             'category_id' => $request->category_id,
             'inserted_by' => auth()->user()->name,
         ]);
+
+        if ($request->expectsJson()) {
+            $subcategory->load('category');
+
+            return response()->json([
+                'id' => $subcategory->id,
+                'name' => $subcategory->name,
+                // Matches how the import modal labels the sub categories it
+                // was handed when the page was rendered.
+                'label' => ($subcategory->category->name ?? __('No category')).' › '.$subcategory->name,
+            ]);
+        }
 
         return redirect()->route('subcategories.index')->with('status', 'Sub category added successfully.');
     }

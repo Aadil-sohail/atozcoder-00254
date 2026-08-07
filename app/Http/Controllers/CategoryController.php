@@ -26,7 +26,9 @@ class CategoryController extends Controller
      */
     public function index(): View
     {
-        $categories = Category::where(['status' => '1','close'=>'1'])->paginate(10);
+        // Fetched in full: searching, sorting and paging are handled client
+        // side by DataTables, the same as the other lookup tables.
+        $categories = Category::where(['status' => '1', 'close' => '1'])->get();
 
         return view('categories.index', compact('categories'));
     }
