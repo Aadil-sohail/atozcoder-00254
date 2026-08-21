@@ -13,19 +13,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ProductExcelImporter
 {
-    /**
-     * Header keywords used to locate each column, matched case-insensitively
-     * against every cell in the header row. Supplier sheets label and order
-     * their columns differently, so we match on keywords rather than a fixed
-     * layout.
-     *
-     * The two identifying columns play different roles: the chassis number
-     * names the sub category a row belongs to (and through it the category),
-     * while the eBay listing id identifies the product itself and is what an
-     * existing product is matched on. Supplier sheets carry no local SKU —
-     * the listing id is the only identifier shared with the software, and it
-     * is kept on the product's eBay listing link (see importRow).
-     */
+    
     private const HEADER_KEYWORDS = [
         'listing_id' => ['ebay listing id', 'listing id', 'ebay item id', 'item id', 'item number', 'ebay id'],
         'chassis' => ['chassis', 'sub category', 'subcategory'],
@@ -47,23 +35,10 @@ class ProductExcelImporter
     private const MAX_HEADER_SEARCH_ROWS = 15;
 
     /**
-     * Import products and stock from a spreadsheet on disk. Existing products
-     * (matched by the row's eBay listing id) are restocked via a new inventory
-     * entry; listing ids the software doesn't know yet are created fresh with
-     * an opening stock and linked to $account under that listing id.
+     * Import a supplier sheet into the system, creating products and stock
+     * entries for each row. Rows whose chassis number doesn't match an active
+     * sub category are held back for later import.
      *
-     * A row's chassis number names the sub category the product is filed
-     * under, and the category that sub category belongs to is applied along
-     * with it. Rows whose chassis number matches no sub category are not
-     * imported and not guessed at — they are handed back as "pending" so the
-     * user can pick a sub category for them and import them in a second pass
-     * (see importPending).
-     *
-     * The file is uploaded to the server in small chunks and reassembled
-     * before this runs (see ChunkedUploadStore), so it is always a plain
-     * path on disk rather than an UploadedFile tied to a single request.
-     *
-     * @return array{created: int, restocked: int, pending: list<array{chassis: string, listing_id: string, name: string, variant: ?string, price: float, quantity: float}>}
      */
     public function import(string $filePath, EbayAccount $account, string $insertedBy): array
     {
@@ -301,7 +276,7 @@ class ProductExcelImporter
             $product = Product::create([
                 'name' => $row['name'],
                 'variant' => $row['variant'],
-                'selling_price' => $row['price'],
+                'cost_price' => $row['price'],
                 'category_id' => $subcategory->category_id,
                 'subcategory_id' => $subcategory->id,
                 'inserted_by' => $insertedBy,
@@ -321,15 +296,7 @@ class ProductExcelImporter
         return $product->wasRecentlyCreated ? 'created' : 'restocked';
     }
 
-    /**
-     * Record the spreadsheet's listing id against the store, which is what the
-     * next import matches on and what the products grid shows under the SKU.
-     *
-     * The item is already live on eBay, so the link is marked synced but left
-     * without a last_synced_at — nothing was pushed to eBay here. The sheet
-     * carries no eBay inventory SKU, so the same placeholder the manual sync
-     * falls back to is used (see EbaySyncController@sync).
-     */
+   
     private function linkListing(Product $product, EbayAccount $account, string $listingId, string $insertedBy): void
     {
         EbayListing::create([

@@ -108,6 +108,17 @@
             </a>
         @endcan
 
+        @can('view sales')
+            <a href="{{ route('profit-loss.index') }}"
+                class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small
+                {{ request()->routeIs('profit-loss.*') ? 'bg-primary text-white' : 'text-white-50' }}"
+                onmouseover="{{ request()->routeIs('profit-loss.*') ? '' : "this.style.background='#1f2937'" }}"
+                onmouseout="{{ request()->routeIs('profit-loss.*') ? '' : "this.style.background=''" }}">
+                <i class="fa-solid fa-chart-line" style="width:18px; text-align:center;"></i>
+                {{ __('Profit & Loss') }}
+            </a>
+        @endcan
+
         @can('view returns')
             <a href="{{ route('returns.index') }}"
                 class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small

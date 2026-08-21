@@ -9,6 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProfitLossController;
 use App\Http\Controllers\ReturnController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
@@ -69,6 +70,11 @@ Route::middleware('auth')->group(function () {
     // Warranties
     Route::get('/warranties', [WarrantyController::class, 'index'])->name('warranties.index');
     Route::get('/warranties/data', [WarrantyController::class, 'data'])->name('warranties.data');
+
+    // Profit & Loss report
+    Route::get('/profit-loss', [ProfitLossController::class, 'index'])->name('profit-loss.index');
+    Route::get('/profit-loss/data', [ProfitLossController::class, 'data'])->name('profit-loss.data');
+    Route::get('/profit-loss/{product}/breakdown', [ProfitLossController::class, 'breakdown'])->name('profit-loss.breakdown'); //ajax per-product sale lines
 
     // Categories
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
