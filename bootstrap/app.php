@@ -12,6 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // ngrok (and any other reverse proxy) terminates TLS and forwards the
+        // request to XAMPP over plain http. Without trusting its forwarded
+        // headers Laravel builds http:// URLs into a page the browser loaded
+        // over https, and every ajax call — the products grid, the Excel
+        // import — is blocked as mixed content before it is even sent.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,

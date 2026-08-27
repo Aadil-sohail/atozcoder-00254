@@ -16,6 +16,19 @@ use Throwable;
 
 class EbayService
 {
+    /**
+     * Shorten a token / authorization code so it can be logged safely — enough
+     * to match two log lines up, never enough to reuse the credential.
+     */
+    public static function mask(?string $secret): string
+    {
+        if (! $secret) {
+            return '(none)';
+        }
+
+        return substr($secret, 0, 6).'…'.substr($secret, -4).' ('.strlen($secret).' chars)';
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Environment URLs
@@ -36,6 +49,17 @@ class EbayService
             : 'https://api.ebay.com';
     }
 
+    /**
+     * The Commerce Identity API is served from the apiz.* host; calling it on
+     * the normal API base answers 404 and the seller is never identified.
+     */
+    public function identityBase(): string
+    {
+        return config('ebay.sandbox')
+            ? 'https://apiz.sandbox.ebay.com'
+            : 'https://apiz.ebay.com';
+    }
+
     /*
     |--------------------------------------------------------------------------
     | OAuth (connecting a store)
@@ -47,13 +71,35 @@ class EbayService
      */
     public function authorizationUrl(string $state): string
     {
-        return $this->authBase().'/oauth2/authorize?'.http_build_query([
+        $query = [
             'client_id' => config('ebay.client_id'),
             'redirect_uri' => config('ebay.ru_name'),
             'response_type' => 'code',
             'scope' => implode(' ', config('ebay.scopes')),
             'state' => $state,
+        ];
+
+        // Without this eBay silently reuses whatever seller is still signed in
+        // in this browser (and the consent it already granted), so the store
+        // owner never sees the sign-in page and can connect the wrong account.
+        if (config('ebay.force_login')) {
+            $query['prompt'] = 'login';
+        }
+
+        $url = $this->authBase().'/oauth2/authorize?'.http_build_query($query);
+
+        Log::info('eBay connect: consent URL built', [
+            'environment' => config('ebay.sandbox') ? 'sandbox' : 'production',
+            'auth_base' => $this->authBase(),
+            'client_id' => config('ebay.client_id'),
+            'ru_name' => config('ebay.ru_name'),
+            'scopes' => config('ebay.scopes'),
+            'force_login' => (bool) config('ebay.force_login'),
+            'state' => $state,
+            'url' => $url,
         ]);
+
+        return $url;
     }
 
     /**
@@ -63,6 +109,12 @@ class EbayService
      */
     public function exchangeCode(string $code): array
     {
+        Log::info('eBay connect: exchanging authorization code for tokens', [
+            'code' => self::mask($code),
+            'token_url' => $this->apiBase().'/identity/v1/oauth2/token',
+            'redirect_uri' => config('ebay.ru_name'),
+        ]);
+
         $response = Http::asForm()
             ->withBasicAuth(config('ebay.client_id'), config('ebay.client_secret'))
             ->post($this->apiBase().'/identity/v1/oauth2/token', [
@@ -76,9 +128,16 @@ class EbayService
             throw new RuntimeException('eBay token exchange failed: '.$this->errorMessage($response));
         }
 
-        Log::info('eBay: authorization code exchanged for tokens successfully');
+        $tokens = $response->json();
 
-        return $response->json();
+        Log::info('eBay connect: authorization code exchanged for tokens successfully', [
+            'access_token' => self::mask($tokens['access_token'] ?? null),
+            'access_token_expires_in' => $tokens['expires_in'] ?? null,
+            'refresh_token' => self::mask($tokens['refresh_token'] ?? null),
+            'refresh_token_expires_in' => $tokens['refresh_token_expires_in'] ?? null,
+        ]);
+
+        return $tokens;
     }
 
     /**
@@ -153,9 +212,17 @@ class EbayService
      */
     public function fetchUsername(EbayAccount $account): ?string
     {
-        $response = $this->api($account)->get('/commerce/identity/v1/user/');
+        $response = $this->api($account)->baseUrl($this->identityBase())->get('/commerce/identity/v1/user/');
 
-        return $response->successful() ? $response->json('username') : null;
+        if (! $response->successful()) {
+            $this->logFailure('seller identity lookup failed (commerce.identity scope missing?)', $response);
+
+            return null;
+        }
+
+        Log::info('eBay connect: seller identified as "'.$response->json('username').'"');
+
+        return $response->json('username');
     }
 
     /**
@@ -507,6 +574,18 @@ class EbayService
             ));
         }
 
+        // eBay cannot list at zero and answers a priceless offer with a generic
+        // "system error", so say what is actually wrong before calling it.
+        // Products imported from a supplier spreadsheet only carry a cost
+        // price, so this is the usual reason a fresh import will not list.
+        if ((float) $product->selling_price <= 0) {
+            throw new RuntimeException(sprintf(
+                'No selling price set for "%s" (cost %s). eBay cannot publish a listing priced at 0 — set a selling price on the product, then sync again.',
+                $product->name,
+                number_format((float) $product->cost_price, 2),
+            ));
+        }
+
         // Step 1: create/replace the inventory item record (keyed by SKU).
         $item = [
             'availability' => [
@@ -629,7 +708,7 @@ class EbayService
 
         if ($response->failed()) {
             $this->logFailure("publish failed for offer {$listing->offer_id} (SKU {$listing->sku})", $response);
-            throw new RuntimeException('Publish failed: '.$this->errorMessage($response));
+            throw new RuntimeException('Publish failed: '.$this->publishFailureMessage($account, $response));
         }
 
         $listing->update([
@@ -1052,6 +1131,31 @@ class EbayService
             'status' => $response->status(),
             'response' => Str::limit($response->body(), 1500),
         ]);
+    }
+
+    /**
+     * eBay answers an account-level refusal to publish with the same generic
+     * "system error" it uses for everything else, which sends you hunting
+     * through a listing that is perfectly valid. When that error comes back,
+     * ask the Account API whether the seller is allowed to list at all and
+     * report that instead.
+     */
+    private function publishFailureMessage(EbayAccount $account, Response $response): string
+    {
+        if ($this->hasErrorId($response, 25002)) {
+            $privilege = $this->api($account)->get('/sell/account/v1/privilege');
+
+            if ($privilege->successful() && $privilege->json('sellerRegistrationCompleted') === false) {
+                Log::warning('eBay: publish blocked — seller "'.$account->ebay_username.'" has not completed seller registration on eBay');
+
+                return sprintf(
+                    'the eBay account "%s" has not finished seller registration, so eBay refuses to publish any listing (it reports only a generic system error). Sign in to eBay as that seller, complete the seller registration steps, then sync again.',
+                    $account->ebay_username ?: $account->store_name,
+                );
+            }
+        }
+
+        return $this->errorMessage($response);
     }
 
     /**

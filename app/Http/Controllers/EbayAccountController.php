@@ -6,6 +6,7 @@ use App\Models\EbayAccount;
 use App\Services\EbayService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use RuntimeException;
@@ -42,7 +43,21 @@ class EbayAccountController extends Controller
             'marketplace_id' => ['required', 'string', 'in:'.implode(',', array_keys(config('ebay.marketplaces')))],
         ]);
 
+        Log::info('eBay connect: store owner started connecting a store', [
+            'store_name' => $request->store_name,
+            'marketplace_id' => $request->marketplace_id,
+            'environment' => config('ebay.sandbox') ? 'sandbox' : 'production',
+            'app_user' => auth()->user()?->name,
+            'callback_url' => route('ebay.callback'),
+        ]);
+
         if (! config('ebay.client_id') || ! config('ebay.client_secret') || ! config('ebay.ru_name')) {
+            Log::error('eBay connect: aborted, credentials are missing from the environment', [
+                'has_client_id' => (bool) config('ebay.client_id'),
+                'has_client_secret' => (bool) config('ebay.client_secret'),
+                'has_ru_name' => (bool) config('ebay.ru_name'),
+            ]);
+
             return redirect()->route('ebay.index')
                 ->with('error', 'eBay credentials are not configured. Add EBAY_CLIENT_ID, EBAY_CLIENT_SECRET and EBAY_RU_NAME to your .env file.');
         }
@@ -57,7 +72,15 @@ class EbayAccountController extends Controller
             ],
         ]);
 
-        return redirect()->away($this->ebay->authorizationUrl($state));
+        $url = $this->ebay->authorizationUrl($state);
+
+        Log::info('eBay connect: redirecting the store owner to eBay for consent', [
+            'store_name' => $request->store_name,
+            'state' => $state,
+            'session_id' => session()->getId(),
+        ]);
+
+        return redirect()->away($url);
     }
 
     /**
@@ -66,6 +89,20 @@ class EbayAccountController extends Controller
     public function callback(Request $request): RedirectResponse
     {
         $pending = session()->pull('ebay_oauth');
+
+        Log::info('eBay connect: callback received from eBay', [
+            'has_code' => $request->filled('code'),
+            'code' => EbayService::mask($request->query('code')),
+            'state' => $request->query('state'),
+            'error' => $request->query('error'),
+            'error_description' => $request->query('error_description'),
+            'pending_session' => $pending ? [
+                'store_name' => $pending['store_name'],
+                'marketplace_id' => $pending['marketplace_id'],
+                'state' => $pending['state'],
+            ] : null,
+            'session_id' => session()->getId(),
+        ]);
 
         return $this->handleCallback($request, $pending);
     }
@@ -90,6 +127,10 @@ class EbayAccountController extends Controller
             }
         } catch (Throwable $e) {
             $loadError = $e->getMessage();
+
+            Log::error('eBay connect: could not load policies/locations for store "'.$ebayAccount->store_name."\" (#{$ebayAccount->id})", [
+                'exception' => $e->getMessage(),
+            ]);
         }
 
         return view('ebay.setup', compact('ebayAccount', 'policies', 'locations', 'loadError'));
@@ -215,6 +256,8 @@ class EbayAccountController extends Controller
      */
     public function destroy(EbayAccount $ebayAccount): RedirectResponse
     {
+        Log::info('eBay connect: store "'.$ebayAccount->store_name."\" (#{$ebayAccount->id}) disconnected by ".(auth()->user()?->name ?? 'unknown user'));
+
         $ebayAccount->delete();
 
         return redirect()->route('ebay.index')->with('status', 'eBay store disconnected.');
@@ -226,16 +269,32 @@ class EbayAccountController extends Controller
     private function handleCallback(Request $request, ?array $pending): RedirectResponse
     {
         if (! $pending || $request->state !== $pending['state']) {
+            Log::warning('eBay connect: callback rejected, the authorization session expired or the state did not match', [
+                'had_pending_session' => (bool) $pending,
+                'state_returned' => $request->state,
+                'state_expected' => $pending['state'] ?? null,
+            ]);
+
             return redirect()->route('ebay.index')->with('error', 'The eBay authorization session expired or was invalid. Please try connecting again.');
         }
 
         if ($request->filled('error') || ! $request->filled('code')) {
+            Log::warning('eBay connect: authorization was declined or returned no code', [
+                'error' => $request->query('error'),
+                'error_description' => $request->query('error_description'),
+            ]);
+
             return redirect()->route('ebay.index')->with('warning', 'eBay authorization was declined.');
         }
 
         try {
             $tokens = $this->ebay->exchangeCode($request->code);
         } catch (RuntimeException $e) {
+            Log::error('eBay connect: token exchange failed, store not connected', [
+                'store_name' => $pending['store_name'],
+                'exception' => $e->getMessage(),
+            ]);
+
             return redirect()->route('ebay.index')->with('error', $e->getMessage());
         }
 
@@ -272,6 +331,15 @@ class EbayAccountController extends Controller
             ]);
         }
 
+        Log::info('eBay connect: store '.($reconnected ? 're-connected' : 'connected').' and tokens saved', [
+            'account_id' => $account->id,
+            'store_name' => $account->store_name,
+            'marketplace_id' => $account->marketplace_id,
+            'ebay_username' => $username,
+            'access_token_expires_at' => (string) $tokenFields['access_token_expires_at'],
+            'refresh_token_expires_at' => (string) $tokenFields['refresh_token_expires_at'],
+        ]);
+
         // Best effort: identify the seller and pre-select policies/location
         // (never overwriting choices already made on the setup page).
         try {
@@ -288,14 +356,29 @@ class EbayAccountController extends Controller
             }
 
             $account->save();
-        } catch (Throwable) {
+
+            Log::info("eBay connect: setup pre-filled for store #{$account->id}", [
+                'fulfillment_policy_id' => $account->fulfillment_policy_id,
+                'payment_policy_id' => $account->payment_policy_id,
+                'return_policy_id' => $account->return_policy_id,
+                'merchant_location_key' => $account->merchant_location_key,
+                'fully_configured' => $account->isFullyConfigured(),
+            ]);
+        } catch (Throwable $e) {
             // Setup page will let the user finish configuration manually.
+            Log::warning("eBay connect: could not pre-fill policies/location for store #{$account->id}, the setup page will ask for them", [
+                'exception' => $e->getMessage(),
+            ]);
         }
 
         if (! $account->isFullyConfigured()) {
+            Log::info("eBay connect: store #{$account->id} needs manual setup before products can be published");
+
             return redirect()->route('ebay.setup', $account)
                 ->with('info', 'Store connected. Finish the setup below so products can be published.');
         }
+
+        Log::info('eBay connect: store #'.$account->id.' "'.$account->store_name.'" is fully configured and ready to sync');
 
         return redirect()->route('ebay.index')->with('status', $reconnected
             ? "eBay store \"{$account->store_name}\" re-connected — permissions refreshed."

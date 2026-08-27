@@ -24,6 +24,11 @@ return [
 
     'default_marketplace' => env('EBAY_MARKETPLACE_ID', 'EBAY_US'),
 
+    // Send "prompt=login" with the consent request so eBay always asks the
+    // store owner to sign in, instead of reusing the session already open in
+    // their browser. Set EBAY_FORCE_LOGIN=false to allow the silent shortcut.
+    'force_login' => env('EBAY_FORCE_LOGIN', true),
+
     // Used when eBay cannot suggest a category from the product title.
     'fallback_category_id' => env('EBAY_FALLBACK_CATEGORY_ID'),
 

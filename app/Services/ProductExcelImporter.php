@@ -277,6 +277,11 @@ class ProductExcelImporter
                 'name' => $row['name'],
                 'variant' => $row['variant'],
                 'cost_price' => $row['price'],
+                // The sheet only carries the supplier's price. Seeding the
+                // selling price with it keeps the product listable on eBay
+                // straight away (eBay rejects a listing priced at 0); edit it
+                // afterwards to put a margin on the part.
+                'selling_price' => $row['price'],
                 'category_id' => $subcategory->category_id,
                 'subcategory_id' => $subcategory->id,
                 'inserted_by' => $insertedBy,
