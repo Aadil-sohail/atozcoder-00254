@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use SimpleXMLElement;
 use Throwable;
 
 class EbayListingImporter
@@ -43,7 +44,32 @@ class EbayListingImporter
         $skipped = 0;
 
         foreach ($items as $item) {
+            $this->extendTimeLimit();
+
             match ($this->importItem($account, $item)) {
+                'created' => $created++,
+                'linked' => $linked++,
+                default => $skipped++,
+            };
+        }
+
+        // fetchInventoryItems() only knows items the Inventory API itself
+        // created, so a shop listed through eBay's own tools — Seller Hub, the
+        // mobile app, File Exchange, the legacy Trading API — reports nothing
+        // there while being full of live products. Everything actually listed
+        // on the account comes from the Trading API instead. SKUs already
+        // handled above are skipped, and each listing carries its own offer, so
+        // this pass needs no extra call per item.
+        $alreadyHandled = array_flip(array_filter(array_column($items, 'sku')));
+
+        foreach ($this->fetchActiveListings($account) as $listing) {
+            if (isset($alreadyHandled[$listing['item']['sku']])) {
+                continue;
+            }
+
+            $this->extendTimeLimit();
+
+            match ($this->importItem($account, $listing['item'], $listing['offer'])) {
                 'created' => $created++,
                 'linked' => $linked++,
                 default => $skipped++,
@@ -55,12 +81,171 @@ class EbayListingImporter
         return ['created' => $created, 'linked' => $linked, 'skipped' => $skipped];
     }
 
+    private function fetchActiveListings(EbayAccount $account): array
+    {
+        $listings = [];
+        $page = 1;
+        $totalPages = 1;
+
+        do {
+            $body = '<?xml version="1.0" encoding="utf-8"?>'
+                .'<GetMyeBaySellingRequest xmlns="urn:ebay:apis:eBLBaseComponents">'
+                .'<ActiveList><Include>true</Include>'
+                ."<Pagination><EntriesPerPage>200</EntriesPerPage><PageNumber>{$page}</PageNumber></Pagination>"
+                .'</ActiveList></GetMyeBaySellingRequest>';
+
+            try {
+                $response = Http::withHeaders([
+                    'X-EBAY-API-CALL-NAME' => 'GetMyeBaySelling',
+                    'X-EBAY-API-SITEID' => (string) config("ebay.marketplaces.{$account->marketplace_id}.site", 0),
+                    'X-EBAY-API-COMPATIBILITY-LEVEL' => '1155',
+                    'X-EBAY-API-IAF-TOKEN' => $this->ebay->ensureAccessToken($account),
+                    'Content-Type' => 'text/xml',
+                ])->timeout(60)->withBody($body, 'text/xml')->post($this->tradingApiUrl());
+            } catch (Throwable $e) {
+                Log::warning("eBay: active listing lookup failed for store \"{$account->store_name}\": ".$e->getMessage());
+
+                break;
+            }
+
+            if ($response->failed()) {
+                Log::warning("eBay: active listing lookup returned HTTP {$response->status()} for store \"{$account->store_name}\"");
+
+                break;
+            }
+
+            $xml = @simplexml_load_string($response->body());
+
+            if ($xml === false) {
+                Log::warning("eBay: active listing lookup returned unreadable XML for store \"{$account->store_name}\"");
+
+                break;
+            }
+
+            $xml->registerXPathNamespace('e', 'urn:ebay:apis:eBLBaseComponents');
+
+          
+            if ((string) $xml->Ack === 'Failure') {
+                Log::warning("eBay: active listing lookup rejected for store \"{$account->store_name}\"", [
+                    'error_code' => (string) $xml->Errors->ErrorCode,
+                    'error' => (string) $xml->Errors->LongMessage ?: (string) $xml->Errors->ShortMessage,
+                ]);
+
+                break;
+            }
+
+            foreach ($xml->xpath('//e:ActiveList/e:ItemArray/e:Item') ?: [] as $item) {
+                $listings[] = $this->legacyListingToInventoryShape($item, $account);
+            }
+
+            $totalPages = (int) ($xml->xpath('//e:ActiveList/e:PaginationResult/e:TotalNumberOfPages')[0] ?? 1);
+            $page++;
+        } while ($page <= $totalPages);
+
+        Log::info('eBay: '.count($listings)." active listing(s) fetched for store \"{$account->store_name}\" (Trading API)");
+
+        return $listings;
+    }
+
+    private function legacyListingToInventoryShape(SimpleXMLElement $item, EbayAccount $account): array
+    {
+        $itemId = (string) $item->ItemID;
+        $sku = trim((string) $item->SKU);
+
+        
+        $sku = $sku !== '' ? $sku : 'EBAY-'.$itemId;
+
+        $quantity = (float) $item->QuantityAvailable;
+
+        if ($quantity <= 0) {
+            $quantity = max(0, (float) $item->Quantity - (float) $item->SellingStatus->QuantitySold);
+        }
+
+        $images = [];
+
+        foreach ($item->PictureDetails->PictureURL ?? [] as $url) {
+            $images[] = (string) $url;
+        }
+
+        if ($images === [] && (string) $item->PictureDetails->GalleryURL !== '') {
+            $images[] = (string) $item->PictureDetails->GalleryURL;
+        }
+
+        // A missing SimpleXML node reads as an empty element, never null, so ??
+        // would not catch it: an empty price has to be tested for by hand.
+        $price = (string) $item->SellingStatus->CurrentPrice;
+
+        if ($price === '') {
+            $price = (string) $item->StartPrice;
+        }
+
+        return [
+            'item' => [
+                'sku' => $sku,
+                'condition' => $this->conditionFromLegacyId((string) $item->ConditionID),
+                'product' => [
+                    'title' => (string) $item->Title,
+                    // GetMyeBaySelling does not carry the listing description.
+                    'description' => null,
+                    'imageUrls' => $images,
+                ],
+                'availability' => ['shipToLocationAvailability' => ['quantity' => $quantity]],
+            ],
+            'offer' => [
+                'offerId' => null,
+                // Already live on eBay by definition: it came from ActiveList.
+                'status' => 'PUBLISHED',
+                'listing' => ['listingId' => $itemId],
+                'marketplaceId' => $account->marketplace_id,
+                'categoryId' => (string) $item->PrimaryCategory->CategoryID ?: null,
+                'availableQuantity' => $quantity,
+                'pricingSummary' => ['price' => ['value' => $price !== '' ? $price : '0']],
+            ],
+        ];
+    }
+
     /**
-     * Import one inventory item. Returns what happened so the caller can tally.
-     *
-     * @return 'created'|'linked'|'skipped'
+     * eBay's numeric ConditionID mapped onto the condition codes this app uses.
+     * Unknown or absent ids fall back to NEW, matching the listings table default.
      */
-    private function importItem(EbayAccount $account, array $item): string
+    private function conditionFromLegacyId(string $conditionId): string
+    {
+        return match ($conditionId) {
+            '1500', '1750' => 'NEW_OTHER',
+            '2000', '2010', '2020', '2030', '2500', '2750' => 'LIKE_NEW',
+            '3000' => 'USED_EXCELLENT',
+            '4000' => 'USED_VERY_GOOD',
+            '5000' => 'USED_GOOD',
+            '6000' => 'USED_ACCEPTABLE',
+            '7000' => 'FOR_PARTS_OR_NOT_WORKING',
+            default => 'NEW',
+        };
+    }
+
+    /**
+     * Legacy Trading API endpoint for the active environment.
+     */
+    private function tradingApiUrl(): string
+    {
+        return config('ebay.sandbox')
+            ? 'https://api.sandbox.ebay.com/ws/api.dll'
+            : 'https://api.ebay.com/ws/api.dll';
+    }
+
+    /**
+     * Give each product its own budget instead of racing one deadline for the
+     * whole run: a shop with hundreds of listings downloads an image set per
+     * product and would otherwise die partway through.
+     */
+    private function extendTimeLimit(): void
+    {
+        if (! str_contains((string) ini_get('disable_functions'), 'set_time_limit')) {
+            @set_time_limit(60);
+        }
+    }
+
+    
+    private function importItem(EbayAccount $account, array $item, ?array $offer = null): string
     {
         $sku = $item['sku'] ?? null;
 
@@ -79,27 +264,19 @@ class EbayListingImporter
                 return 'skipped';
             }
 
-            // Product was disabled locally but is still listed on eBay: bring it
-            // back rather than leaving it hidden and un-importable.
+           
             if ($linkedProduct) {
                 $linkedProduct->update(['status' => '1', 'close' => '1']);
 
                 return 'linked';
             }
 
-            // Orphaned link (product deleted outside the app): drop it so the
-            // item can be re-imported as a fresh product below.
             $existingListing->delete();
         }
 
-        // Only items with a published offer on THIS account's marketplace are
-        // genuinely listed on this store. An item with no offer, only a draft
-        // offer, or offers on a different marketplace is skipped. (Note: eBay
-        // keeps one inventory per seller, so two stores that authorized the
-        // same seller + marketplace are the same account and share listings.)
-        $offer = collect($this->ebay->fetchOffers($account, $sku))
-            ->first(fn (array $offer) => ($offer['marketplaceId'] ?? $account->marketplace_id) === $account->marketplace_id
-                && (($offer['status'] ?? null) === 'PUBLISHED' || ! empty($offer['listing']['listingId'])));
+        $offer ??= collect($this->ebay->fetchOffers($account, $sku))
+            ->first(fn (array $candidate) => ($candidate['marketplaceId'] ?? $account->marketplace_id) === $account->marketplace_id
+                && (($candidate['status'] ?? null) === 'PUBLISHED' || ! empty($candidate['listing']['listingId'])));
 
         if (! $offer) {
             Log::info("eBay: SKU {$sku} skipped, no published offer");
@@ -177,7 +354,9 @@ class EbayListingImporter
 
         foreach (array_slice($urls, 0, 6) as $url) {
             try {
-                $response = Http::timeout(15)->get($url);
+                // Kept short on purpose: a store with hundreds of listings
+                // multiplies this wait by every image of every product.
+                $response = Http::connectTimeout(5)->timeout(10)->get($url);
 
                 if ($response->failed()) {
                     continue;
