@@ -6,6 +6,7 @@ use App\Models\EbayAccount;
 use App\Services\EbayService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -17,7 +18,10 @@ class EbayAccountController extends Controller
     public function __construct(private EbayService $ebay)
     {
         $this->middleware('permission:view ebay stores')->only('index');
-        $this->middleware('permission:create ebay stores')->only(['connect', 'callback']);
+        // "callback" is deliberately absent: eBay redirects the browser to it
+        // from its own domain, where neither the login session nor the
+        // permission that started the flow can be relied on. See connect().
+        $this->middleware('permission:create ebay stores')->only('connect');
         $this->middleware('permission:edit ebay stores')->only(['setup', 'saveSetup', 'createDefaultPolicies']);
         $this->middleware('permission:delete ebay stores')->only('destroy');
     }
@@ -64,13 +68,30 @@ class EbayAccountController extends Controller
 
         $state = Str::random(40);
 
-        session([
-            'ebay_oauth' => [
-                'state' => $state,
-                'store_name' => $request->store_name,
-                'marketplace_id' => $request->marketplace_id,
-            ],
-        ]);
+        $pending = [
+            'state' => $state,
+            'store_name' => $request->store_name,
+            'marketplace_id' => $request->marketplace_id,
+            // Captured now: by the time eBay redirects back there may be no
+            // authenticated user on that request to read it from.
+            'inserted_by' => auth()->user()?->name,
+        ];
+
+        session(['ebay_oauth' => $pending]);
+
+        // The session cookie may not survive the round trip through
+        // auth.ebay.com, so the same payload is parked in the cache under its
+        // own state token — 40 random characters only this request and eBay
+        // know. The callback reads whichever copy comes back. A cache that is
+        // down must not stop the store owner: the session copy still works
+        // wherever the cookie does make it back.
+        try {
+            Cache::put($this->pendingKey($state), $pending, now()->addMinutes(30));
+        } catch (Throwable $e) {
+            Log::warning('eBay connect: could not park the pending request in the cache, the session copy is the only one', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
 
         $url = $this->ebay->authorizationUrl($state);
 
@@ -88,23 +109,55 @@ class EbayAccountController extends Controller
      */
     public function callback(Request $request): RedirectResponse
     {
-        $pending = session()->pull('ebay_oauth');
+        $state = (string) $request->query('state');
+
+        // Both copies are pulled, so a code can never be redeemed twice: the
+        // session one when the cookie made the round trip, the cache one when
+        // it did not. An older abandoned attempt can still be sitting in the
+        // session, so the copy whose state matches is the one that counts.
+        $fromSession = session()->pull('ebay_oauth');
+        $fromCache = null;
+
+        try {
+            $fromCache = $state !== '' ? Cache::pull($this->pendingKey($state)) : null;
+        } catch (Throwable $e) {
+            Log::warning('eBay connect: could not read the pending request from the cache', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
+
+        $sessionMatched = $fromSession !== null && ($fromSession['state'] ?? null) === $state;
+        $pending = $sessionMatched ? $fromSession : $fromCache;
 
         Log::info('eBay connect: callback received from eBay', [
             'has_code' => $request->filled('code'),
             'code' => EbayService::mask($request->query('code')),
-            'state' => $request->query('state'),
+            'state' => $state,
             'error' => $request->query('error'),
             'error_description' => $request->query('error_description'),
-            'pending_session' => $pending ? [
+            'pending_from' => $sessionMatched ? 'session' : ($fromCache !== null ? 'cache' : 'nothing found'),
+            'pending' => $pending ? [
                 'store_name' => $pending['store_name'],
                 'marketplace_id' => $pending['marketplace_id'],
                 'state' => $pending['state'],
             ] : null,
+            // Both tell you whether the login cookie survived the trip through
+            // auth.ebay.com — the thing that used to silently kill this flow.
+            'pending_in_session' => $fromSession !== null,
+            'authenticated' => auth()->check(),
             'session_id' => session()->getId(),
         ]);
 
         return $this->handleCallback($request, $pending);
+    }
+
+    /**
+     * Cache key holding a connect request while the store owner is away on
+     * eBay's consent page.
+     */
+    private function pendingKey(string $state): string
+    {
+        return 'ebay_oauth:'.$state;
     }
 
     /**
@@ -268,14 +321,14 @@ class EbayAccountController extends Controller
      */
     private function handleCallback(Request $request, ?array $pending): RedirectResponse
     {
-        if (! $pending || $request->state !== $pending['state']) {
-            Log::warning('eBay connect: callback rejected, the authorization session expired or the state did not match', [
-                'had_pending_session' => (bool) $pending,
-                'state_returned' => $request->state,
+        if (! $pending || $request->query('state') !== $pending['state']) {
+            Log::warning('eBay connect: callback rejected, the pending authorization was not found or the state did not match', [
+                'had_pending_request' => (bool) $pending,
+                'state_returned' => $request->query('state'),
                 'state_expected' => $pending['state'] ?? null,
             ]);
 
-            return redirect()->route('ebay.index')->with('error', 'The eBay authorization session expired or was invalid. Please try connecting again.');
+            return $this->finish('error', 'That eBay authorization is no longer valid — it was already used, or more than 30 minutes passed on eBay\'s consent page. Please click Connect again.');
         }
 
         if ($request->filled('error') || ! $request->filled('code')) {
@@ -284,18 +337,27 @@ class EbayAccountController extends Controller
                 'error_description' => $request->query('error_description'),
             ]);
 
-            return redirect()->route('ebay.index')->with('warning', 'eBay authorization was declined.');
+            return $this->finish('warning', 'eBay authorization was declined'.($request->query('error_description') ? ': '.$request->query('error_description') : '.'));
         }
 
         try {
-            $tokens = $this->ebay->exchangeCode($request->code);
-        } catch (RuntimeException $e) {
+            $tokens = $this->ebay->exchangeCode($request->query('code'));
+        } catch (Throwable $e) {
             Log::error('eBay connect: token exchange failed, store not connected', [
                 'store_name' => $pending['store_name'],
                 'exception' => $e->getMessage(),
             ]);
 
-            return redirect()->route('ebay.index')->with('error', $e->getMessage());
+            return $this->finish('error', $e->getMessage());
+        }
+
+        if (! isset($tokens['access_token'], $tokens['refresh_token'])) {
+            Log::error('eBay connect: token exchange answered without a token pair, store not connected', [
+                'store_name' => $pending['store_name'],
+                'keys_returned' => array_keys((array) $tokens),
+            ]);
+
+            return $this->finish('error', 'eBay returned an incomplete token response. Please try connecting again.');
         }
 
         $tokenFields = [
@@ -306,8 +368,18 @@ class EbayAccountController extends Controller
         ];
 
         // Identify the seller with the fresh token so re-connecting updates
-        // the existing store row instead of creating a duplicate.
-        $username = $this->ebay->fetchUsername(new EbayAccount($tokenFields + ['store_name' => $pending['store_name']]));
+        // the existing store row instead of creating a duplicate. Never fatal:
+        // the tokens are already in hand, and losing the store over a failed
+        // lookup would send the owner back through the whole consent flow.
+        try {
+            $username = $this->ebay->fetchUsername(new EbayAccount($tokenFields + ['store_name' => $pending['store_name']]));
+        } catch (Throwable $e) {
+            Log::warning('eBay connect: seller identity lookup failed, connecting without the eBay username', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            $username = null;
+        }
 
         $account = EbayAccount::where('marketplace_id', $pending['marketplace_id'])
             ->where(function ($query) use ($username, $pending) {
@@ -321,13 +393,22 @@ class EbayAccountController extends Controller
 
         $reconnected = $account !== null;
 
+        // Written with the tokens rather than in the best-effort block below,
+        // so the seller name is stored even if the policy lookup then fails.
+        $storeFields = $tokenFields + ['store_name' => $pending['store_name']];
+
+        if ($username) {
+            $storeFields['ebay_username'] = $username;
+        }
+
         if ($reconnected) {
-            $account->update($tokenFields + ['store_name' => $pending['store_name']]);
+            $account->update($storeFields);
         } else {
-            $account = EbayAccount::create($tokenFields + [
-                'store_name' => $pending['store_name'],
+            $account = EbayAccount::create($storeFields + [
                 'marketplace_id' => $pending['marketplace_id'],
-                'inserted_by' => auth()->user()->name,
+                // Recorded when the flow started: this request may well arrive
+                // with no authenticated user behind it.
+                'inserted_by' => $pending['inserted_by'] ?? auth()->user()?->name,
             ]);
         }
 
@@ -343,8 +424,6 @@ class EbayAccountController extends Controller
         // Best effort: identify the seller and pre-select policies/location
         // (never overwriting choices already made on the setup page).
         try {
-            $account->ebay_username = $username ?: $account->ebay_username;
-
             if (! $account->isFullyConfigured()) {
                 $policies = $this->ebay->fetchPolicies($account);
                 $account->fulfillment_policy_id = $account->fulfillment_policy_id ?? ($policies['fulfillment'][0]['fulfillmentPolicyId'] ?? null);
@@ -374,14 +453,42 @@ class EbayAccountController extends Controller
         if (! $account->isFullyConfigured()) {
             Log::info("eBay connect: store #{$account->id} needs manual setup before products can be published");
 
-            return redirect()->route('ebay.setup', $account)
-                ->with('info', 'Store connected. Finish the setup below so products can be published.');
+            return $this->finish('info', 'Store connected. Finish the setup below so products can be published.', route('ebay.setup', $account));
         }
 
         Log::info('eBay connect: store #'.$account->id.' "'.$account->store_name.'" is fully configured and ready to sync');
 
-        return redirect()->route('ebay.index')->with('status', $reconnected
+        return $this->finish('status', $reconnected
             ? "eBay store \"{$account->store_name}\" re-connected — permissions refreshed."
             : "eBay store \"{$account->store_name}\" connected successfully.");
+    }
+
+    /**
+     * Send the store owner back into the app after the eBay round trip.
+     *
+     * The callback runs outside the "auth" group, so this request may have no
+     * login session behind it — the browser came from auth.ebay.com and the
+     * cookie is not guaranteed to travel with it. Redirecting a guest straight
+     * at an authenticated page would bounce them to a bare login screen with no
+     * word of what happened, so a guest is sent to the login page with the
+     * destination remembered and the message shown there instead.
+     */
+    private function finish(string $level, string $message, ?string $destination = null): RedirectResponse
+    {
+        $destination ??= route('ebay.index');
+
+        if (auth()->check()) {
+            return redirect()->to($destination)->with($level, $message);
+        }
+
+        Log::info('eBay connect: callback finished without a login session, sending the store owner to sign in again', [
+            'destination' => $destination,
+        ]);
+
+        session()->put('url.intended', $destination);
+
+        // The login page only renders "status", so the outcome is flashed under
+        // that key too — otherwise the message is silently dropped there.
+        return redirect()->route('login')->with($level, $message)->with('status', $message);
     }
 }

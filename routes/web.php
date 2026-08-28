@@ -117,7 +117,6 @@ Route::middleware('auth')->group(function () {
     // eBay stores & product sync
     Route::get('/ebay/stores', [EbayAccountController::class, 'index'])->name('ebay.index');
     Route::post('/ebay/connect', [EbayAccountController::class, 'connect'])->name('ebay.connect');
-    Route::get('/ebay/callback', [EbayAccountController::class, 'callback'])->name('ebay.callback');
     Route::get('/ebay/stores/{ebayAccount}/setup', [EbayAccountController::class, 'setup'])->name('ebay.setup');
     Route::post('/ebay/stores/{ebayAccount}/setup', [EbayAccountController::class, 'saveSetup'])->name('ebay.setup.save');
     Route::post('/ebay/stores/{ebayAccount}/policies/default', [EbayAccountController::class, 'createDefaultPolicies'])->name('ebay.policies.default');
@@ -137,5 +136,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/returns/{saleReturn}', [ReturnController::class, 'show'])->name('returns.show');
     Route::delete('/returns/{saleReturn}', [ReturnController::class, 'destroy'])->name('returns.destroy');
 });
+
+// eBay sends the store owner back here after they approve access. This one has
+// to stay outside the "auth" group: the browser arrives from auth.ebay.com, so
+// the session cookie is not guaranteed to come with it, and behind "auth" that
+// silently lands the store owner on the login page while the authorization code
+// is thrown away — the connect flow then just dies with nothing in the log. The
+// unguessable state token issued in connect() is what authorizes this request.
+Route::get('/ebay/callback', [EbayAccountController::class, 'callback'])->name('ebay.callback');
 
 require __DIR__.'/auth.php';
