@@ -26,11 +26,9 @@ class InventoryController extends Controller
      */
     public function index(): View
     {
-        $categoryCount = Category::where('status', '1')->count();
-
-        // Still loaded in full: this feeds the "Add Stock" modal's product
-        // picker, not the grid.
-        $products = Product::where(['status' => '1'])->orderBy('name')->get();
+        $filter=['status'=>'1','close'=>'1'];
+        $categoryCount = Category::where($filter)->count();
+        $products = Product::where($filter)->orderBy('name')->get();
 
         return view('inventory.index', compact('categoryCount', 'products'));
     }

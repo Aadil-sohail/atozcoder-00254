@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\SyncProductToEbay;
 use App\Models\EbayAccount;
+use App\Models\EbayImportItem;
 use App\Models\EbayListing;
 use App\Models\Product;
 use App\Services\EbayListingImporter;
@@ -13,6 +14,7 @@ use App\Services\EbayService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
 use Throwable;
 
 class EbaySyncController extends Controller
@@ -176,8 +178,9 @@ class EbaySyncController extends Controller
     }
 
     /**
-     * Pull listings from the chosen store and create local products for any
-     * that are on eBay but not in the software yet.
+     * Step one of the import: fetch everything the chosen store has listed into
+     * the staging table, then hand the user a screen to pick from. No product
+     * is created here.
      */
     public function syncProducts(Request $request, EbayListingImporter $importer): RedirectResponse
     {
@@ -191,18 +194,80 @@ class EbaySyncController extends Controller
         set_time_limit(300);
 
         try {
-            $result = $importer->import($account);
+            $staged = $importer->stage($account);
         } catch (Throwable $e) {
             return back()->with('error', "{$account->store_name} — {$e->getMessage()}");
         }
 
-        $message = "{$result['created']} new ".Str::plural('product', $result['created'])." imported from \"{$account->store_name}\".";
+        if ($staged === 0) {
+            return back()->with('warning', "Nothing is listed on \"{$account->store_name}\" right now, so there is nothing to import.");
+        }
+
+        return redirect()->route('ebay.import.select', $account);
+    }
+
+    /**
+     * Step two: the staged listings, for the user to tick.
+     */
+    public function importSelection(EbayAccount $ebayAccount): View|RedirectResponse
+    {
+        $items = EbayImportItem::where('ebay_account_id', $ebayAccount->id)
+            ->orderBy('already_in_software')
+            ->orderBy('title')
+            ->get();
+
+        if ($items->isEmpty()) {
+            return redirect()->route('products.index')
+                ->with('warning', "Nothing is waiting to be imported from \"{$ebayAccount->store_name}\". Run Import from eBay again.");
+        }
+
+        return view('ebay.import', ['account' => $ebayAccount, 'items' => $items]);
+    }
+
+    /**
+     * Step three: create products for the ticked rows, then empty the staging
+     * table for this store whether or not everything was picked.
+     */
+    public function importSelected(Request $request, EbayAccount $ebayAccount, EbayListingImporter $importer): RedirectResponse
+    {
+        $request->validate([
+            'item_ids' => ['required', 'array', 'min:1'],
+            'item_ids.*' => ['integer'],
+        ], [
+            'item_ids.required' => 'Tick at least one product to import, or click Discard to throw the list away.',
+        ]);
+
+        // Images download one product at a time, so a big selection needs room.
+        set_time_limit(900);
+
+        try {
+            $result = $importer->commit($ebayAccount, $request->item_ids);
+        } catch (Throwable $e) {
+            return back()->with('error', "{$ebayAccount->store_name} — {$e->getMessage()}");
+        }
+
+        $message = "{$result['created']} new ".Str::plural('product', $result['created'])." imported from \"{$ebayAccount->store_name}\".";
 
         if ($result['linked'] > 0) {
             $message .= " {$result['linked']} existing ".Str::plural('product', $result['linked']).' linked.';
         }
 
-        return back()->with('status', $message);
+        if ($result['skipped'] > 0) {
+            $message .= " {$result['skipped']} already here, so ".Str::plural('it', $result['skipped']).' skipped.';
+        }
+
+        return redirect()->route('products.index')->with('status', $message);
+    }
+
+    /**
+     * Throw the staged list away without importing any of it.
+     */
+    public function importDiscard(EbayAccount $ebayAccount, EbayListingImporter $importer): RedirectResponse
+    {
+        $discarded = $importer->clearStaging($ebayAccount);
+
+        return redirect()->route('products.index')
+            ->with('status', "Import discarded. {$discarded} eBay ".Str::plural('listing', $discarded).' left untouched.');
     }
 
     /**

@@ -99,7 +99,7 @@
                     </div>
                     <div class="modal-body">
                         <p class="small text-muted mb-3">
-                            {{ __('Products listed on the selected store but not yet in the software will be imported. Products already here are linked, not duplicated.') }}
+                            {{ __('Everything listed on the selected store is fetched first, then you pick which products to keep. Nothing is added until you save your selection.') }}
                         </p>
                         <div class="mb-1">
                             <label class="form-label small text-muted mb-1">{{ __('eBay store') }}</label>
@@ -116,7 +116,7 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
                         <button type="submit" class="btn btn-dark btn-sm">
-                            <i class="fa-solid fa-download me-1"></i>{{ __('Import') }}
+                            <i class="fa-solid fa-download me-1"></i>{{ __('Fetch products') }}
                         </button>
                     </div>
                 </form>

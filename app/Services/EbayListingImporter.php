@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Category;
 use App\Models\EbayAccount;
+use App\Models\EbayImportItem;
 use App\Models\EbayListing;
+use App\Models\Inventory;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -28,14 +30,7 @@ class EbayListingImporter
      */
     public function import(EbayAccount $account): array
     {
-        // Remove links whose product was deleted outside the app (e.g. straight
-        // from the database). These orphans would otherwise block re-import and
-        // inflate the store's linked count.
-        $orphans = EbayListing::where('ebay_account_id', $account->id)->whereDoesntHave('product')->delete();
-
-        if ($orphans > 0) {
-            Log::info("eBay: removed {$orphans} orphaned listing(s) for store \"{$account->store_name}\" before import");
-        }
+        $this->removeOrphanedListings($account);
 
         $items = $this->ebay->fetchInventoryItems($account);
 
@@ -80,6 +75,385 @@ class EbayListingImporter
 
         return ['created' => $created, 'linked' => $linked, 'skipped' => $skipped];
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Staged import (fetch everything, let the user pick, then save)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Park everything the store has listed in ebay_import_items so the user can
+     * choose what to keep. Nothing touches the products table here.
+     *
+     * Images are deliberately NOT downloaded yet, only their eBay URLs stored.
+     * A shop of several hundred listings would otherwise spend minutes fetching
+     * pictures for products nobody asked for.
+     *
+     * @return int how many listings are waiting to be picked
+     */
+    public function stage(EbayAccount $account): int
+    {
+        // A previous, abandoned run must not bleed into this one.
+        $this->clearStaging($account);
+
+        $rows = [];
+
+        foreach ($this->collectListings($account) as $listing) {
+            $this->extendTimeLimit();
+
+            $item = $listing['item'];
+            $sku = $item['sku'];
+            $offer = $listing['offer'] ?? $this->resolveOffer($account, $sku);
+
+            // No published offer means it is not actually listed on this store.
+            if (! $offer) {
+                continue;
+            }
+
+            $rows[] = [
+                'ebay_account_id' => $account->id,
+                'sku' => $sku,
+                'title' => Str::limit(data_get($item, 'product.title') ?: $sku, 250, ''),
+                'description' => data_get($item, 'product.description'),
+                'image_urls' => json_encode(data_get($item, 'product.imageUrls', []) ?: []),
+                'price' => data_get($offer, 'pricingSummary.price.value'),
+                'quantity' => (float) (data_get($offer, 'availableQuantity')
+                    ?? data_get($item, 'availability.shipToLocationAvailability.quantity', 0)),
+                'ebay_category_id' => $offer['categoryId'] ?? null,
+                'listing_id' => $offer['listing']['listingId'] ?? ($offer['listingId'] ?? null),
+                'offer_id' => $offer['offerId'] ?? null,
+                'condition' => $item['condition'] ?? 'NEW',
+                'already_in_software' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        $rows = $this->flagAlreadyImported($rows);
+
+        foreach (array_chunk($rows, 200) as $chunk) {
+            EbayImportItem::insert($chunk);
+        }
+
+        // The thumbnail count is worth knowing: GetMyeBaySelling is thin and
+        // does not always carry a gallery image. A zero here means the import
+        // screen shows placeholders — the products themselves still get their
+        // full picture set from GetItem when they are saved.
+        Log::info('eBay: '.count($rows)." listing(s) staged for store \"{$account->store_name}\", waiting on a selection", [
+            'with_a_thumbnail' => count(array_filter($rows, fn (array $row) => $row['image_urls'] !== '[]')),
+        ]);
+
+        return count($rows);
+    }
+
+    /**
+     * Import the picked rows, then clear the staging area for the store —
+     * whether every row was picked or none of them were.
+     *
+     * @param  list<int|string>  $ids  ebay_import_items ids the user ticked
+     * @return array{created: int, linked: int, skipped: int}
+     */
+    public function commit(EbayAccount $account, array $ids): array
+    {
+        $this->removeOrphanedListings($account);
+
+        $created = 0;
+        $linked = 0;
+        $skipped = 0;
+
+        EbayImportItem::where('ebay_account_id', $account->id)
+            ->whereIn('id', $ids)
+            ->with('ebayAccount')
+            ->chunkById(100, function ($staged) use ($account, &$created, &$linked, &$skipped) {
+                foreach ($staged as $row) {
+                    $this->extendTimeLimit();
+
+                    match ($this->importItem($account, $this->withListingDetails($account, $row), $row->toOffer())) {
+                        'created' => $created++,
+                        'linked' => $linked++,
+                        default => $skipped++,
+                    };
+                }
+            });
+
+        $this->clearStaging($account);
+
+        Log::info("eBay: selected import for store \"{$account->store_name}\" — {$created} created, {$linked} linked, {$skipped} skipped");
+
+        return ['created' => $created, 'linked' => $linked, 'skipped' => $skipped];
+    }
+
+    /**
+     * Top a staged row up with everything GetMyeBaySelling does not carry:
+     * the full picture set, the listing description, and the item specifics
+     * the seller filled in — which is where the warranty lives.
+     *
+     * Done here rather than at staging time on purpose. It costs one API call
+     * per listing, which is nothing for the handful the user ticked and would
+     * be several minutes for a shop of several hundred.
+     *
+     * @return array<string, mixed> the inventory-item shape importItem() reads
+     */
+    private function withListingDetails(EbayAccount $account, EbayImportItem $row): array
+    {
+        $item = $row->toInventoryItem();
+
+        if (! $row->listing_id) {
+            return $item;
+        }
+
+        $details = $this->fetchListingDetails($account, $row->listing_id);
+
+        // Staging only ever had the gallery thumbnail, if that.
+        if ($details['imageUrls'] !== []) {
+            $item['product']['imageUrls'] = $details['imageUrls'];
+        }
+
+        $item['product']['description'] ??= $details['description'];
+        $item['product']['aspects'] = $details['aspects'];
+        $item['warranty_months'] = $this->warrantyMonths($details['aspects']);
+
+        return $item;
+    }
+
+    /**
+     * One listing in full, via the Trading API's GetItem.
+     *
+     * @return array{description: string|null, imageUrls: list<string>, aspects: array<string, list<string>>}
+     */
+    private function fetchListingDetails(EbayAccount $account, string $itemId): array
+    {
+        $empty = ['description' => null, 'imageUrls' => [], 'aspects' => []];
+
+        $body = '<?xml version="1.0" encoding="utf-8"?>'
+            .'<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">'
+            ."<ItemID>{$itemId}</ItemID>"
+            .'<DetailLevel>ReturnAll</DetailLevel>'
+            .'<IncludeItemSpecifics>true</IncludeItemSpecifics>'
+            .'</GetItemRequest>';
+
+        try {
+            $response = Http::withHeaders([
+                'X-EBAY-API-CALL-NAME' => 'GetItem',
+                'X-EBAY-API-SITEID' => (string) config("ebay.marketplaces.{$account->marketplace_id}.site", 0),
+                'X-EBAY-API-COMPATIBILITY-LEVEL' => '1155',
+                'X-EBAY-API-IAF-TOKEN' => $this->ebay->ensureAccessToken($account),
+                'Content-Type' => 'text/xml',
+            ])->timeout(30)->withBody($body, 'text/xml')->post($this->tradingApiUrl());
+        } catch (Throwable $e) {
+            Log::warning("eBay: detail lookup failed for listing {$itemId}: ".$e->getMessage());
+
+            return $empty;
+        }
+
+        if ($response->failed()) {
+            Log::warning("eBay: detail lookup for listing {$itemId} returned HTTP {$response->status()}");
+
+            return $empty;
+        }
+
+        $xml = @simplexml_load_string($response->body());
+
+        if ($xml === false) {
+            Log::warning("eBay: detail lookup for listing {$itemId} returned unreadable XML");
+
+            return $empty;
+        }
+
+        if ((string) $xml->Ack === 'Failure') {
+            Log::warning("eBay: detail lookup for listing {$itemId} rejected", [
+                'error_code' => (string) $xml->Errors->ErrorCode,
+                'error' => (string) $xml->Errors->LongMessage ?: (string) $xml->Errors->ShortMessage,
+            ]);
+
+            return $empty;
+        }
+
+        $images = [];
+
+        foreach ($xml->Item->PictureDetails->PictureURL ?? [] as $url) {
+            $images[] = (string) $url;
+        }
+
+        $aspects = [];
+
+        foreach ($xml->Item->ItemSpecifics->NameValueList ?? [] as $pair) {
+            $name = trim((string) $pair->Name);
+
+            if ($name === '') {
+                continue;
+            }
+
+            foreach ($pair->Value ?? [] as $value) {
+                $aspects[$name][] = (string) $value;
+            }
+        }
+
+        // eBay descriptions are seller-authored HTML and can run to tens of
+        // kilobytes of markup. The product field is a plain text box, so the
+        // markup is stripped and the result kept to something a column and a
+        // human can both hold.
+        $description = trim(html_entity_decode(strip_tags((string) $xml->Item->Description)));
+
+        Log::info("eBay: listing {$itemId} detail fetched", [
+            'images' => count($images),
+            'item_specifics' => count($aspects),
+            'has_description' => $description !== '',
+        ]);
+
+        return [
+            'description' => $description === '' ? null : Str::limit($description, 5000),
+            'imageUrls' => $images,
+            'aspects' => $aspects,
+        ];
+    }
+
+    /**
+     * The seller's warranty from the listing's item specifics, as a number of
+     * months the product form would accept.
+     *
+     * @param  array<string, list<string>>  $aspects
+     */
+    private function warrantyMonths(array $aspects): ?int
+    {
+        foreach ($aspects as $name => $values) {
+            // "Seller Warranty", "Manufacturer Warranty", plain "Warranty" —
+            // sellers label it differently and eBay does not standardise it.
+            if (! Str::contains(Str::lower($name), 'warranty')) {
+                continue;
+            }
+
+            if ($months = $this->parseWarrantyMonths((string) ($values[0] ?? ''))) {
+                return $months;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * "1 Month" / "2 Years" / "90 Days" as a month count the product form
+     * offers, or null for "No warranty", "Lifetime" and anything unreadable.
+     */
+    private function parseWarrantyMonths(string $value): ?int
+    {
+        if (! preg_match('/(\d+)\s*(day|week|month|year)/i', $value, $matches)) {
+            return null;
+        }
+
+        $count = (int) $matches[1];
+
+        $months = match (Str::lower($matches[2])) {
+            'day' => (int) round($count / 30),
+            'week' => (int) round($count / 4.345),
+            'year' => $count * 12,
+            default => $count,
+        };
+
+        // The product form only offers these, so a value outside the list would
+        // not survive the next edit. Rounded down, never up: an imported
+        // warranty must not promise more than the seller actually offered.
+        $fitted = null;
+
+        foreach ([1, 2, 3, 4, 5, 6, 12] as $option) {
+            if ($option <= $months) {
+                $fitted = $option;
+            }
+        }
+
+        return $fitted;
+    }
+
+    /**
+     * Throw the staged rows away without importing any of them.
+     */
+    public function clearStaging(EbayAccount $account): int
+    {
+        return EbayImportItem::where('ebay_account_id', $account->id)->delete();
+    }
+
+    /**
+     * Both sources merged into one list of {item, offer} pairs, keyed by SKU so
+     * a listing the Inventory API already reported is not counted twice.
+     *
+     * @return list<array{item: array<string, mixed>, offer: array<string, mixed>|null}>
+     */
+    private function collectListings(EbayAccount $account): array
+    {
+        $listings = [];
+
+        foreach ($this->ebay->fetchInventoryItems($account) as $item) {
+            if ($sku = $item['sku'] ?? null) {
+                // Its offer lives behind a separate per-SKU call, made only if
+                // this item survives to the staging loop.
+                $listings[$sku] = ['item' => $item, 'offer' => null];
+            }
+        }
+
+        foreach ($this->fetchActiveListings($account) as $listing) {
+            $listings[$listing['item']['sku']] ??= $listing;
+        }
+
+        return array_values($listings);
+    }
+
+    /**
+     * Mark the rows whose SKU is already a product here, so the screen can show
+     * that up front instead of the user discovering it after saving.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function flagAlreadyImported(array $rows): array
+    {
+        $known = [];
+
+        foreach (array_chunk(array_column($rows, 'sku'), 500) as $chunk) {
+            $known += array_flip(Product::whereIn('sku', $chunk)->pluck('sku')->all());
+        }
+
+        foreach ($rows as $index => $row) {
+            $rows[$index]['already_in_software'] = isset($known[$row['sku']]);
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The live offer for a SKU on this store's marketplace, or null when the
+     * item has none, only a draft, or offers only on other marketplaces.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function resolveOffer(EbayAccount $account, string $sku): ?array
+    {
+        return collect($this->ebay->fetchOffers($account, $sku))
+            ->first(fn (array $candidate) => ($candidate['marketplaceId'] ?? $account->marketplace_id) === $account->marketplace_id
+                && (($candidate['status'] ?? null) === 'PUBLISHED' || ! empty($candidate['listing']['listingId'])));
+    }
+
+    /**
+     * Drop links whose product was deleted outside the app (e.g. straight from
+     * the database). These orphans would otherwise block re-import and inflate
+     * the store's linked count.
+     */
+    private function removeOrphanedListings(EbayAccount $account): int
+    {
+        $orphans = EbayListing::where('ebay_account_id', $account->id)->whereDoesntHave('product')->delete();
+
+        if ($orphans > 0) {
+            Log::info("eBay: removed {$orphans} orphaned listing(s) for store \"{$account->store_name}\" before import");
+        }
+
+        return $orphans;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fetching from eBay
+    |--------------------------------------------------------------------------
+    */
 
     private function fetchActiveListings(EbayAccount $account): array
     {
@@ -274,9 +648,7 @@ class EbayListingImporter
             $existingListing->delete();
         }
 
-        $offer ??= collect($this->ebay->fetchOffers($account, $sku))
-            ->first(fn (array $candidate) => ($candidate['marketplaceId'] ?? $account->marketplace_id) === $account->marketplace_id
-                && (($candidate['status'] ?? null) === 'PUBLISHED' || ! empty($candidate['listing']['listingId'])));
+        $offer ??= $this->resolveOffer($account, $sku);
 
         if (! $offer) {
             Log::info("eBay: SKU {$sku} skipped, no published offer");
@@ -288,6 +660,20 @@ class EbayListingImporter
 
         DB::transaction(function () use ($account, $item, $sku, $offer, $existing) {
             $product = $existing ?: $this->createProduct($item, $offer, $sku);
+
+            // Stock lives in two places: products.total_qty is the running
+            // balance the Inventory screen reads, and inventories is the ledger
+            // saying where each movement came from. Creating the product
+            // already set the balance, so this row explains it rather than
+            // adding to it — no increment here, or the stock would double.
+            // An existing product keeps whatever stock it already had.
+            if (! $existing && $product->total_qty > 0) {
+                Inventory::create([
+                    'product_id' => $product->id,
+                    'quantity' => $product->total_qty,
+                    'inserted_by' => 'eBay Import',
+                ]);
+            }
 
             EbayListing::create([
                 'product_id' => $product->id,
@@ -323,6 +709,12 @@ class EbayListingImporter
             'cost_price' => null, // eBay does not expose the seller's cost.
             'selling_price' => data_get($offer, 'pricingSummary.price.value'),
             'size' => data_get($item, 'product.aspects.Size.0'),
+            // Read off the listing's "Seller Warranty" item specific. Expiry is
+            // counted from today, the same way the product form does it.
+            'warranty_months' => $item['warranty_months'] ?? null,
+            'warranty_expiry_date' => isset($item['warranty_months'])
+                ? now()->addMonths($item['warranty_months'])->toDateString()
+                : null,
             'total_qty' => (float) (data_get($offer, 'availableQuantity')
                 ?? data_get($item, 'availability.shipToLocationAvailability.quantity', 0)),
             'sold_qty' => 0,
