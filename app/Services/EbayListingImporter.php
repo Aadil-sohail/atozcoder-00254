@@ -218,14 +218,91 @@ class EbayListingImporter
     }
 
     /**
+     * Import one listing straight from eBay by its item id, for a sale of
+     * something that was never picked on the import screen.
+     *
+     * An order is proof the item was sold on this store, so the listing is
+     * pulled in on the spot — product, pictures, specifics and store link —
+     * rather than dropping the sale on the floor. Returns the local product
+     * id, or null when eBay cannot tell us about the listing at all.
+     */
+    public function importByListingId(EbayAccount $account, string $itemId): ?int
+    {
+        $this->extendTimeLimit();
+
+        $node = $this->fetchListingItem($account, $itemId);
+
+        if ($node === null) {
+            return null;
+        }
+
+        $listing = $this->legacyListingToInventoryShape($node, $account);
+        $details = $this->detailsFromItemNode($node, $itemId);
+
+        $item = $listing['item'];
+        $sku = $item['sku'];
+
+        if ($details['imageUrls'] !== []) {
+            $item['product']['imageUrls'] = $details['imageUrls'];
+        }
+
+        $item['product']['description'] ??= $details['description'];
+        $item['product']['aspects'] = $details['aspects'];
+        $item['warranty_months'] = $this->warrantyMonths($details['aspects']);
+
+        try {
+            $this->importItem($account, $item, $listing['offer']);
+        } catch (Throwable $e) {
+            // One unimportable listing must not take the rest of the order
+            // sync down with it.
+            Log::warning("eBay: could not import listing {$itemId} from an order: ".$e->getMessage());
+
+            return null;
+        }
+
+        $link = EbayListing::where('ebay_account_id', $account->id)->where('sku', $sku)->first();
+
+        // A link made before the listing id was known would send the next
+        // order straight back to eBay for this same lookup.
+        if ($link && ! $link->listing_id) {
+            $link->update(['listing_id' => $itemId]);
+        }
+
+        $productId = $link?->product_id ?? Product::where('sku', $sku)->value('id');
+
+        if (! $productId) {
+            return null;
+        }
+
+        Log::info("eBay: listing {$itemId} pulled in from an order for store \"{$account->store_name}\"", [
+            'sku' => $sku,
+            'product_id' => (int) $productId,
+        ]);
+
+        return (int) $productId;
+    }
+
+    /**
      * One listing in full, via the Trading API's GetItem.
      *
      * @return array{description: string|null, imageUrls: list<string>, aspects: array<string, list<string>>}
      */
     private function fetchListingDetails(EbayAccount $account, string $itemId): array
     {
-        $empty = ['description' => null, 'imageUrls' => [], 'aspects' => []];
+        $item = $this->fetchListingItem($account, $itemId);
 
+        return $item === null
+            ? ['description' => null, 'imageUrls' => [], 'aspects' => []]
+            : $this->detailsFromItemNode($item, $itemId);
+    }
+
+    /**
+     * The raw <Item> node GetItem returns, or null when the lookup fails. Kept
+     * separate from the parsing below because an order that sells a listing
+     * nobody imported needs the whole node, not just its extra detail.
+     */
+    private function fetchListingItem(EbayAccount $account, string $itemId): ?SimpleXMLElement
+    {
         $body = '<?xml version="1.0" encoding="utf-8"?>'
             .'<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">'
             ."<ItemID>{$itemId}</ItemID>"
@@ -244,13 +321,13 @@ class EbayListingImporter
         } catch (Throwable $e) {
             Log::warning("eBay: detail lookup failed for listing {$itemId}: ".$e->getMessage());
 
-            return $empty;
+            return null;
         }
 
         if ($response->failed()) {
             Log::warning("eBay: detail lookup for listing {$itemId} returned HTTP {$response->status()}");
 
-            return $empty;
+            return null;
         }
 
         $xml = @simplexml_load_string($response->body());
@@ -258,7 +335,7 @@ class EbayListingImporter
         if ($xml === false) {
             Log::warning("eBay: detail lookup for listing {$itemId} returned unreadable XML");
 
-            return $empty;
+            return null;
         }
 
         if ((string) $xml->Ack === 'Failure') {
@@ -267,18 +344,34 @@ class EbayListingImporter
                 'error' => (string) $xml->Errors->LongMessage ?: (string) $xml->Errors->ShortMessage,
             ]);
 
-            return $empty;
+            return null;
         }
 
+        if (! isset($xml->Item->ItemID)) {
+            Log::warning("eBay: detail lookup for listing {$itemId} returned no item");
+
+            return null;
+        }
+
+        return $xml->Item;
+    }
+
+    /**
+     * The picture set, item specifics and description carried by one <Item>.
+     *
+     * @return array{description: string|null, imageUrls: list<string>, aspects: array<string, list<string>>}
+     */
+    private function detailsFromItemNode(SimpleXMLElement $item, string $itemId): array
+    {
         $images = [];
 
-        foreach ($xml->Item->PictureDetails->PictureURL ?? [] as $url) {
+        foreach ($item->PictureDetails->PictureURL ?? [] as $url) {
             $images[] = (string) $url;
         }
 
         $aspects = [];
 
-        foreach ($xml->Item->ItemSpecifics->NameValueList ?? [] as $pair) {
+        foreach ($item->ItemSpecifics->NameValueList ?? [] as $pair) {
             $name = trim((string) $pair->Name);
 
             if ($name === '') {
@@ -294,7 +387,7 @@ class EbayListingImporter
         // kilobytes of markup. The product field is a plain text box, so the
         // markup is stripped and the result kept to something a column and a
         // human can both hold.
-        $description = trim(html_entity_decode(strip_tags((string) $xml->Item->Description)));
+        $description = trim(html_entity_decode(strip_tags((string) $item->Description)));
 
         Log::info("eBay: listing {$itemId} detail fetched", [
             'images' => count($images),

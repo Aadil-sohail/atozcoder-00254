@@ -119,15 +119,26 @@ class EbaySyncController extends Controller
     }
 
     /**
-     * Pull new orders from every connected store and create local sales.
+     * Pull new orders from the chosen store — or from every connected store
+     * when none is named — and create local sales.
      */
-    public function syncOrders(EbayOrderImporter $importer): RedirectResponse
+    public function syncOrders(Request $request, EbayOrderImporter $importer): RedirectResponse
     {
-        $accounts = EbayAccount::where('status', '1')->get();
+        $request->validate([
+            'ebay_account_id' => ['nullable', 'integer', 'exists:ebay_accounts,id'],
+        ]);
+
+        $accounts = EbayAccount::where('status', '1')
+            ->when($request->ebay_account_id, fn ($query, $id) => $query->whereKey($id))
+            ->get();
 
         if ($accounts->isEmpty()) {
             return back()->with('error', 'No connected eBay stores.');
         }
+
+        // An order for something never imported fetches that listing from eBay
+        // before the sale can be recorded, so allow generous time.
+        set_time_limit(300);
 
         $created = 0;
         $errors = [];
@@ -144,7 +155,11 @@ class EbaySyncController extends Controller
             session()->flash('error', implode(' • ', $errors));
         }
 
-        return back()->with('status', "{$created} new eBay ".Str::plural('order', $created).' imported.');
+        $from = $accounts->count() === 1 ? " from \"{$accounts->first()->store_name}\"" : '';
+
+        return back()->with('status', $created === 0
+            ? "No new orders{$from} to import."
+            : "{$created} new eBay ".Str::plural('order', $created)." imported{$from}.");
     }
 
     /**

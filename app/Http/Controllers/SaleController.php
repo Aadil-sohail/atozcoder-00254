@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSaleRequest;
 use App\Models\Customer;
+use App\Models\EbayAccount;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Support\ServerTable;
@@ -27,7 +28,11 @@ class SaleController extends Controller
         // Rows come from data() a page at a time; only the header count is needed here.
         $saleCount = Sale::count();
 
-        return view('sales.index', compact('saleCount'));
+        // Orders are pulled one store at a time, so the header needs the list
+        // to offer — exactly as the product import screen does.
+        $ebayAccounts = EbayAccount::where(['status' => '1', 'close' => '1'])->orderBy('store_name')->get();
+
+        return view('sales.index', compact('saleCount', 'ebayAccounts'));
     }
 
     /**

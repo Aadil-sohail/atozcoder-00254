@@ -30,13 +30,13 @@
             </div>
             <div class="d-flex align-items-center gap-2">
                 @can('sync ebay products')
-                <form method="POST" action="{{ route('ebay.sync-orders') }}">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-2">
+                    @if ($ebayAccounts->isNotEmpty())
+                    <button type="button" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-2"
+                        data-bs-toggle="modal" data-bs-target="#ebayOrderSyncModal">
                         <i class="fa-brands fa-ebay"></i>
                         {{ __('Sync eBay Orders') }}
                     </button>
-                </form>
+                    @endif
                 @endcan
                 @can('create sales')
                 <a href="{{ route('sales.create') }}" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
@@ -63,6 +63,44 @@
             </table>
         </div>
     </div>
+
+    @can('sync ebay products')
+        @if ($ebayAccounts->isNotEmpty())
+        <div class="modal fade" id="ebayOrderSyncModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="POST" action="{{ route('ebay.sync-orders') }}" class="modal-content">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fa-brands fa-ebay me-2"></i>{{ __('Sync Orders from eBay') }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small text-muted mb-3">
+                            {{ __('Recent orders from the selected store are pulled in and recorded as sales. Orders already here are left alone, and anything sold that is not a product yet is added from its eBay listing.') }}
+                        </p>
+                        <div class="mb-1">
+                            <label class="form-label small text-muted mb-1">{{ __('eBay store') }}</label>
+                            <select name="ebay_account_id" class="form-select form-select-sm" required>
+                                @foreach ($ebayAccounts as $account)
+                                    <option value="{{ $account->id }}">
+                                        {{ $account->store_name }}
+                                        ({{ config("ebay.marketplaces.{$account->marketplace_id}.label", $account->marketplace_id) }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                        <button type="submit" class="btn btn-dark btn-sm">
+                            <i class="fa-solid fa-download me-1"></i>{{ __('Sync orders') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        @endif
+    @endcan
 
 @endsection
 

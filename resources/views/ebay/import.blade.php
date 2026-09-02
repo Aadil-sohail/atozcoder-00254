@@ -17,7 +17,7 @@
 
             <div class="card-header d-flex flex-wrap gap-2 align-items-center justify-content-between">
                 <div class="small text-muted">
-                    {{ __('Tick the products you want. Only the ticked ones are added — the rest are thrown away.') }}
+                    {{ __('Tick the products you want. Only the ticked ones are added  the rest are thrown away.') }}
                     <span class="d-block">
                         <strong id="ebay-selected-count">0</strong>
                         {{ __('of') }} {{ $items->count() }} {{ __('selected') }}
@@ -32,7 +32,7 @@
                         {{ __('Clear') }}
                     </button>
                     <button type="submit" class="btn btn-dark btn-sm" id="ebay-save-selected" disabled>
-                        <i class="fa-solid fa-floppy-disk me-1"></i>{{ __('Save selected') }}
+                        <i class="fa-solid fa-floppy-disk me-1"></i>{{ __('Import Selected Products') }}
                     </button>
                 </div>
             </div>
@@ -42,7 +42,10 @@
                     <table class="table table-sm table-hover align-middle" id="ebay-import-table">
                         <thead>
                             <tr>
-                                <th style="width:2.5rem" data-orderable="false"></th>
+                                <th style="width:2.5rem" data-orderable="false">
+                                    <input type="checkbox" class="form-check-input" id="ebay-check-all"
+                                           title="{{ __('Select / clear every product on every page') }}">
+                                </th>
                                 <th style="width:4rem" data-orderable="false">{{ __('Image') }}</th>
                                 <th>{{ __('Title') }}</th>
                                 <th>{{ __('SKU') }}</th>
@@ -112,40 +115,82 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Client-side only: every row stays in the DOM while DataTables pages
-    // through them, so a tick made on page 3 still submits with the form.
     const table = new DataTable('#ebay-import-table', {
         pageLength: 25,
         order: [],
         columnDefs: [{ targets: [0, 1], orderable: false, searchable: false }],
     });
 
-    const boxes = () => Array.from(document.querySelectorAll('.ebay-import-check'));
-    const counter = document.getElementById('ebay-selected-count');
-    const saveButton = document.getElementById('ebay-save-selected');
+    const form        = document.getElementById('ebay-import-form');
+    const counter     = document.getElementById('ebay-selected-count');
+    const saveButton  = document.getElementById('ebay-save-selected');
+    const masterCheck = document.getElementById('ebay-check-all');
 
-    function refresh() {
-        const selected = boxes().filter(box => box.checked).length;
+    // DataTables keeps only the current page's rows in the document, so a plain
+    // querySelectorAll misses ticks made on the other pages. Ask the API for the
+    // row nodes instead  it hands back the detached ones too.
+    function boxes(searchedOnly) {
+        const rows = searchedOnly
+            ? table.rows({ search: 'applied' }).nodes()
+            : table.rows().nodes();
 
-        counter.textContent = selected;
-        saveButton.disabled = selected === 0;
+        return rows.toArray()
+            .map(row => row.querySelector('.ebay-import-check'))
+            .filter(Boolean);
     }
 
-    document.getElementById('ebay-import-form').addEventListener('change', function (event) {
+    function refresh() {
+        const all      = boxes(false);
+        const selected = all.filter(box => box.checked).length;
+        const shown    = boxes(true);
+        const onScreen = shown.filter(box => box.checked).length;
+
+        counter.textContent   = selected;
+        saveButton.disabled   = selected === 0;
+
+        // Master reflects the rows the current search covers (all of them when
+        // the search box is empty), across every page  not just this one.
+        masterCheck.checked       = shown.length > 0 && onScreen === shown.length;
+        masterCheck.indeterminate = onScreen > 0 && onScreen < shown.length;
+    }
+
+    function setAll(checked, searchedOnly) {
+        boxes(searchedOnly).forEach(box => { box.checked = checked; });
+        refresh();
+    }
+
+    form.addEventListener('change', function (event) {
         if (event.target.classList.contains('ebay-import-check')) {
             refresh();
         }
     });
 
-    document.getElementById('ebay-select-all').addEventListener('click', function () {
-        boxes().forEach(box => { box.checked = true; });
-        refresh();
+    masterCheck.addEventListener('change', function () {
+        setAll(masterCheck.checked, true);
     });
 
-    document.getElementById('ebay-select-none').addEventListener('click', function () {
-        boxes().forEach(box => { box.checked = false; });
-        refresh();
+    document.getElementById('ebay-select-all').addEventListener('click', () => setAll(true, false));
+    document.getElementById('ebay-select-none').addEventListener('click', () => setAll(false, false));
+
+    // Detached rows never reach the POST body, so mirror their ticks into
+    // hidden inputs the moment the form is submitted.
+    form.addEventListener('submit', function () {
+        form.querySelectorAll('.ebay-import-hidden').forEach(input => input.remove());
+
+        boxes(false)
+            .filter(box => box.checked && ! box.isConnected)
+            .forEach(function (box) {
+                const hidden = document.createElement('input');
+                hidden.type      = 'hidden';
+                hidden.name      = 'item_ids[]';
+                hidden.value     = box.value;
+                hidden.className = 'ebay-import-hidden';
+                form.appendChild(hidden);
+            });
     });
+
+    // Redraws (paging, search, sorting) re-attach a different slice of rows.
+    table.on('draw', refresh);
 
     refresh();
 });
