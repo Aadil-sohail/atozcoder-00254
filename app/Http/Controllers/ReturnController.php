@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreSaleReturnRequest;
 use App\Models\Product;
 use App\Models\Sale;
+use App\Services\ProductStock;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
@@ -144,7 +145,7 @@ class ReturnController extends Controller
                 $saleItem->increment('returned_qty', $item['quantity']);
 
                 if ($item['condition'] === 'good') {
-                    Product::where('id', $saleItem->product_id)->decrement('sold_qty', $item['quantity']);
+                    ProductStock::returned($saleItem->product_id, $item['quantity']);
                 }
             }
 
@@ -174,7 +175,7 @@ class ReturnController extends Controller
                 SaleItem::where('id', $item->sale_item_id)->decrement('returned_qty', $item->quantity);
 
                 if ($item->condition === 'good') {
-                    Product::where('id', $item->product_id)->increment('sold_qty', $item->quantity);
+                    ProductStock::sold($item->product_id, $item->quantity);
                 }
             }
 

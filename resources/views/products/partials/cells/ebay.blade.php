@@ -1,9 +1,16 @@
 {{-- eBay sync badge plus the per-store detail modal it opens. --}}
-@if ($product->ebayListings->isEmpty())
+{{-- A full @php block, not the @php(...) short form: this file already has a
+     @php ... @endphp block below, and Blade would read everything between the
+     two as one lump of raw PHP. --}}
+@php
+    $listings = $product->groupListings();
+@endphp
+
+@if ($listings->isEmpty())
     <span class="text-muted small">—</span>
 @else
     @php
-        $statuses = $product->ebayListings->pluck('sync_status');
+        $statuses = $listings->pluck('sync_status');
         $overall = $statuses->contains('failed') ? 'failed'
             : ($statuses->contains('pending') || $statuses->contains('syncing') ? 'pending' : 'synced');
         $badge = match ($overall) {
@@ -21,8 +28,8 @@
         data-bs-target="#ebayDetails{{ $product->id }}" title="{{ __('View eBay details') }}">
         <span class="badge bg-{{ $badge }}-subtle text-{{ $badge }}-emphasis border border-{{ $badge }}-subtle">
             <i class="fa-brands fa-ebay me-1"></i>{{ $label }}
-            @if ($product->ebayListings->count() > 1)
-                ({{ $product->ebayListings->count() }})
+            @if ($listings->count() > 1)
+                ({{ $listings->count() }})
             @endif
         </span>
     </button>
@@ -48,7 +55,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($product->ebayListings as $listing)
+                            @foreach ($listings as $listing)
                                 @php
                                     $rowBadge = match ($listing->sync_status) {
                                         'synced' => 'success',

@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
+use App\Services\ProductStock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -141,7 +142,7 @@ class EbayReturnImporter
             // Same restock rule as manual returns: only sellable items go
             // back into stock (see ReturnController::store()).
             if ($condition === 'good') {
-                Product::where('id', $saleItem->product_id)->decrement('sold_qty', $quantity);
+                ProductStock::returned($saleItem->product_id, $quantity);
             }
 
             $this->refreshSaleTotal($sale);

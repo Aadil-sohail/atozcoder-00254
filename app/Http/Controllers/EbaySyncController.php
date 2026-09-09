@@ -227,7 +227,6 @@ class EbaySyncController extends Controller
     public function importSelection(EbayAccount $ebayAccount): View|RedirectResponse
     {
         $items = EbayImportItem::where('ebay_account_id', $ebayAccount->id)
-            ->orderBy('already_in_software')
             ->orderBy('title')
             ->get();
 

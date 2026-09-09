@@ -7,6 +7,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\ProductConnectionController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfitLossController;
@@ -105,6 +106,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
     Route::match(['put', 'patch'], '/products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+    // Connections (one part listed on several stores, joined into one product)
+    Route::get('/connections', [ProductConnectionController::class, 'index'])->name('connections.index');
+    Route::get('/connections/data', [ProductConnectionController::class, 'data'])->name('connections.data');
+    Route::get('/connections/create', [ProductConnectionController::class, 'create'])->name('connections.create');
+    Route::get('/connections/store-products', [ProductConnectionController::class, 'storeProducts'])->name('connections.store-products');
+    Route::post('/connections', [ProductConnectionController::class, 'store'])->name('connections.store');
+    Route::get('/connections/{connection}/edit', [ProductConnectionController::class, 'edit'])->name('connections.edit');
+    Route::match(['put', 'patch'], '/connections/{connection}', [ProductConnectionController::class, 'update'])->name('connections.update');
+    Route::delete('/connections/{connection}', [ProductConnectionController::class, 'destroy'])->name('connections.destroy');
 
     // Inventories
     Route::get('/inventories', [InventoryController::class, 'index'])->name('inventories.index');

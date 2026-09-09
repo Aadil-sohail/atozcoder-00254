@@ -175,6 +175,14 @@ class DashboardController extends Controller
                 [self::LOW_STOCK]
             )
             ->where('status', '1')
+            // A connected part sits on the shelf once, however many store
+            // copies of it there are.
+            ->whereNotExists(fn ($duplicate) => $duplicate
+                ->selectRaw('1')
+                ->from('product_connection_items as duplicate_item')
+                ->join('product_connections as duplicate_connection', 'duplicate_connection.id', '=', 'duplicate_item.product_connection_id')
+                ->whereColumn('duplicate_item.product_id', 'products.id')
+                ->whereColumn('duplicate_connection.master_product_id', '!=', 'products.id'))
             ->first();
     }
 
@@ -187,6 +195,12 @@ class DashboardController extends Controller
             ->selectRaw('id, name, sku, (total_qty - sold_qty) as stock')
             ->where('status', '1')
             ->whereRaw('(total_qty - sold_qty) <= ?', [self::LOW_STOCK])
+            ->whereNotExists(fn ($duplicate) => $duplicate
+                ->selectRaw('1')
+                ->from('product_connection_items as duplicate_item')
+                ->join('product_connections as duplicate_connection', 'duplicate_connection.id', '=', 'duplicate_item.product_connection_id')
+                ->whereColumn('duplicate_item.product_id', 'products.id')
+                ->whereColumn('duplicate_connection.master_product_id', '!=', 'products.id'))
             ->orderBy('stock')
             ->orderBy('name')
             ->limit(6)

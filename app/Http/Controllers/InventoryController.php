@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Support\ServerTable;
+use App\Services\ProductStock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,13 +49,15 @@ class InventoryController extends Controller
             ->selectSub(
                 Product::selectRaw('COUNT(*)')
                     ->whereColumn('category_id', 'categories.id')
-                    ->where('status', '1'),
+                    ->where('status', '1')
+                    ->withoutConnectionDuplicates(),
                 'products_count'
             )
             ->selectSub(
                 Product::selectRaw('COALESCE(SUM(total_qty - sold_qty), 0)')
                     ->whereColumn('category_id', 'categories.id')
-                    ->where('status', '1'),
+                    ->where('status', '1')
+                    ->withoutConnectionDuplicates(),
                 'available_stock'
             );
 
@@ -79,7 +82,8 @@ class InventoryController extends Controller
      */
     public function category(Category $category): View
     {
-        $productCount = Product::where('category_id', $category->id)->where('status', '1')->count();
+        $productCount = Product::where('category_id', $category->id)->where('status', '1')
+            ->withoutConnectionDuplicates()->count();
 
         return view('inventory.category', compact('category', 'productCount'));
     }
@@ -93,6 +97,8 @@ class InventoryController extends Controller
         $query = Product::query()
             ->where('category_id', $category->id)
             ->where('status', '1')
+            // One row per part, the same as the products screen shows.
+            ->withoutConnectionDuplicates()
             ->select('products.*')
             ->selectRaw('(products.total_qty - products.sold_qty) as available_stock');
 
@@ -121,7 +127,7 @@ class InventoryController extends Controller
                     'inserted_by' => auth()->user()->name,
                 ]);
 
-                Product::where('id', $item['product_id'])->increment('total_qty', $item['quantity']);
+                ProductStock::received($item['product_id'], $item['quantity']);
             }
         });
 

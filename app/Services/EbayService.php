@@ -560,7 +560,12 @@ class EbayService
         }
 
         $marketplace = config("ebay.marketplaces.{$account->marketplace_id}", config('ebay.marketplaces.EBAY_US'));
-        $quantity = max(0, (int) round($product->total_qty - $product->sold_qty));
+
+        // A connected product keeps its price and its stock on the
+        // connection's master, so every store the same part is listed on is
+        // sent the one figure — that is what was chosen when it was connected.
+        $source = $product->connectionMaster();
+        $quantity = max(0, (int) round($source->total_qty - $source->sold_qty));
 
         // eBay rejects publishing a brand-new listing with zero available stock.
         // Catch it here with a clear message instead of eBay's cryptic one. An
@@ -569,8 +574,8 @@ class EbayService
         if ($quantity < 1 && ! $listing->listing_id) {
             throw new RuntimeException(sprintf(
                 'No available stock to list (%s in total, %s already sold). eBay needs at least 1 unit in stock to publish a new listing — add stock, then sync again.',
-                (float) $product->total_qty,
-                (float) $product->sold_qty,
+                (float) $source->total_qty,
+                (float) $source->sold_qty,
             ));
         }
 
@@ -578,11 +583,11 @@ class EbayService
         // "system error", so say what is actually wrong before calling it.
         // Products imported from a supplier spreadsheet only carry a cost
         // price, so this is the usual reason a fresh import will not list.
-        if ((float) $product->selling_price <= 0) {
+        if ((float) $source->selling_price <= 0) {
             throw new RuntimeException(sprintf(
                 'No selling price set for "%s" (cost %s). eBay cannot publish a listing priced at 0 — set a selling price on the product, then sync again.',
-                $product->name,
-                number_format((float) $product->cost_price, 2),
+                $source->name,
+                number_format((float) $source->cost_price, 2),
             ));
         }
 
@@ -645,7 +650,7 @@ class EbayService
             ],
             'pricingSummary' => [
                 'price' => [
-                    'value' => number_format((float) $product->selling_price, 2, '.', ''),
+                    'value' => number_format((float) $source->selling_price, 2, '.', ''),
                     'currency' => $marketplace['currency'],
                 ],
             ],
@@ -738,6 +743,121 @@ class EbayService
         }
 
         Log::info("eBay: SKU {$listing->sku} removed from \"{$account->store_name}\"".($listing->listing_id ? " (listing {$listing->listing_id} ended)" : ''));
+    }
+
+    /**
+     * Set a live listing's available quantity, and nothing else.
+     *
+     * eBay keeps listings in two worlds and will not let one tool touch the
+     * other's. A listing this app published lives in the Inventory API, and
+     * the legacy call answers "Inventory-based listing management is not
+     * currently supported by this tool"; a listing made in Seller Hub is the
+     * other way about. So the route that fits is tried first — the offer id
+     * is the tell — and the other is kept as a fallback.
+     *
+     * Throws only when neither worked, so the caller can log which store
+     * would not take it.
+     */
+    public function updateListingQuantity(EbayListing $listing, int $quantity): void
+    {
+        if (! $listing->listing_id) {
+            throw new RuntimeException('That listing has no eBay item id yet, so its quantity cannot be set.');
+        }
+
+        $quantity = max(0, $quantity);
+        $failures = [];
+
+        foreach ($listing->offer_id ? ['offer', 'legacy'] : ['legacy', 'offer'] as $route) {
+            try {
+                $route === 'offer'
+                    ? $this->updateOfferQuantity($listing, $quantity)
+                    : $this->reviseListingQuantity($listing, $quantity);
+
+                return;
+            } catch (Throwable $e) {
+                $failures[] = $e->getMessage();
+            }
+        }
+
+        throw new RuntimeException(implode(' | ', array_unique($failures)));
+    }
+
+    /**
+     * The Inventory API route: set the offer's available quantity, and the
+     * stock behind the SKU it draws on.
+     */
+    private function updateOfferQuantity(EbayListing $listing, int $quantity): void
+    {
+        $account = $listing->ebayAccount;
+        $offerId = $listing->offer_id ?: $this->findOfferId($account, $listing->sku);
+
+        if (! $offerId) {
+            throw new RuntimeException("No eBay offer found for SKU {$listing->sku}.");
+        }
+
+        $response = $this->api($account)->post('/sell/inventory/v1/bulk_update_price_quantity', [
+            'requests' => [[
+                'sku' => $listing->sku,
+                'shipToLocationAvailability' => ['quantity' => $quantity],
+                'offers' => [['offerId' => $offerId, 'availableQuantity' => $quantity]],
+            ]],
+        ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException($this->errorMessage($response));
+        }
+
+        // A bulk call answers 200 even when the one request inside it failed.
+        if ((int) ($response->json('responses.0.statusCode') ?? 200) >= 400) {
+            throw new RuntimeException(
+                $response->json('responses.0.errors.0.message')
+                    ?: "eBay refused the quantity change on offer {$offerId}."
+            );
+        }
+
+        Log::info("eBay: listing {$listing->listing_id} on \"{$account->store_name}\" set to {$quantity} available (offer {$offerId})");
+    }
+
+    /**
+     * The legacy route, for listings the Inventory API never knew about —
+     * which is most of a shop listed through eBay's own tools.
+     */
+    private function reviseListingQuantity(EbayListing $listing, int $quantity): void
+    {
+        $account = $listing->ebayAccount;
+        $itemId = $listing->listing_id;
+
+        $body = '<?xml version="1.0" encoding="utf-8"?>'
+            .'<ReviseInventoryStatusRequest xmlns="urn:ebay:apis:eBLBaseComponents">'
+            ."<InventoryStatus><ItemID>{$itemId}</ItemID><Quantity>{$quantity}</Quantity></InventoryStatus>"
+            .'</ReviseInventoryStatusRequest>';
+
+        $response = Http::withHeaders([
+            'X-EBAY-API-CALL-NAME' => 'ReviseInventoryStatus',
+            'X-EBAY-API-SITEID' => (string) config("ebay.marketplaces.{$account->marketplace_id}.site", 0),
+            'X-EBAY-API-COMPATIBILITY-LEVEL' => '1155',
+            'X-EBAY-API-IAF-TOKEN' => $this->ensureAccessToken($account),
+            'Content-Type' => 'text/xml',
+        ])->timeout(30)->withBody($body, 'text/xml')->post($this->tradingApiUrl());
+
+        if ($response->failed()) {
+            throw new RuntimeException("eBay returned HTTP {$response->status()} setting the quantity of listing {$itemId}.");
+        }
+
+        $xml = @simplexml_load_string($response->body());
+
+        if ($xml === false) {
+            throw new RuntimeException("eBay sent back unreadable XML setting the quantity of listing {$itemId}.");
+        }
+
+        if ((string) $xml->Ack === 'Failure') {
+            throw new RuntimeException(
+                (string) ($xml->Errors->LongMessage ?: $xml->Errors->ShortMessage)
+                    ?: "eBay refused the quantity change on listing {$itemId}."
+            );
+        }
+
+        Log::info("eBay: listing {$itemId} on \"{$account->store_name}\" set to {$quantity} available");
     }
 
     /*

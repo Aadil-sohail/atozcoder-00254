@@ -72,6 +72,7 @@
                         <th class="no-sort" style="width:60px;">{{ __('Image') }}</th>
                         <th>Name</th>
                         <th>eBay Listing ID</th>
+                        <th class="no-sort">{{ __('Listed On') }}</th>
                         <th>Category</th>
                         <th>Size</th>
                         <th>Cost</th>
@@ -196,6 +197,7 @@
                 { data: 'image', orderable: false, searchable: false },
                 { data: 'name' },
                 { data: 'listing_ids' },
+                { data: 'stores', orderable: false, searchable: false },
                 { data: 'category_name' },
                 { data: 'size' },
                 { data: 'cost_price' },

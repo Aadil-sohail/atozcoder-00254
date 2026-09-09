@@ -127,7 +127,7 @@ class EbayOrderImporter
                         'inserted_by' => 'eBay Sync',
                     ]);
 
-                    Product::where('id', $item['product_id'])->increment('sold_qty', $item['quantity']);
+                    ProductStock::sold($item['product_id'], $item['quantity']);
                 }
             });
         } catch (QueryException $e) {

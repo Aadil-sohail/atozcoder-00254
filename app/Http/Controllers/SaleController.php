@@ -8,6 +8,7 @@ use App\Models\EbayAccount;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Support\ServerTable;
+use App\Services\ProductStock;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -64,7 +65,19 @@ class SaleController extends Controller
     public function create(): View
     {
         $customers = Customer::orderBy('name')->get();
-        $products = Product::orderBy('name')->get(['id', 'name', 'sku', 'selling_price', 'total_qty', 'sold_qty']);
+        // A connected product has no stock of its own, so what the screen
+        // offers is the connection's figure — otherwise a copy that never
+        // moves would happily be oversold.
+        $products = Product::with('productConnection.masterProduct')
+            ->orderBy('name')
+            ->get(['id', 'name', 'sku', 'selling_price', 'total_qty', 'sold_qty']);
+
+        $products->each(function (Product $product) {
+            $keeper = $product->connectionMaster();
+
+            $product->total_qty = $keeper->total_qty;
+            $product->sold_qty = $keeper->sold_qty;
+        });
         $nextInvoice = $this->generateInvoiceNo();
 
         return view('sales.create', compact('customers', 'products', 'nextInvoice'));
@@ -99,8 +112,7 @@ class SaleController extends Controller
                 'inserted_by' => auth()->user()->name,
             ]);
 
-            Product::where('id', $item['product_id'])
-                ->increment('sold_qty', $item['quantity']);
+            ProductStock::sold($item['product_id'], $item['quantity']);
         }
 
         return redirect()->route('sales.index')->with('status', 'Sale #'.$sale->invoice_no.' created successfully.');

@@ -130,6 +130,17 @@
             </a>
         @endcan
 
+        @can('view connections')
+            <a href="{{ route('connections.index') }}"
+                class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small
+                {{ request()->routeIs('connections.*') ? 'bg-primary text-white' : 'text-white-50' }}"
+                onmouseover="{{ request()->routeIs('connections.*') ? '' : "this.style.background='#1f2937'" }}"
+                onmouseout="{{ request()->routeIs('connections.*') ? '' : "this.style.background=''" }}">
+                <i class="fa-solid fa-link" style="width:18px; text-align:center;"></i>
+                {{ __('Connections') }}
+            </a>
+        @endcan
+
         @can('view ebay stores')
             <a href="{{ route('ebay.index') }}"
                 class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small

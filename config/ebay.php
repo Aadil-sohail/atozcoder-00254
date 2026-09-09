@@ -85,6 +85,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Pushing stock back to eBay
+    |--------------------------------------------------------------------------
+    |
+    | With this on, a change of stock here is sent straight to every listing of
+    | that product, on every store. It is what keeps a part listed twice from
+    | showing ten on one store and eight on the other after a sale.
+    */
+
+    'push_stock' => env('EBAY_PUSH_STOCK', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Item conditions selectable when syncing a product
     |--------------------------------------------------------------------------
     */

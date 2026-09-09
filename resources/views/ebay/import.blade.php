@@ -61,7 +61,7 @@
                                     <td>
                                         <input type="checkbox" class="form-check-input ebay-import-check"
                                                name="item_ids[]" value="{{ $item->id }}"
-                                               @checked(! $item->already_in_software)>
+                                               checked>
                                     </td>
                                     <td>
                                         @if ($url = ($item->image_urls[0] ?? null))
@@ -79,13 +79,9 @@
                                     <td>{{ $item->price === null ? '—' : number_format((float) $item->price, 2) }}</td>
                                     <td>{{ (int) $item->quantity }}</td>
                                     <td>
-                                        @if ($item->already_in_software)
-                                            <span class="badge text-bg-light border">{{ __('Already here') }}</span>
-                                        @else
-                                            <span class="badge text-bg-success-subtle text-success border border-success-subtle">
-                                                {{ __('New') }}
-                                            </span>
-                                        @endif
+                                        <span class="badge text-bg-success-subtle text-success border border-success-subtle">
+                                            {{ __('New') }}
+                                        </span>
                                     </td>
                                 </tr>
                             @endforeach

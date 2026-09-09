@@ -124,13 +124,14 @@ class EbayListingImporter
                 'listing_id' => $offer['listing']['listingId'] ?? ($offer['listingId'] ?? null),
                 'offer_id' => $offer['offerId'] ?? null,
                 'condition' => $item['condition'] ?? 'NEW',
+                // Kept false for every row: the screen offers them all, and
+                // importing one that is already here links it rather than
+                // making a second copy of it.
                 'already_in_software' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
-
-        $rows = $this->flagAlreadyImported($rows);
 
         foreach (array_chunk($rows, 200) as $chunk) {
             EbayImportItem::insert($chunk);
@@ -489,28 +490,6 @@ class EbayListingImporter
         }
 
         return array_values($listings);
-    }
-
-    /**
-     * Mark the rows whose SKU is already a product here, so the screen can show
-     * that up front instead of the user discovering it after saving.
-     *
-     * @param  list<array<string, mixed>>  $rows
-     * @return list<array<string, mixed>>
-     */
-    private function flagAlreadyImported(array $rows): array
-    {
-        $known = [];
-
-        foreach (array_chunk(array_column($rows, 'sku'), 500) as $chunk) {
-            $known += array_flip(Product::whereIn('sku', $chunk)->pluck('sku')->all());
-        }
-
-        foreach ($rows as $index => $row) {
-            $rows[$index]['already_in_software'] = isset($known[$row['sku']]);
-        }
-
-        return $rows;
     }
 
     /**

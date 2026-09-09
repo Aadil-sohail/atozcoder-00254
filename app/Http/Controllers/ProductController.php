@@ -68,13 +68,34 @@ class ProductController extends Controller
     {
         $hasEbayAccounts = EbayAccount::where($this->filter)->exists();
 
-        $listingIds = '(select group_concat(ebay_listings.listing_id)
-            from ebay_listings where ebay_listings.product_id = products.id)';
+        // A connected product is shown once, on the row of the member its
+        // prices come from, so this has to gather the listing ids of every
+        // member — searching a store's listing id must still find the part.
+        $listingIds = '(select group_concat(el.listing_id)
+            from ebay_listings el
+            where el.product_id = products.id
+               or el.product_id in (
+                   select member.product_id from product_connection_items member
+                   where member.product_connection_id = pc_item.product_connection_id
+               ))';
 
         $query = Product::query()
             ->where('products.status', '1')
             ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
-            ->with('ebayListings.ebayAccount')
+            // One row each: product_connection_items is unique per product, so
+            // neither join can multiply the rows the paging counts rely on.
+            ->leftJoin('product_connection_items as pc_item', 'pc_item.product_id', '=', 'products.id')
+            ->leftJoin('product_connections as pc', 'pc.id', '=', 'pc_item.product_connection_id')
+            // The whole point of a connection is to stop seeing the same part
+            // once per store, so only its master stands for the group here.
+            ->where(fn ($grouped) => $grouped
+                ->whereNull('pc_item.id')
+                ->orWhereColumn('pc.master_product_id', 'products.id'))
+            ->with([
+                'ebayListings.ebayAccount',
+                'productConnection.items.stores',
+                'productConnection.items.product.ebayListings.ebayAccount',
+            ])
             ->select('products.*', 'categories.name as category_name')
             ->selectRaw($listingIds.' as listing_ids');
 
@@ -95,6 +116,7 @@ class ProductController extends Controller
             'image' => view('products.partials.cells.image', compact('product'))->render(),
             'name' => view('products.partials.cells.name', compact('product'))->render(),
             'listing_ids' => view('products.partials.cells.listing-ids', compact('product'))->render(),
+            'stores' => view('products.partials.cells.stores', compact('product'))->render(),
             'category_name' => e($product->category_name ?? '—'),
             'size' => e($product->size ?? '—'),
             'cost_price' => number_format((float) $product->cost_price, 2),
@@ -272,6 +294,7 @@ class ProductController extends Controller
     public function outOfStock(): View
     {
         $products = Product::where($this->filter)
+            ->withoutConnectionDuplicates()
             ->whereRaw('(total_qty - sold_qty) <= 0')
             ->with('category')
             ->orderBy('name')
