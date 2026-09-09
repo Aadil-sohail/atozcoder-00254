@@ -42,16 +42,48 @@
             </a>
         @endcan
 
-        @can('view products')
-            <a href="{{ route('products.index') }}"
+        @canany(['view products', 'view connections'])
+            @php($productsActive = request()->routeIs('products.*') || request()->routeIs('connections.*'))
+
+            <a href="#products-submenu" data-bs-toggle="collapse" role="button"
+                aria-expanded="{{ $productsActive ? 'true' : 'false' }}" aria-controls="products-submenu"
                 class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small
-                {{ request()->routeIs('products.*') ? 'bg-primary text-white' : 'text-white-50' }}"
-                onmouseover="{{ request()->routeIs('products.*') ? '' : "this.style.background='#1f2937'" }}"
-                onmouseout="{{ request()->routeIs('products.*') ? '' : "this.style.background=''" }}">
+                    {{ $productsActive ? 'text-white' : 'text-white-50 collapsed' }}"
+                onmouseover="this.style.background='#1f2937'" onmouseout="this.style.background=''">
                 <i class="fa-solid fa-box" style="width:18px; text-align:center;"></i>
                 {{ __('Products') }}
+                <i class="fa-solid fa-chevron-down ms-auto settings-caret"
+                    style="font-size:11px; transition: transform 0.2s;"></i>
             </a>
-        @endcan
+
+            <div class="collapse {{ $productsActive ? 'show' : '' }}" id="products-submenu">
+                <div class="d-flex flex-column gap-1">
+                    @can('view products')
+                        <a href="{{ route('products.index') }}"
+                            class="d-flex align-items-center gap-3 py-2 rounded text-decoration-none fw-medium small
+                            {{ request()->routeIs('products.*') ? 'bg-primary text-white' : 'text-white-50' }}"
+                            style="padding-left:44px; padding-right:12px;"
+                            onmouseover="{{ request()->routeIs('products.*') ? '' : "this.style.background='#1f2937'" }}"
+                            onmouseout="{{ request()->routeIs('products.*') ? '' : "this.style.background=''" }}">
+                            <i class="fa-solid fa-box" style="width:18px; text-align:center;"></i>
+                            {{ __('Products') }}
+                        </a>
+                    @endcan
+
+                    @can('view connections')
+                        <a href="{{ route('connections.index') }}"
+                            class="d-flex align-items-center gap-3 py-2 rounded text-decoration-none fw-medium small
+                            {{ request()->routeIs('connections.*') ? 'bg-primary text-white' : 'text-white-50' }}"
+                            style="padding-left:44px; padding-right:12px;"
+                            onmouseover="{{ request()->routeIs('connections.*') ? '' : "this.style.background='#1f2937'" }}"
+                            onmouseout="{{ request()->routeIs('connections.*') ? '' : "this.style.background=''" }}">
+                            <i class="fa-solid fa-link" style="width:18px; text-align:center;"></i>
+                            {{ __('Connections') }}
+                        </a>
+                    @endcan
+                </div>
+            </div>
+        @endcanany
 
         @can('view inventories')
             <a href="{{ route('inventories.index') }}"
@@ -127,17 +159,6 @@
                 onmouseout="{{ request()->routeIs('returns.*') ? '' : "this.style.background=''" }}">
                 <i class="fa-solid fa-rotate-left" style="width:18px; text-align:center;"></i>
                 {{ __('Returns') }}
-            </a>
-        @endcan
-
-        @can('view connections')
-            <a href="{{ route('connections.index') }}"
-                class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small
-                {{ request()->routeIs('connections.*') ? 'bg-primary text-white' : 'text-white-50' }}"
-                onmouseover="{{ request()->routeIs('connections.*') ? '' : "this.style.background='#1f2937'" }}"
-                onmouseout="{{ request()->routeIs('connections.*') ? '' : "this.style.background=''" }}">
-                <i class="fa-solid fa-link" style="width:18px; text-align:center;"></i>
-                {{ __('Connections') }}
             </a>
         @endcan
 
