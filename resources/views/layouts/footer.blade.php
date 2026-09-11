@@ -12,6 +12,9 @@
 <!-- serverTable(): server-side DataTables, paired with App\Support\ServerTable -->
 <script src="{{ asset('js/server-table.js') }}?v={{ filemtime(public_path('js/server-table.js')) }}"></script>
 
+<!-- Select2 (searchable dropdowns) -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <!-- Dropify -->
 <script src="https://cdn.jsdelivr.net/npm/dropify@0.2.2/dist/js/dropify.min.js"></script>
 

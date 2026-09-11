@@ -59,7 +59,7 @@ class ProductConnectionController extends Controller
                     ->whereColumn('product_connection_id', 'product_connections.id'),
                 'items_count'
             )
-            ->with(['masterProduct', 'items.product.ebayListings.ebayAccount', 'items.stores']);
+            ->with(['masterProduct', 'masterStore', 'items.product.ebayListings.ebayAccount', 'items.stores']);
 
         return ServerTable::make($request, $query, [
             'name' => 'product_connections.name',
@@ -163,11 +163,12 @@ class ProductConnectionController extends Controller
     public function store(StoreProductConnectionRequest $request): RedirectResponse
     {
         $connection = DB::transaction(function () use ($request) {
-            $master = Product::findOrFail($request->master_product_id);
+            $master = Product::findOrFail($this->masterProductId($request->input('items'), $request->master_ebay_account_id));
 
             $connection = ProductConnection::create([
                 'name' => $request->input('name') ?: $master->name,
                 'master_product_id' => $master->id,
+                'master_ebay_account_id' => $request->master_ebay_account_id,
                 'inserted_by' => auth()->user()->name,
             ]);
 
@@ -185,11 +186,12 @@ class ProductConnectionController extends Controller
     public function update(StoreProductConnectionRequest $request, ProductConnection $connection): RedirectResponse
     {
         DB::transaction(function () use ($request, $connection) {
-            $master = Product::findOrFail($request->master_product_id);
+            $master = Product::findOrFail($this->masterProductId($request->input('items'), $request->master_ebay_account_id));
 
             $connection->update([
                 'name' => $request->input('name') ?: $master->name,
                 'master_product_id' => $master->id,
+                'master_ebay_account_id' => $request->master_ebay_account_id,
             ]);
 
             // Members carry nothing but the link itself, so replacing them
@@ -224,14 +226,37 @@ class ProductConnectionController extends Controller
     }
 
     /**
-     * @param  list<array{product_id: int|string, ebay_account_ids?: list<int|string>|null}>  $items
+     * The product on the row that was marked, found by the store it names.
+     *
+     * @param  list<array{ebay_account_id: int|string, product_id: int|string}>  $items
+     */
+    private function masterProductId(array $items, int|string $storeId): int
+    {
+        $row = collect($items)->firstWhere('ebay_account_id', $storeId)
+            ?? collect($items)->first(fn ($item) => (int) $item['ebay_account_id'] === (int) $storeId);
+
+        return (int) $row['product_id'];
+    }
+
+    /**
+     * Save the form's rows as members of the connection.
+     *
+     * The form asks store by store, but a product listed on two of them is
+     * still one product row here, so the rows are gathered by product and the
+     * stores they were picked for travel with it.
+     *
+     * @param  list<array{ebay_account_id: int|string, product_id: int|string}>  $items
      */
     private function saveItems(ProductConnection $connection, array $items): void
     {
-        foreach ($items as $item) {
-            $member = $connection->items()->create(['product_id' => $item['product_id']]);
+        $byProduct = collect($items)
+            ->groupBy('product_id')
+            ->map(fn ($rows) => $rows->pluck('ebay_account_id')->filter()->unique()->values()->all());
 
-            $member->stores()->sync(array_filter($item['ebay_account_ids'] ?? []));
+        foreach ($byProduct as $productId => $storeIds) {
+            $member = $connection->items()->create(['product_id' => $productId]);
+
+            $member->stores()->sync($storeIds);
         }
     }
 }

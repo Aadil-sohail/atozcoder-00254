@@ -6,20 +6,43 @@
     // marketplace label below — would end the directive in the wrong place.
     $storeChoices = $ebayAccounts->map(fn ($account) => [
         'id' => $account->id,
-        'label' => $account->store_name,
-        'marketplace' => config("ebay.marketplaces.{$account->marketplace_id}.label", $account->marketplace_id),
+        'label' => $account->store_name.' ('.config("ebay.marketplaces.{$account->marketplace_id}.label", $account->marketplace_id).')',
     ])->values();
 
-    // What the form opens with: what was typed when validation sent it back,
-    // otherwise the connection being edited, otherwise one empty row.
-    $savedRows = old('items') ?: ($connection?->items->map(fn ($item) => [
-        'product_id' => $item->product_id,
-        'label' => trim(($item->product?->name ?? '').' - '.($item->product?->sku ?? '')),
-        'ebay_account_ids' => $item->stores->pluck('id')->all(),
-    ])->values()->all() ?? []);
+    // One row per store. A product listed on two stores was saved as one
+    // member carrying both, so it comes back out as a row for each.
+    $savedRows = old('items') ?: ($connection?->items->flatMap(function ($item) {
+        $label = trim(($item->product?->name ?? '').' - '.($item->product?->sku ?? ''));
+        $stores = $item->stores->pluck('id');
 
-    $masterChoice = (string) old('master_product_id', $connection->master_product_id ?? '');
+        return $stores->isEmpty()
+            ? [['ebay_account_id' => null, 'product_id' => $item->product_id, 'label' => $label]]
+            : $stores->map(fn ($storeId) => [
+                'ebay_account_id' => $storeId,
+                'product_id' => $item->product_id,
+                'label' => $label,
+            ])->all();
+    })->values()->all() ?? []);
+
+    // The marked row is named by its store: with one product row serving two
+    // stores, the product cannot tell the two rows apart.
+    $masterChoice = (string) old('master_ebay_account_id', $connection->master_ebay_account_id ?? '');
 @endphp
+
+@push('styles')
+<style>
+    /* Select2's own control, trimmed to the size of a form-select-sm. */
+    #connection-form .select2-container--bootstrap-5 .select2-selection {
+        min-height: calc(1.5em + 0.5rem + 2px);
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    #connection-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        padding: 0;
+        line-height: 1.5;
+    }
+</style>
+@endpush
 
 @section('title', $connection ? 'Edit Connection' : 'New Connection')
 
@@ -28,7 +51,7 @@
         {{ $connection ? __('Edit Connection') : __('New Connection') }}
     </h2>
     <p class="text-muted small mb-0">
-        {{ __('Pick a product, tick the stores it is listed on, then add the next one.') }}
+        {{ __('Pick the store, then the product on it. Do that for every store the same part sells on, and say whose price to use.') }}
     </p>
 @endsection
 
@@ -51,25 +74,17 @@
             @method('PUT')
         @endif
 
-        <div class="card shadow-sm border-0 mb-3">
-            <div class="card-body">
-                <label class="form-label small text-muted mb-1">{{ __('Connection name') }}</label>
-                <input type="text" name="name" class="form-control form-control-sm"
-                       value="{{ old('name', $connection->name ?? '') }}"
-                       placeholder="{{ __('Left blank, the name of the product prices come from is used') }}">
-            </div>
-        </div>
 
         <div class="card shadow-sm border-0 mb-3">
             <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
                 <div>
-                    <span class="fw-medium">{{ __('Products & the stores they sell on') }}</span>
+                    <span class="fw-medium">{{ __('The same part, store by store') }}</span>
                     <p class="mb-0 text-muted small">
-                        {{ __('One row per product row in the software: one row for a product that sells on several stores, or a row each where the same part came in as separate products. Tick one as the product prices and stock are taken from — that figure is what every store is given.') }}
+                        {{ __('One row per store. Mark the one store whose price and stock stand for all of them — that is the figure every store is given.') }}
                     </p>
                 </div>
                 <button type="button" class="btn btn-outline-dark btn-sm" id="add-row">
-                    <i class="fa-solid fa-plus me-1"></i>{{ __('Add product') }}
+                    <i class="fa-solid fa-plus me-1"></i>{{ __('Add store') }}
                 </button>
             </div>
 
@@ -82,7 +97,7 @@
             </div>
 
             <div class="card-footer bg-white d-flex justify-content-between align-items-center">
-                <span class="small text-muted" id="summary">{{ __('Pick the product this connection is for.') }}</span>
+                <span class="small text-muted" id="summary">{{ __('Pick a store and the product on it.') }}</span>
                 <div class="d-flex gap-2">
                     <a href="{{ route('connections.index') }}" class="btn btn-outline-secondary btn-sm">{{ __('Cancel') }}</a>
                     <button type="submit" class="btn btn-dark btn-sm" id="save-connection" disabled>
@@ -116,34 +131,25 @@ document.addEventListener('DOMContentLoaded', function () {
         return box.innerHTML;
     }
 
-    function debounce(fn, wait) {
-        let timer;
-        return function () {
-            clearTimeout(timer);
-            timer = setTimeout(fn, wait);
-        };
-    }
-
     function money(value) {
         return Number(value || 0).toFixed(2);
     }
 
-    function storeTicks(index, checked) {
-        if (! stores.length) {
-            return `<span class="text-muted small">{{ __('No stores connected') }}</span>`;
-        }
+    function searchable(select) {
+        // No placeholder given on purpose: the empty first option already
+        // reads "Choose a store" / "Choose a product", and a placeholder would
+        // paint over it.
+        $(select).select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+        });
+    }
 
-        return stores.map(store => `
-            <div class="form-check form-check-inline">
-                <input class="form-check-input row-store" type="checkbox"
-                       name="items[${index}][ebay_account_ids][]" value="${store.id}"
-                       id="store-${index}-${store.id}"
-                       ${(checked ?? []).map(String).includes(String(store.id)) ? 'checked' : ''}>
-                <label class="form-check-label small" for="store-${index}-${store.id}">
-                    <i class="fa-brands fa-ebay me-1"></i>${escapeHtml(store.label)}
-                </label>
-            </div>
-        `).join('');
+    function storeOptions(selected) {
+        return ['<option value="">{{ __('Choose a store') }}</option>']
+            .concat(stores.map(store =>
+                `<option value="${store.id}" ${String(store.id) === String(selected ?? '') ? 'selected' : ''}>${escapeHtml(store.label)}</option>`))
+            .join('');
     }
 
     function addRow(prefill) {
@@ -153,79 +159,104 @@ document.addEventListener('DOMContentLoaded', function () {
         row.className = 'connection-row border rounded p-2 mb-2';
         row.dataset.index = index;
         row.innerHTML = `
-            <div class="row g-2 align-items-end">
+            <div class="row g-2 align-items-start">
+                <div class="col-md-4">
+                    <label class="form-label small text-muted mb-1">{{ __('Store') }}</label>
+                    <select name="items[${index}][ebay_account_id]" class="form-select form-select-sm row-store">
+                        ${storeOptions(prefill?.ebay_account_id)}
+                    </select>
+                </div>
                 <div class="col-md-5">
-                    <label class="form-label small text-muted mb-1">{{ __('Product') }}</label>
-                    <select name="items[${index}][product_id]" class="form-select form-select-sm row-product" required>
+                    <label class="form-label small text-muted mb-1">{{ __('Product on that store') }}</label>
+                    <select name="items[${index}][product_id]" class="form-select form-select-sm row-product">
                         ${prefill?.product_id
                             ? `<option value="${prefill.product_id}" selected>${escapeHtml(prefill.label || ('#' + prefill.product_id))}</option>`
-                            : '<option value="">{{ __('Choose a product') }}</option>'}
+                            : '<option value="">{{ __('Choose the store first') }}</option>'}
                     </select>
-                    <input type="text" class="form-control form-control-sm mt-1 row-search"
-                           placeholder="{{ __('Search by name, SKU or listing id…') }}">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label small text-muted mb-1">{{ __('Listed on') }}</label>
-                    <div class="row-stores">${storeTicks(index, prefill?.ebay_account_ids)}</div>
+                    <div class="small text-muted mt-1 row-detail"></div>
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1 d-none d-md-block">&nbsp;</label>
                     <div class="form-check">
-                        <input class="form-check-input row-master" type="radio" name="master_product_id"
-                               value="${prefill?.product_id ?? ''}" id="master-${index}"
-                               ${prefill?.product_id && String(prefill.product_id) === master ? 'checked' : ''}>
+                        <input class="form-check-input row-master" type="radio" name="master_ebay_account_id"
+                               value="${prefill?.ebay_account_id ?? ''}" id="master-${index}"
+                               ${prefill?.ebay_account_id && String(prefill.ebay_account_id) === master ? 'checked' : ''}>
                         <label class="form-check-label small" for="master-${index}">
-                            {{ __('Prices & stock') }}
+                            {{ __("Use this store's price & stock") }}
                         </label>
                     </div>
                 </div>
                 <div class="col-md-1 text-end">
+                    <label class="form-label small text-muted mb-1 d-none d-md-block">&nbsp;</label>
                     <button type="button" class="btn btn-sm btn-outline-danger row-remove" title="{{ __('Remove') }}">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
             </div>
-            <div class="small text-muted mt-1 row-detail"></div>
         `;
 
         rowsBox.appendChild(row);
 
+        const store = row.querySelector('.row-store');
         const product = row.querySelector('.row-product');
-        const search = row.querySelector('.row-search');
         const masterBox = row.querySelector('.row-master');
 
-        product.addEventListener('change', function () {
-            // The radio stands for whichever product the row holds now, so a
-            // row that was the master keeps that as its product changes.
+        searchable(store);
+        searchable(product);
+
+        $(store).on('change', function () {
+            // A different store means a different shelf of products, so
+            // whatever was picked here no longer applies.
+            product.innerHTML = '<option value="">{{ __('Loading…') }}</option>';
+            $(product).trigger('change.select2');
+
+            // The radio stands for this row's store, so it moves with it.
             const wasMaster = masterBox.checked;
 
-            masterBox.value = product.value;
-            masterBox.checked = wasMaster && product.value !== '';
+            masterBox.value = store.value;
+            masterBox.checked = wasMaster && store.value !== '';
 
-            tickOwnStores(row);
+            refresh();
+            loadProducts(row);
+        });
+
+        $(product).on('change', function () {
             showDetail(row);
             refresh();
         });
 
-        search.addEventListener('input', debounce(() => loadProducts(row, search.value), 350));
-
         row.querySelector('.row-remove').addEventListener('click', function () {
+            $(store).select2('destroy');
+            $(product).select2('destroy');
+
             row.remove();
             refresh();
         });
 
-        loadProducts(row);
+        if (prefill?.ebay_account_id || prefill?.product_id) {
+            loadProducts(row);
+        }
+
         refresh();
 
         return row;
     }
 
-    async function loadProducts(row, search) {
+    async function loadProducts(row) {
+        const store = row.querySelector('.row-store').value;
         const product = row.querySelector('.row-product');
         const chosen = product.value;
         const chosenLabel = product.options[product.selectedIndex]?.textContent ?? '';
 
+        if (! store) {
+            product.innerHTML = '<option value="">{{ __('Choose the store first') }}</option>';
+            $(product).trigger('change.select2');
+            refresh();
+            return;
+        }
+
         const url = new URL(productsUrl, window.location.origin);
-        if (search) url.searchParams.set('q', search);
+        url.searchParams.set('store', store);
         if (connectionId) url.searchParams.set('connection', connectionId);
 
         let items = [];
@@ -235,6 +266,7 @@ document.addEventListener('DOMContentLoaded', function () {
             items = (await response.json()).products ?? [];
         } catch (error) {
             product.innerHTML = '<option value="">{{ __('Could not load products') }}</option>';
+            $(product).trigger('change.select2');
             return;
         }
 
@@ -257,28 +289,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 data-stock="${item.stock ?? 0}"
                 data-selling="${item.selling_price ?? ''}"
                 data-cost="${item.cost_price ?? ''}"
-                data-stores="${escapeHtml((item.stores ?? []).join(','))}"
                 ${item.connected_to ? 'disabled' : ''}
                 ${String(item.id) === String(chosen) ? 'selected' : ''}>${escapeHtml(label)}</option>`);
         });
 
         product.innerHTML = options.join('');
+        $(product).trigger('change.select2');
+
         showDetail(row);
         refresh();
-    }
-
-    /**
-     * A product already carries its eBay listings, so the stores it is on are
-     * ticked for the user rather than left to be remembered. Only on a fresh
-     * pick: a tick taken off by hand stays off.
-     */
-    function tickOwnStores(row) {
-        const option = row.querySelector('.row-product').selectedOptions[0];
-        const own = (option?.dataset.stores || '').split(',').filter(Boolean);
-
-        row.querySelectorAll('.row-store').forEach(box => {
-            box.checked = own.includes(box.value);
-        });
     }
 
     function showDetail(row) {
@@ -290,75 +309,69 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        detail.textContent = `{{ __('Own price') }}: ${money(option.dataset.selling)}`
-            + ` · {{ __('cost') }}: ${money(option.dataset.cost)}`
-            + ` · {{ __('own stock') }}: ${money(option.dataset.stock)}`;
+        detail.textContent = `{{ __('This store:') }} {{ __('price') }} ${money(option.dataset.selling)}`
+            + ` · {{ __('cost') }} ${money(option.dataset.cost)}`
+            + ` · {{ __('stock') }} ${money(option.dataset.stock)}`;
     }
 
     function refresh() {
         const rows = Array.from(rowsBox.querySelectorAll('.connection-row'));
 
-        // The same product twice would be one row wasted and a confusing
-        // connection, so a product picked in one row is closed off in the rest.
-        const picked = rows.map(row => row.querySelector('.row-product').value).filter(Boolean);
+        // One row per store: a store already spoken for is closed off in the
+        // others, so the same listing cannot be added twice.
+        const usedStores = rows.map(row => row.querySelector('.row-store').value).filter(Boolean);
 
         rows.forEach(row => {
-            const product = row.querySelector('.row-product');
+            const store = row.querySelector('.row-store');
 
-            Array.from(product.options).forEach(option => {
-                if (! option.value || option.value === product.value) return;
-                if (picked.includes(option.value)) option.disabled = true;
+            Array.from(store.options).forEach(option => {
+                option.disabled = Boolean(option.value)
+                    && option.value !== store.value
+                    && usedStores.includes(option.value);
             });
         });
 
-        const chosen = picked.length;
-        const storeCount = new Set(
-            Array.from(rowsBox.querySelectorAll('.row-store:checked')).map(box => box.value)
-        ).size;
+        const filled = rows.filter(row => row.querySelector('.row-store').value && row.querySelector('.row-product').value);
 
-        // With one product there is nothing to choose between, so the row that
-        // holds it is the one prices and stock come from.
-        if (chosen === 1 && ! rowsBox.querySelector('.row-master:checked')) {
-            const only = rows.find(row => row.querySelector('.row-product').value);
-
-            if (only) only.querySelector('.row-master').checked = true;
+        // With one row there is nothing to choose between, so it is the one
+        // the price comes from.
+        if (filled.length === 1 && ! rowsBox.querySelector('.row-master:checked')) {
+            filled[0].querySelector('.row-master').checked = true;
         }
 
         const masterBox = rowsBox.querySelector('.row-master:checked');
 
-        // Worth connecting two ways: several product rows that are the same
-        // part, or one product row selling on more than one store.
-        const worthIt = chosen >= 2 || (chosen === 1 && storeCount >= 2);
+        saveButton.disabled = ! (filled.length >= 2 && masterBox && masterBox.value);
 
-        saveButton.disabled = ! (worthIt && masterBox && masterBox.value);
-
-        if (chosen === 0) {
-            summary.textContent = '{{ __('Pick the product this connection is for.') }}';
-        } else if (! worthIt) {
-            summary.textContent = '{{ __('Tick the stores it sells on, or add the other product row for the same part.') }}';
+        if (filled.length === 0) {
+            summary.textContent = '{{ __('Pick a store and the product on it.') }}';
+        } else if (filled.length < 2) {
+            summary.textContent = '{{ __('Now add the next store and the same part on it.') }}';
         } else if (! masterBox || ! masterBox.value) {
-            summary.textContent = '{{ __('Now tick which product the prices and stock come from.') }}';
+            summary.textContent = '{{ __("Now mark the store whose price and stock to use.") }}';
         } else {
             const option = masterBox.closest('.connection-row').querySelector('.row-product').selectedOptions[0];
+            const storeName = masterBox.closest('.connection-row').querySelector('.row-store').selectedOptions[0]?.textContent ?? '';
+            const products = new Set(filled.map(row => row.querySelector('.row-product').value)).size;
 
             summary.textContent = `{{ __('Shown as one product') }}: `
                 + `{{ __('price') }} ${money(option?.dataset.selling)}, `
-                + `{{ __('stock') }} ${money(option?.dataset.stock)} `
-                + `— {{ __('shared across') }} ${storeCount} {{ __('stores') }}.`;
+                + `{{ __('stock') }} ${money(option?.dataset.stock)} {{ __('from') }} ${storeName.trim()} `
+                + `— {{ __('shared across') }} ${filled.length} {{ __('stores') }}`
+                + (products > 1 ? `, ${products} {{ __('product rows joined') }}.` : '.');
         }
     }
 
     document.getElementById('add-row').addEventListener('click', () => addRow(null));
 
     rowsBox.addEventListener('change', function (event) {
-        if (event.target.classList.contains('row-master') || event.target.classList.contains('row-store')) {
-            refresh();
-        }
+        if (event.target.classList.contains('row-master')) refresh();
     });
 
     if (saved.length) {
         saved.forEach(item => addRow(item));
     } else {
+        addRow(null);
         addRow(null);
     }
 });

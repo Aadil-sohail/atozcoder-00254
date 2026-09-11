@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
  * selling price are the connection's prices, and its stock counters are the
  * connection's stock, so a sale on any store moves the same figure.
  */
-#[Fillable(['name', 'master_product_id', 'status', 'close', 'inserted_by'])]
+#[Fillable(['name', 'master_product_id', 'master_ebay_account_id', 'status', 'close', 'inserted_by'])]
 class ProductConnection extends Model
 {
     public function items(): HasMany
@@ -27,6 +27,16 @@ class ProductConnection extends Model
     public function masterProduct(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'master_product_id');
+    }
+
+    /**
+     * The store whose price and stock were picked. Kept as well as the
+     * product, because one product row can serve two stores and the product
+     * alone cannot say which row was marked.
+     */
+    public function masterStore(): BelongsTo
+    {
+        return $this->belongsTo(EbayAccount::class, 'master_ebay_account_id');
     }
 
     /**

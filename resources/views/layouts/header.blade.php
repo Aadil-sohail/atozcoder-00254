@@ -24,6 +24,10 @@
         <!-- DataTables -->
         <link rel="stylesheet" href="https://cdn.datatables.net/v/bs5/dt-3.0.0/datatables.min.css">
 
+        <!-- Select2 (searchable dropdowns), themed to match Bootstrap -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+
         <!-- Loading state for server-side grids, paired with public/js/server-table.js -->
         <link rel="stylesheet" href="{{ asset('css/server-table.css') }}?v={{ filemtime(public_path('css/server-table.css')) }}">
 
