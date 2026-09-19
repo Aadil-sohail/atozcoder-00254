@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 09, 2026 at 02:25 PM
+-- Generation Time: Sep 19, 2026 at 04:01 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -39,7 +39,7 @@ CREATE TABLE `cache` (
 
 INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
 ('laravel-cache-ebay.app_token', 's:1936:\"v^1.1#i^1#p^1#I^3#r^0#f^0#t^H4sIAAAAAAAA/+VYa2wUVRTu9pnyMkEUUx4uozGBZmZnZnenMyO7ZVr6WLN97ra0JYbM4w4dOzsznUfbrQk0JYJEsSpUSPqDIhGMAv4AIkb0RwGN4gORiMb4SzRqfBEwJBajM9OlbCsBpGvcxM0mk3vvued+33fOuffOoAOFxSs2126+MtdTlDs6gA7kejzYbLS4sKB0Xl5uSUEOmmbgGR14cCB/MO+7lQabkDW6GRiaqhjA25eQFYN2O0OQpSu0yhqSQStsAhi0ydMxpi5K4whKa7pqqrwqQ97I6hAEKIoPEkFBxAWCRTFg9yrXfMbVEORHMRQQYlmZQIAAx2H2uGFYIKIYJquYIQhHcQJGKfsfx1Daj9E4iZB4oAPytgLdkFTFNkFQKOzCpd25ehrWm0NlDQPopu0ECkeY6lgDE1ldVR9f6UvzFU7pEDNZ0zKmtipVAXhbWdkCN1/GcK3pmMXzwDAgX3hihalOaeYamDuA70rNcWQZJQiUSAYCBMniGZGyWtUTrHlzHE6PJMCia0oDxZTM5K0UtdXgHgO8mWrV2y4iq73Oo8liZUmUgB6CqiqYdqaxEQozuiGzCtMPdwCQYPVuOFbRBuMBKiBwHMHBWJAQOCIQSK0z4Syl8rSFKlVFkBzNDG+9alYAGzSYLg2eJo1t1KA06IxoOoDS7fBrEmJkhxPTiSBaZqfihBUkbB28bvPWAZicbZq6xFkmmPQwfcBVKASxmiYJ0PRBNxVT2dNnhKBO09Ron6+3txfp9SOqvt6Hoyjma6uLxvhOW0fIsXVq3bWXbj0BllwqvF3Ftj1tJjUbS5+dqjYAZT0UDhBBP0GldJ8KKzy9928daZx9UwsiUwXCEqJIonzQHxCpoADITBRIOJWjPgcH4NgkbOdnFzA1meUBzNt5ZiWALgm0PyjiflIEsEBQIhygRBHmggIBYyIAKAAcx1Pk/6hObjfTY4DXgZmZVM9Umleu8XX118Vqqs0eS+isTZCl9Wh9t9q/hovEmBqrrFPu1prQ5hoG7Q3dbjHckHylLNnKxO31s6/Wa1XDBMKM6MV4VQONqizxyewKsF8XGlndTFZYSbsdA7JsP2ZEldG0SIY27EyR/Gd7xZ3RzuA59d+cUTdkZTh5m12snPmG7YDVJMQ5hRDeqXU14VNZ+wridK9zUc+It2RfXrOKNa8mJthKwsStE3HpIkYPj+jAUC3dvnAjDc4tLK52AcU+1ExdlWWgt2IzLudEwjJZTgbZVtcZSHCJzbITFysjSSpAkSQ5I168e56uy7YtacY7cf6gx3sb9JsBKyeyi7rBKgKn9v0Lrwy+qd8vwjnuDxv0vIcOek7lejxoJQpjpejywryW/Lw5kCGZAEnBQSRWRAxpvWK/nusA6QJJjZX03PkL9R+ZHYuqraNjsHmwbWc8Z1baV5TRR9H7Jr+jFOdhs9M+qqCLr48UYHctnIsTKIVSGOrHcLIDfeD6aD52b/6CjvuPPHs8Kpy4p6Tl8h7ftt2HirwfonMnjTyeghw75Dk9R84Ftw1/dbJmzqGxkQWfLD589PF9vy39fJQ5t/bbd99a8f6f0aIDm34vHhk72nz6/BPassCrx4598+X86L7FF0fGt75gtTwUHyr5aDjy5iDoGzoUxaNnzraUEBsvnOULln6x6sTJgR3xhw8MDI8W+fdveGP8zDPflw891b928PV1y/ac6tVfHN7fXdJT4vv04t114x1b9PNdW7aWl7/25KyX94qeC+3Hf5k3Vji08mDxc6U726+An8dmd59oX1W596UNPy15u/7prVfbPqs5PB71LLoaOFnI/LH9MtvUWlEbP/JKOW/0nVnywcjXyec/Ll2+a9OCXTq86NLu7Y3vXDq394cVj5zeWPUr1FSVM5ycCOlfytyknt8SAAA=\";', 1788956489),
-('laravel-cache-spatie.permission.cache', 'a:3:{s:5:\"alias\";a:4:{s:1:\"a\";s:2:\"id\";s:1:\"b\";s:4:\"name\";s:1:\"c\";s:10:\"guard_name\";s:1:\"r\";s:5:\"roles\";}s:11:\"permissions\";a:43:{i:0;a:4:{s:1:\"a\";i:1;s:1:\"b\";s:10:\"view roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:1;a:4:{s:1:\"a\";i:2;s:1:\"b\";s:12:\"create roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:2;a:4:{s:1:\"a\";i:3;s:1:\"b\";s:10:\"edit roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:3;a:4:{s:1:\"a\";i:4;s:1:\"b\";s:12:\"delete roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:4;a:4:{s:1:\"a\";i:5;s:1:\"b\";s:10:\"view users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:5;a:4:{s:1:\"a\";i:6;s:1:\"b\";s:12:\"create users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:6;a:4:{s:1:\"a\";i:7;s:1:\"b\";s:10:\"edit users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:7;a:4:{s:1:\"a\";i:8;s:1:\"b\";s:12:\"delete users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:8;a:4:{s:1:\"a\";i:9;s:1:\"b\";s:14:\"view customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:9;a:4:{s:1:\"a\";i:10;s:1:\"b\";s:16:\"create customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:10;a:4:{s:1:\"a\";i:11;s:1:\"b\";s:14:\"edit customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:11;a:4:{s:1:\"a\";i:12;s:1:\"b\";s:16:\"delete customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:12;a:4:{s:1:\"a\";i:13;s:1:\"b\";s:10:\"view sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:13;a:4:{s:1:\"a\";i:14;s:1:\"b\";s:12:\"create sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:14;a:4:{s:1:\"a\";i:15;s:1:\"b\";s:12:\"delete sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:15;a:4:{s:1:\"a\";i:16;s:1:\"b\";s:12:\"view returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:16;a:4:{s:1:\"a\";i:17;s:1:\"b\";s:14:\"create returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:17;a:4:{s:1:\"a\";i:18;s:1:\"b\";s:14:\"delete returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:18;a:4:{s:1:\"a\";i:19;s:1:\"b\";s:15:\"view categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:19;a:4:{s:1:\"a\";i:20;s:1:\"b\";s:17:\"create categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:20;a:4:{s:1:\"a\";i:21;s:1:\"b\";s:15:\"edit categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:21;a:4:{s:1:\"a\";i:22;s:1:\"b\";s:17:\"delete categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:22;a:4:{s:1:\"a\";i:23;s:1:\"b\";s:18:\"view subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:23;a:4:{s:1:\"a\";i:24;s:1:\"b\";s:20:\"create subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:24;a:4:{s:1:\"a\";i:25;s:1:\"b\";s:18:\"edit subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:25;a:4:{s:1:\"a\";i:26;s:1:\"b\";s:20:\"delete subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:26;a:4:{s:1:\"a\";i:27;s:1:\"b\";s:13:\"view products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:27;a:4:{s:1:\"a\";i:28;s:1:\"b\";s:15:\"create products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:28;a:4:{s:1:\"a\";i:29;s:1:\"b\";s:13:\"edit products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:29;a:4:{s:1:\"a\";i:30;s:1:\"b\";s:15:\"delete products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:30;a:4:{s:1:\"a\";i:31;s:1:\"b\";s:16:\"view inventories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:31;a:4:{s:1:\"a\";i:32;s:1:\"b\";s:18:\"create inventories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:32;a:4:{s:1:\"a\";i:33;s:1:\"b\";s:21:\"edit company settings\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:33;a:4:{s:1:\"a\";i:34;s:1:\"b\";s:18:\"edit smtp settings\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:34;a:4:{s:1:\"a\";i:35;s:1:\"b\";s:16:\"view ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:35;a:4:{s:1:\"a\";i:36;s:1:\"b\";s:18:\"create ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:36;a:4:{s:1:\"a\";i:37;s:1:\"b\";s:16:\"edit ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:37;a:4:{s:1:\"a\";i:38;s:1:\"b\";s:18:\"delete ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:38;a:4:{s:1:\"a\";i:39;s:1:\"b\";s:18:\"sync ebay products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:39;a:4:{s:1:\"a\";i:40;s:1:\"b\";s:16:\"view connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:40;a:4:{s:1:\"a\";i:41;s:1:\"b\";s:18:\"create connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:41;a:4:{s:1:\"a\";i:42;s:1:\"b\";s:16:\"edit connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:42;a:4:{s:1:\"a\";i:43;s:1:\"b\";s:18:\"delete connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}}s:5:\"roles\";a:1:{i:0;a:3:{s:1:\"a\";i:1;s:1:\"b\";s:5:\"Admin\";s:1:\"c\";s:3:\"web\";}}}', 1789021733);
+('laravel-cache-spatie.permission.cache', 'a:3:{s:5:\"alias\";a:4:{s:1:\"a\";s:2:\"id\";s:1:\"b\";s:4:\"name\";s:1:\"c\";s:10:\"guard_name\";s:1:\"r\";s:5:\"roles\";}s:11:\"permissions\";a:43:{i:0;a:4:{s:1:\"a\";i:1;s:1:\"b\";s:10:\"view roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:1;a:4:{s:1:\"a\";i:2;s:1:\"b\";s:12:\"create roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:2;a:4:{s:1:\"a\";i:3;s:1:\"b\";s:10:\"edit roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:3;a:4:{s:1:\"a\";i:4;s:1:\"b\";s:12:\"delete roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:4;a:4:{s:1:\"a\";i:5;s:1:\"b\";s:10:\"view users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:5;a:4:{s:1:\"a\";i:6;s:1:\"b\";s:12:\"create users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:6;a:4:{s:1:\"a\";i:7;s:1:\"b\";s:10:\"edit users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:7;a:4:{s:1:\"a\";i:8;s:1:\"b\";s:12:\"delete users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:8;a:4:{s:1:\"a\";i:9;s:1:\"b\";s:14:\"view customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:9;a:4:{s:1:\"a\";i:10;s:1:\"b\";s:16:\"create customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:10;a:4:{s:1:\"a\";i:11;s:1:\"b\";s:14:\"edit customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:11;a:4:{s:1:\"a\";i:12;s:1:\"b\";s:16:\"delete customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:12;a:4:{s:1:\"a\";i:13;s:1:\"b\";s:10:\"view sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:13;a:4:{s:1:\"a\";i:14;s:1:\"b\";s:12:\"create sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:14;a:4:{s:1:\"a\";i:15;s:1:\"b\";s:12:\"delete sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:15;a:4:{s:1:\"a\";i:16;s:1:\"b\";s:12:\"view returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:16;a:4:{s:1:\"a\";i:17;s:1:\"b\";s:14:\"create returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:17;a:4:{s:1:\"a\";i:18;s:1:\"b\";s:14:\"delete returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:18;a:4:{s:1:\"a\";i:19;s:1:\"b\";s:15:\"view categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:19;a:4:{s:1:\"a\";i:20;s:1:\"b\";s:17:\"create categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:20;a:4:{s:1:\"a\";i:21;s:1:\"b\";s:15:\"edit categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:21;a:4:{s:1:\"a\";i:22;s:1:\"b\";s:17:\"delete categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:22;a:4:{s:1:\"a\";i:23;s:1:\"b\";s:18:\"view subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:23;a:4:{s:1:\"a\";i:24;s:1:\"b\";s:20:\"create subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:24;a:4:{s:1:\"a\";i:25;s:1:\"b\";s:18:\"edit subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:25;a:4:{s:1:\"a\";i:26;s:1:\"b\";s:20:\"delete subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:26;a:4:{s:1:\"a\";i:27;s:1:\"b\";s:13:\"view products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:27;a:4:{s:1:\"a\";i:28;s:1:\"b\";s:15:\"create products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:28;a:4:{s:1:\"a\";i:29;s:1:\"b\";s:13:\"edit products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:29;a:4:{s:1:\"a\";i:30;s:1:\"b\";s:15:\"delete products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:30;a:4:{s:1:\"a\";i:31;s:1:\"b\";s:16:\"view inventories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:31;a:4:{s:1:\"a\";i:32;s:1:\"b\";s:18:\"create inventories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:32;a:4:{s:1:\"a\";i:33;s:1:\"b\";s:21:\"edit company settings\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:33;a:4:{s:1:\"a\";i:34;s:1:\"b\";s:18:\"edit smtp settings\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:34;a:4:{s:1:\"a\";i:35;s:1:\"b\";s:16:\"view ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:35;a:4:{s:1:\"a\";i:36;s:1:\"b\";s:18:\"create ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:36;a:4:{s:1:\"a\";i:37;s:1:\"b\";s:16:\"edit ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:37;a:4:{s:1:\"a\";i:38;s:1:\"b\";s:18:\"delete ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:38;a:4:{s:1:\"a\";i:39;s:1:\"b\";s:18:\"sync ebay products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:39;a:4:{s:1:\"a\";i:40;s:1:\"b\";s:16:\"view connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:40;a:4:{s:1:\"a\";i:41;s:1:\"b\";s:18:\"create connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:41;a:4:{s:1:\"a\";i:42;s:1:\"b\";s:16:\"edit connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:42;a:4:{s:1:\"a\";i:43;s:1:\"b\";s:18:\"delete connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}}s:5:\"roles\";a:1:{i:0;a:3:{s:1:\"a\";i:1;s:1:\"b\";s:5:\"Admin\";s:1:\"c\";s:3:\"web\";}}}', 1789911903);
 
 -- --------------------------------------------------------
 
@@ -122,8 +122,8 @@ CREATE TABLE `connection_item_stores` (
 --
 
 INSERT INTO `connection_item_stores` (`id`, `product_connection_item_id`, `ebay_account_id`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, '2026-09-09 06:53:12', '2026-09-09 06:53:12'),
-(2, 1, 2, '2026-09-09 06:53:12', '2026-09-09 06:53:12');
+(19, 11, 2, '2026-09-19 08:49:16', '2026-09-19 08:49:16'),
+(20, 11, 1, '2026-09-19 08:49:16', '2026-09-19 08:49:16');
 
 -- --------------------------------------------------------
 
@@ -363,7 +363,8 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (20, '2026_07_30_102136_add_col_in_prod', 1),
 (21, '2026_08_29_000001_create_ebay_import_items_table', 2),
 (22, '2026_09_09_000001_create_product_connections_tables', 3),
-(23, '2026_09_09_000002_create_product_connection_item_stores_table', 4);
+(23, '2026_09_09_000002_create_product_connection_item_stores_table', 4),
+(25, '2026_09_11_000001_add_master_store_to_product_connections', 5);
 
 -- --------------------------------------------------------
 
@@ -521,6 +522,7 @@ CREATE TABLE `product_connections` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `name` varchar(150) NOT NULL,
   `master_product_id` bigint(20) UNSIGNED NOT NULL,
+  `master_ebay_account_id` bigint(20) UNSIGNED DEFAULT NULL,
   `status` enum('1','0') NOT NULL DEFAULT '1',
   `close` enum('1','0') NOT NULL DEFAULT '1',
   `inserted_by` varchar(50) DEFAULT NULL,
@@ -532,8 +534,8 @@ CREATE TABLE `product_connections` (
 -- Dumping data for table `product_connections`
 --
 
-INSERT INTO `product_connections` (`id`, `name`, `master_product_id`, `status`, `close`, `inserted_by`, `created_at`, `updated_at`) VALUES
-(2, 'common prod 2', 44, '1', '1', 'Admin', '2026-09-09 06:35:52', '2026-09-09 06:35:52');
+INSERT INTO `product_connections` (`id`, `name`, `master_product_id`, `master_ebay_account_id`, `status`, `close`, `inserted_by`, `created_at`, `updated_at`) VALUES
+(9, 'common prod 2', 44, 2, '1', '1', 'Admin', '2026-09-19 08:49:16', '2026-09-19 08:49:16');
 
 -- --------------------------------------------------------
 
@@ -554,7 +556,7 @@ CREATE TABLE `product_connection_items` (
 --
 
 INSERT INTO `product_connection_items` (`id`, `product_connection_id`, `product_id`, `created_at`, `updated_at`) VALUES
-(1, 2, 44, '2026-09-09 06:53:12', '2026-09-09 06:53:12');
+(11, 9, 44, '2026-09-19 08:49:16', '2026-09-19 08:49:16');
 
 -- --------------------------------------------------------
 
@@ -738,8 +740,8 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('2ID0GqP0fIwMxB34y7jKEgs921NOz5LXlC9IQo2l', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0', 'eyJfdG9rZW4iOiI2NzdON253ckdNSFZLYmpBbU5HNUVjT1RyWFRHajk1WFhtaGx1Wlp0IiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL2F0b3pjb2Rlci0wMDI1NC50ZXN0XC9wcm9kdWN0cyIsInJvdXRlIjoicHJvZHVjdHMuaW5kZXgifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119LCJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MX0=', 1788949810),
-('G7llbppc7gsRAstM89rPGGoWnHkJ9YMaSR2O3AAN', 1, '103.253.18.22', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0', 'eyJfdG9rZW4iOiJKbTg5dFVZZXBYYVVvWGd3a1hoWDFsa1h2RTZTaDUySE5KemdZbUlQIiwidXJsIjpbXSwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHBzOlwvXC8wY2Y3LTEwMy0yNTMtMTgtMzEubmdyb2stZnJlZS5hcHBcL3Byb2R1Y3RzXC80NCIsInJvdXRlIjoicHJvZHVjdHMuc2hvdyJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX0sImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjoxfQ==', 1788956453);
+('THSh3dANUBF1ewBJRZKcdpR49dlsElg2zJaHHzP8', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0', 'eyJfdG9rZW4iOiJsVm5pTlJwSERrRTFyblltZ2NVVUpNQnJBQmh0MllPMmlMNm1aNHZIIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL2F0b3pjb2Rlci0wMDI1NC50ZXN0XC9pbnZlbnRvcmllc1wvY2F0ZWdvcnlcLzIiLCJyb3V0ZSI6ImludmVudG9yaWVzLmNhdGVnb3J5In0sIl9mbGFzaCI6eyJvbGQiOltdLCJuZXciOltdfSwibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiOjF9', 1789113531),
+('uaLwFu8mqaW9GL3bPYhDkQegdSFYkElZ2143Z0pt', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0', 'eyJfdG9rZW4iOiJQV1JOMmNEZzZVNDR6SldnUlliRlRCRTlxd29vR2dKUWZoUlNRM2VxIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL2F0b3pjb2Rlci0wMDI1NC50ZXN0XC9jb25uZWN0aW9ucyIsInJvdXRlIjoiY29ubmVjdGlvbnMuaW5kZXgifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119LCJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MX0=', 1789826378);
 
 -- --------------------------------------------------------
 
@@ -953,7 +955,8 @@ ALTER TABLE `products`
 --
 ALTER TABLE `product_connections`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `product_connections_master_product_id_foreign` (`master_product_id`);
+  ADD KEY `product_connections_master_product_id_foreign` (`master_product_id`),
+  ADD KEY `product_connections_master_ebay_account_id_foreign` (`master_ebay_account_id`);
 
 --
 -- Indexes for table `product_connection_items`
@@ -1060,7 +1063,7 @@ ALTER TABLE `companies`
 -- AUTO_INCREMENT for table `connection_item_stores`
 --
 ALTER TABLE `connection_item_stores`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `customers`
@@ -1108,7 +1111,7 @@ ALTER TABLE `jobs`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `permissions`
@@ -1126,13 +1129,13 @@ ALTER TABLE `products`
 -- AUTO_INCREMENT for table `product_connections`
 --
 ALTER TABLE `product_connections`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `product_connection_items`
 --
 ALTER TABLE `product_connection_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `roles`
@@ -1235,6 +1238,7 @@ ALTER TABLE `products`
 -- Constraints for table `product_connections`
 --
 ALTER TABLE `product_connections`
+  ADD CONSTRAINT `product_connections_master_ebay_account_id_foreign` FOREIGN KEY (`master_ebay_account_id`) REFERENCES `ebay_accounts` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `product_connections_master_product_id_foreign` FOREIGN KEY (`master_product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
 
 --
