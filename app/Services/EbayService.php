@@ -16,10 +16,7 @@ use Throwable;
 
 class EbayService
 {
-    /**
-     * Shorten a token / authorization code so it can be logged safely — enough
-     * to match two log lines up, never enough to reuse the credential.
-     */
+    
     public static function mask(?string $secret): string
     {
         if (! $secret) {
@@ -49,10 +46,7 @@ class EbayService
             : 'https://api.ebay.com';
     }
 
-    /**
-     * The Commerce Identity API is served from the apiz.* host; calling it on
-     * the normal API base answers 404 and the seller is never identified.
-     */
+    
     public function identityBase(): string
     {
         return config('ebay.sandbox')
@@ -66,9 +60,7 @@ class EbayService
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * URL of eBay's consent page where the store owner logs in and approves access.
-     */
+    
     public function authorizationUrl(string $state): string
     {
         $query = [
@@ -79,9 +71,7 @@ class EbayService
             'state' => $state,
         ];
 
-        // Without this eBay silently reuses whatever seller is still signed in
-        // in this browser (and the consent it already granted), so the store
-        // owner never sees the sign-in page and can connect the wrong account.
+        
         if (config('ebay.force_login')) {
             $query['prompt'] = 'login';
         }
@@ -102,11 +92,7 @@ class EbayService
         return $url;
     }
 
-    /**
-     * Exchange the authorization code returned by eBay for access + refresh tokens.
-     *
-     * @return array{access_token: string, expires_in: int, refresh_token: string, refresh_token_expires_in: int}
-     */
+    
     public function exchangeCode(string $code): array
     {
         Log::info('eBay connect: exchanging authorization code for tokens', [
@@ -140,10 +126,7 @@ class EbayService
         return $tokens;
     }
 
-    /**
-     * Return a usable access token for the account, refreshing it via the
-     * stored refresh token when the cached one is expired (2 hour lifetime).
-     */
+    
     public function ensureAccessToken(EbayAccount $account): string
     {
         if ($account->hasValidAccessToken()) {
@@ -157,8 +140,6 @@ class EbayService
 
         Log::info("eBay: refreshing access token for store \"{$account->store_name}\" (#{$account->id})");
 
-        // No scope parameter: eBay then re-issues the scopes originally granted,
-        // so adding new scopes to the config never breaks existing connections.
         $response = Http::asForm()
             ->withBasicAuth(config('ebay.client_id'), config('ebay.client_secret'))
             ->post($this->apiBase().'/identity/v1/oauth2/token', [
@@ -179,10 +160,7 @@ class EbayService
         return $account->access_token;
     }
 
-    /**
-     * Application token (client credentials) used for public data such as
-     * the Taxonomy API. Cached until shortly before it expires.
-     */
+    
     public function appToken(): string
     {
         return Cache::remember('ebay.app_token', 6600, function () {
@@ -207,9 +185,7 @@ class EbayService
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * eBay username of the connected seller (Commerce Identity API).
-     */
+    
     public function fetchUsername(EbayAccount $account): ?string
     {
         $response = $this->api($account)->baseUrl($this->identityBase())->get('/commerce/identity/v1/user/');
@@ -225,12 +201,7 @@ class EbayService
         return $response->json('username');
     }
 
-    /**
-     * Fulfillment, payment and return business policies for the account's
-     * marketplace. All three are required before an offer can be published.
-     *
-     * @return array{fulfillment: array, payment: array, return: array}
-     */
+   
     public function fetchPolicies(EbayAccount $account): array
     {
         $marketplace = ['marketplace_id' => $account->marketplace_id];
@@ -255,11 +226,7 @@ class EbayService
         ]);
     }
 
-    /**
-     * Candidate flat-rate shipping services per marketplace, used when creating
-     * a basic fulfillment policy automatically. Codes come from eBay's shipping
-     * service tokens; the first one the account accepts is used.
-     */
+  
     private const DEFAULT_SHIPPING_SERVICES = [
         'EBAY_US' => ['carrier' => 'USPS', 'services' => ['USPSPriority', 'USPSGroundAdvantage', 'USPSFirstClass', 'USPSParcel', 'ShippingMethodStandard']],
         'EBAY_GB' => ['carrier' => 'RoyalMail', 'services' => ['UK_RoyalMailSecondClassStandard', 'UK_RoyalMailFirstClassStandard', 'UK_RoyalMail48', 'UK_RoyalMail24']],
@@ -271,19 +238,13 @@ class EbayService
         'EBAY_ES' => ['carrier' => 'Correos', 'services' => ['ES_Estandar', 'ES_CorreosPostalExpress', 'ES_CorreosPaqueteAzul']],
     ];
 
-    /**
-     * eBay site IDs, needed by the Trading API (GeteBayDetails) to look up the
-     * shipping services that are actually valid for a marketplace.
-     */
+    
     private const SITE_IDS = [
         'EBAY_US' => '0', 'EBAY_CA' => '2', 'EBAY_GB' => '3', 'EBAY_AU' => '15',
         'EBAY_FR' => '71', 'EBAY_DE' => '77', 'EBAY_IT' => '101', 'EBAY_ES' => '186',
     ];
 
-    /**
-     * Create a basic set of business policies (free domestic shipping, managed
-     * payments, 30-day returns) and store their ids on the account.
-     */
+    
     public function createDefaultPolicies(EbayAccount $account): void
     {
         $this->optInToBusinessPolicies($account);
@@ -378,13 +339,7 @@ class EbayService
         $account->save();
     }
 
-    /**
-     * Ordered list of shipping services to try when auto-creating a fulfillment
-     * policy: eBay's own valid domestic services for the marketplace first (so
-     * any marketplace works without hardcoding), then the static list as backup.
-     *
-     * @return array<int, array{carrier: string, code: string}>
-     */
+  
     private function shippingServiceCandidates(EbayAccount $account): array
     {
         $dynamic = $this->fetchDomesticShippingServices($account);
@@ -399,13 +354,7 @@ class EbayService
         return collect($dynamic)->merge($fallback)->unique('code')->values()->all();
     }
 
-    /**
-     * Domestic shipping services eBay reports as valid for the account's
-     * marketplace, via the Trading API GeteBayDetails call. Returns an empty
-     * list (so the caller falls back to the static codes) if anything fails.
-     *
-     * @return array<int, array{carrier: string, code: string}>
-     */
+   
     private function fetchDomesticShippingServices(EbayAccount $account): array
     {
         $siteId = self::SITE_IDS[$account->marketplace_id] ?? null;
@@ -518,9 +467,7 @@ class EbayService
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Suggest the best matching eBay leaf category for a product title.
-     */
+
     public function suggestCategoryId(EbayAccount $account, string $query): ?string
     {
         $http = Http::withToken($this->appToken())->baseUrl($this->apiBase());
@@ -544,9 +491,6 @@ class EbayService
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Push a product to eBay as a live listing. Throws on failure.
-     */
     public function syncListing(EbayListing $listing): void
     {
         $account = $listing->ebayAccount;
@@ -561,16 +505,9 @@ class EbayService
 
         $marketplace = config("ebay.marketplaces.{$account->marketplace_id}", config('ebay.marketplaces.EBAY_US'));
 
-        // A connected product keeps its price and its stock on the
-        // connection's master, so every store the same part is listed on is
-        // sent the one figure — that is what was chosen when it was connected.
         $source = $product->connectionMaster();
         $quantity = max(0, (int) round($source->total_qty - $source->sold_qty));
 
-        // eBay rejects publishing a brand-new listing with zero available stock.
-        // Catch it here with a clear message instead of eBay's cryptic one. An
-        // already-live listing (has a listing_id) is allowed to drop to 0 so it
-        // can be marked out of stock.
         if ($quantity < 1 && ! $listing->listing_id) {
             throw new RuntimeException(sprintf(
                 'No available stock to list (%s in total, %s already sold). eBay needs at least 1 unit in stock to publish a new listing — add stock, then sync again.',
@@ -579,10 +516,7 @@ class EbayService
             ));
         }
 
-        // eBay cannot list at zero and answers a priceless offer with a generic
-        // "system error", so say what is actually wrong before calling it.
-        // Products imported from a supplier spreadsheet only carry a cost
-        // price, so this is the usual reason a fresh import will not list.
+       
         if ((float) $source->selling_price <= 0) {
             throw new RuntimeException(sprintf(
                 'No selling price set for "%s" (cost %s). eBay cannot publish a listing priced at 0 — set a selling price on the product, then sync again.',
@@ -621,8 +555,7 @@ class EbayService
 
         Log::info("eBay: inventory item created/updated for SKU {$listing->sku} (quantity {$quantity})");
 
-        // Step 2: resolve the eBay category if none was chosen. Try the product
-        // title, then the internal category name, then the configured fallback.
+        
         if (! $listing->ebay_category_id) {
             $listing->ebay_category_id = $this->suggestCategoryId($account, $product->name)
                 ?? ($product->category ? $this->suggestCategoryId($account, $product->category->name) : null)
@@ -726,10 +659,7 @@ class EbayService
         Log::info("eBay: product #{$product->id} published as eBay listing {$listing->listing_id} on \"{$account->store_name}\"");
     }
 
-    /**
-     * Remove a product from eBay: ends the live listing and deletes the
-     * offer + inventory item record on the seller account.
-     */
+    
     public function endListing(EbayListing $listing): void
     {
         $account = $listing->ebayAccount;
@@ -745,19 +675,6 @@ class EbayService
         Log::info("eBay: SKU {$listing->sku} removed from \"{$account->store_name}\"".($listing->listing_id ? " (listing {$listing->listing_id} ended)" : ''));
     }
 
-    /**
-     * Set a live listing's available quantity, and nothing else.
-     *
-     * eBay keeps listings in two worlds and will not let one tool touch the
-     * other's. A listing this app published lives in the Inventory API, and
-     * the legacy call answers "Inventory-based listing management is not
-     * currently supported by this tool"; a listing made in Seller Hub is the
-     * other way about. So the route that fits is tried first — the offer id
-     * is the tell — and the other is kept as a fallback.
-     *
-     * Throws only when neither worked, so the caller can log which store
-     * would not take it.
-     */
     public function updateListingQuantity(EbayListing $listing, int $quantity): void
     {
         if (! $listing->listing_id) {
@@ -866,11 +783,7 @@ class EbayService
     |--------------------------------------------------------------------------
     */
 
-    /**
-     * Every inventory item on the seller account (paginated). Each item holds
-     * the SKU, product details (title, description, images, aspects) and the
-     * available quantity. Requires the sell.inventory scope.
-     */
+    
     public function fetchInventoryItems(EbayAccount $account): array
     {
         $items = [];
@@ -896,11 +809,7 @@ class EbayService
         return $items;
     }
 
-    /**
-     * Offers for a single SKU. A published offer carries the live listing id,
-     * price and eBay category, which is what makes an inventory item a real
-     * listing rather than an unlisted draft.
-     */
+   
     public function fetchOffers(EbayAccount $account, string $sku): array
     {
         $response = $this->api($account)->get('/sell/inventory/v1/offer', [
@@ -926,12 +835,6 @@ class EbayService
     | Orders (Fulfillment API)
     |--------------------------------------------------------------------------
     */
-
-    /**
-     * Orders created on eBay within the lookback window. Requires the
-     * sell.fulfillment OAuth scope (re-connect stores authorized before it
-     * was added to the scope list).
-     */
     public function fetchOrders(EbayAccount $account, int $lookbackDays = 30): array
     {
         $since = now()->utc()->subDays($lookbackDays)->format('Y-m-d\TH:i:s.v\Z');
@@ -965,23 +868,6 @@ class EbayService
         return array_merge($orders, $missing);
     }
 
-    /**
-     * Orders the Fulfillment search above cannot see.
-     *
-     * eBay only indexes an order for /sell/fulfillment/v1/order once its
-     * payment has settled, so an unpaid order is invisible to that search
-     * while being perfectly readable elsewhere — routinely the case in the
-     * sandbox, where checkouts can sit at orderPaymentStatus=PENDING
-     * indefinitely. The legacy Trading API lists those orders, so it is used
-     * to fill the gap and the results are reshaped to look like Fulfillment
-     * API orders, leaving EbayOrderImporter none the wiser.
-     *
-     * Orders already present in $known are skipped: an order that appears in
-     * both is the same order, identified there by its legacyOrderId.
-     *
-     * @param  list<array<string, mixed>>  $known  orders the Fulfillment search returned
-     * @return list<array<string, mixed>>
-     */
     private function fetchLegacyOrders(EbayAccount $account, int $lookbackDays, array $known = []): array
     {
         $from = now()->utc()->subDays($lookbackDays)->format('Y-m-d\TH:i:s.v\Z');
@@ -1048,12 +934,7 @@ class EbayService
         return $orders;
     }
 
-    /**
-     * Reshape one Trading API <Order> into the subset of the Fulfillment API
-     * order shape that EbayOrderImporter reads.
-     *
-     * @return array<string, mixed>
-     */
+    
     private function legacyOrderToFulfillmentShape(SimpleXMLElement $order, string $legacyId): array
     {
         $lineItems = [];
@@ -1116,22 +997,7 @@ class EbayService
             : 'https://api.ebay.com/ws/api.dll';
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Returns (Post-Order API)
-    |--------------------------------------------------------------------------
-    |
-    | Buyer return requests are not part of the Fulfillment API: they live in
-    | eBay's Post-Order API (https://developer.ebay.com/devzone/post-order/).
-    | It accepts the same OAuth user token (sell.fulfillment scope) but with
-    | the legacy "IAF" authorization scheme instead of "Bearer".
-    */
-
-    /**
-     * Return requests opened against the seller within the lookback window.
-     * Each member is a ReturnSummary: returnId, orderId, state, currentType,
-     * creationInfo (item, reason, creationDate) and sellerTotalRefund.
-     */
+   
     public function fetchReturns(EbayAccount $account, int $lookbackDays = 30): array
     {
         // Both ends of the range are required when filtering by creation date.
@@ -1253,13 +1119,7 @@ class EbayService
         ]);
     }
 
-    /**
-     * eBay answers an account-level refusal to publish with the same generic
-     * "system error" it uses for everything else, which sends you hunting
-     * through a listing that is perfectly valid. When that error comes back,
-     * ask the Account API whether the seller is allowed to list at all and
-     * report that instead.
-     */
+   
     private function publishFailureMessage(EbayAccount $account, Response $response): string
     {
         if ($this->hasErrorId($response, 25002)) {
