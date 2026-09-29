@@ -65,9 +65,9 @@ class SaleController extends Controller
     public function create(): View
     {
         $customers = Customer::orderBy('name')->get();
-        // A connected product has no stock of its own, so what the screen
-        // offers is the connection's figure — otherwise a copy that never
-        // moves would happily be oversold.
+        // A connected product has no stock or price of its own, so what the
+        // screen offers is the connection's figures (the master store's) —
+        // otherwise a copy that never moves would happily be oversold.
         $products = Product::with('productConnection.masterProduct')
             ->orderBy('name')
             ->get(['id', 'name', 'sku', 'selling_price', 'total_qty', 'sold_qty']);
@@ -75,6 +75,7 @@ class SaleController extends Controller
         $products->each(function (Product $product) {
             $keeper = $product->connectionMaster();
 
+            $product->selling_price = $keeper->selling_price;
             $product->total_qty = $keeper->total_qty;
             $product->sold_qty = $keeper->sold_qty;
         });

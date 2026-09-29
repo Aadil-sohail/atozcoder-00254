@@ -80,8 +80,6 @@ class EbayStockSync
     /**
      * Every live listing that should quote this product's stock: its own, and
      * those of the other members when it belongs to a connection.
-     *
-     * @return \Illuminate\Support\Collection<int, EbayListing>
      */
     private function listingsFor(Product $product): \Illuminate\Support\Collection
     {

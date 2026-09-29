@@ -222,6 +222,12 @@
         if (qty) $clone.find('.sale-qty').val(qty);
 
         $('#sale-rows').append($clone);
+        // Initialised after the append so the dropdown measures its real
+        // width; the template's own select is left untouched for cloning.
+        $clone.find('.sale-product').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+        });
         updateRemoveButtons();
         recalcAll();
     }
@@ -273,7 +279,7 @@
             if (this !== select && $(this).val() === productId) isDuplicate = true;
         });
         if (isDuplicate) {
-            $select.val('');
+            $select.val('').trigger('change.select2');
             $price.val('');
             $stockInfo.attr('class', 'stock-info d-none');
             Toast.fire({ icon: 'warning', title: 'This product is already added.' });

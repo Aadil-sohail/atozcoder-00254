@@ -76,7 +76,10 @@ class ProductStock
     {
         Product::where('id', self::keeperId($productId))->increment('total_qty', $quantity);
 
-        self::moved($productId);
+        // Stock booked in from the Add Stock modal is not pushed to the eBay
+        // stores for now — they pick up the new figure on the next sale, return
+        // or manual resync. Uncomment to send it straight away again.
+        // self::moved($productId);
     }
 
     /**
