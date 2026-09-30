@@ -46,18 +46,11 @@
             <select name="" class="form-select stock-product" required onchange="onStockProductChange(this)">
                 <option value="">{{ __('Select a product') }}</option>
                 @foreach ($products as $product)
-                    <option value="{{ $product->id }}" data-cost="{{ $product->cost_price ?? 0 }}">
+                    <option value="{{ $product->id }}">
                         {{ $product->name }}{{ $product->sku ? ' (' . $product->sku . ')' : '' }}
                     </option>
                 @endforeach
             </select>
-        </div>
-        <div class="col-3">
-            <div class="input-group">
-                <span class="input-group-text text-muted small px-2">Cost</span>
-                <input type="number" step="0.01" min="0" name="" placeholder="0.00"
-                    class="form-control stock-cost text-end" readonly tabindex="-1">
-            </div>
         </div>
         <div class="col-3">
             <input type="number" step="0.01" min="0.01" name="" placeholder="{{ __('Quantity') }}"
@@ -107,18 +100,17 @@
         select.name = `items[${index}][product_id]`;
         input.name = `items[${index}][quantity]`;
 
-        if (productId) {
-            select.value = productId;
-            // Fill cost price for the restored selection
-            const selected = select.options[select.selectedIndex];
-            if (selected) {
-                const costInput = clone.querySelector('.stock-cost');
-                costInput.value = (parseFloat(selected.dataset.cost) || 0).toFixed(2);
-            }
-        }
+        if (productId) select.value = productId;
         if (quantity) input.value = quantity;
 
         rows.appendChild(clone);
+        // dropdownParent keeps the search box inside the modal, which would
+        // otherwise refuse it focus.
+        $(select).select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            dropdownParent: $('#create-inventory-modal'),
+        });
         updateRemoveButtons();
     }
 
@@ -143,9 +135,6 @@
     }
 
     function onStockProductChange(select) {
-        const row = select.closest('.stock-row');
-        const costInput = row.querySelector('.stock-cost');
-
         // Check duplicate
         if (select.value) {
             const allSelects = document.querySelectorAll('#stock-rows .stock-product');
@@ -154,16 +143,10 @@
                 if (s !== select && s.value === select.value) duplicate = true;
             });
             if (duplicate) {
-                select.value = '';
-                costInput.value = '';
+                $(select).val('').trigger('change.select2');
                 Toast.fire({ icon: 'warning', title: '{{ __('This product is already added.') }}' });
-                return;
             }
         }
-
-        // Fill cost price
-        const selected = select.options[select.selectedIndex];
-        costInput.value = select.value ? (parseFloat(selected.dataset.cost) || 0).toFixed(2) : '';
     }
 
     document.addEventListener('DOMContentLoaded', function() {

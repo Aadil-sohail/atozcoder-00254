@@ -226,6 +226,55 @@ class EbayService
         ]);
     }
 
+    public function enableOutOfStockControl(EbayAccount $account): void
+    {
+        $body = '<?xml version="1.0" encoding="utf-8"?>'
+            .'<SetUserPreferencesRequest xmlns="urn:ebay:apis:eBLBaseComponents">'
+            .'<OutOfStockControlPreference>true</OutOfStockControlPreference>'
+            .'</SetUserPreferencesRequest>';
+
+        $response = Http::withHeaders([
+            'X-EBAY-API-CALL-NAME' => 'SetUserPreferences',
+            'X-EBAY-API-SITEID' => (string) config("ebay.marketplaces.{$account->marketplace_id}.site", 0),
+            'X-EBAY-API-COMPATIBILITY-LEVEL' => '1155',
+            'X-EBAY-API-IAF-TOKEN' => $this->ensureAccessToken($account),
+            'Content-Type' => 'text/xml',
+        ])->timeout(30)->withBody($body, 'text/xml')->post($this->tradingApiUrl());
+
+        if ($response->failed()) {
+            throw new RuntimeException("eBay returned HTTP {$response->status()} turning on out-of-stock control.");
+        }
+
+        $xml = @simplexml_load_string($response->body());
+
+        if ($xml === false) {
+            throw new RuntimeException('eBay sent back unreadable XML turning on out-of-stock control.');
+        }
+
+        if ((string) $xml->Ack === 'Failure') {
+            throw new RuntimeException(
+                (string) ($xml->Errors->LongMessage ?: $xml->Errors->ShortMessage)
+                    ?: 'eBay refused to turn on out-of-stock control.'
+            );
+        }
+
+        Log::info("eBay: out-of-stock control turned on for store \"{$account->store_name}\"");
+    }
+
+    private function ensureOutOfStockControl(?EbayAccount $account): void
+    {
+        if (! $account || Cache::get("ebay.oos_control.{$account->id}")) {
+            return;
+        }
+
+        try {
+            $this->enableOutOfStockControl($account);
+            Cache::forever("ebay.oos_control.{$account->id}", true);
+        } catch (Throwable $e) {
+            Log::warning("eBay: could not turn on out-of-stock control for store \"{$account->store_name}\": {$e->getMessage()}");
+        }
+    }
+
   
     private const DEFAULT_SHIPPING_SERVICES = [
         'EBAY_US' => ['carrier' => 'USPS', 'services' => ['USPSPriority', 'USPSGroundAdvantage', 'USPSFirstClass', 'USPSParcel', 'ShippingMethodStandard']],
@@ -516,6 +565,10 @@ class EbayService
             ));
         }
 
+        if ($quantity === 0) {
+            $this->ensureOutOfStockControl($account);
+        }
+
        
         if ((float) $source->selling_price <= 0) {
             throw new RuntimeException(sprintf(
@@ -683,6 +736,10 @@ class EbayService
 
         $quantity = max(0, $quantity);
         $failures = [];
+
+        if ($quantity === 0) {
+            $this->ensureOutOfStockControl($listing->ebayAccount);
+        }
 
         foreach ($listing->offer_id ? ['offer', 'legacy'] : ['legacy', 'offer'] as $route) {
             try {
