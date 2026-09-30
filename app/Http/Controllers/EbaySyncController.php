@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ImportEbayListings;
+use App\Jobs\StageEbayListings;
 use App\Jobs\SyncProductToEbay;
 use App\Models\EbayAccount;
 use App\Models\EbayImportItem;
@@ -11,6 +13,8 @@ use App\Services\EbayListingImporter;
 use App\Services\EbayOrderImporter;
 use App\Services\EbayReturnImporter;
 use App\Services\EbayService;
+use App\Support\EbayImportStatus;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -193,11 +197,11 @@ class EbaySyncController extends Controller
     }
 
     /**
-     * Step one of the import: fetch everything the chosen store has listed into
-     * the staging table, then hand the user a screen to pick from. No product
-     * is created here.
+     * Step one of the import: queue a fetch of everything the chosen store has
+     * listed into the staging table. The products page shows its progress and
+     * links to the pick list once it is ready. No product is created here.
      */
-    public function syncProducts(Request $request, EbayListingImporter $importer): RedirectResponse
+    public function syncProducts(Request $request): RedirectResponse
     {
         $request->validate([
             'ebay_account_id' => ['required', 'integer', 'exists:ebay_accounts,id'],
@@ -205,20 +209,47 @@ class EbaySyncController extends Controller
 
         $account = EbayAccount::findOrFail($request->ebay_account_id);
 
-        // Each item can need a follow-up offers call, so allow generous time.
-        set_time_limit(300);
-
-        try {
-            $staged = $importer->stage($account);
-        } catch (Throwable $e) {
-            return back()->with('error', "{$account->store_name} — {$e->getMessage()}");
+        if ($blocked = $this->importAlreadyRunning()) {
+            return $blocked;
         }
 
-        if ($staged === 0) {
-            return back()->with('warning', "Nothing is listed on \"{$account->store_name}\" right now, so there is nothing to import.");
+        EbayImportStatus::put($account->id, 'fetching');
+        StageEbayListings::dispatch($account->id);
+
+        return redirect()->route('products.index')
+            ->with('status', "Fetching listings from \"{$account->store_name}\" in the background. You can keep working — this page shows when they are ready to pick.");
+    }
+
+    /**
+     * Only one eBay fetch or import runs at a time, across every store. Sends
+     * the user back to the products page with an alert naming the one that is
+     * running, or returns null when the way is clear.
+     */
+    private function importAlreadyRunning(): ?RedirectResponse
+    {
+        $runningId = EbayImportStatus::runningAccountId();
+
+        if ($runningId === null) {
+            return null;
         }
 
-        return redirect()->route('ebay.import.select', $account);
+        $store = EbayAccount::find($runningId)?->store_name ?? 'another store';
+
+        return redirect()->route('products.index')
+            ->with('import_blocked', "An import from \"{$store}\" is already running. Only one eBay import can run at a time — wait for it to finish, then try again.");
+    }
+
+    /**
+     * Where every store's background import has got to, for the products page
+     * to poll while one is running.
+     */
+    public function importStatus(): JsonResponse
+    {
+        $statuses = EbayAccount::pluck('id')
+            ->mapWithKeys(fn ($id) => [$id => EbayImportStatus::get($id)['state'] ?? null])
+            ->filter();
+
+        return response()->json($statuses);
     }
 
     /**
@@ -226,6 +257,11 @@ class EbaySyncController extends Controller
      */
     public function importSelection(EbayAccount $ebayAccount): View|RedirectResponse
     {
+        if (EbayImportStatus::busy($ebayAccount->id)) {
+            return redirect()->route('products.index')
+                ->with('warning', "\"{$ebayAccount->store_name}\" is still being fetched or imported. Wait for it to finish.");
+        }
+
         $items = EbayImportItem::where('ebay_account_id', $ebayAccount->id)
             ->orderBy('title')
             ->get();
@@ -242,7 +278,7 @@ class EbaySyncController extends Controller
      * Step three: create products for the ticked rows, then empty the staging
      * table for this store whether or not everything was picked.
      */
-    public function importSelected(Request $request, EbayAccount $ebayAccount, EbayListingImporter $importer): RedirectResponse
+    public function importSelected(Request $request, EbayAccount $ebayAccount): RedirectResponse
     {
         $request->validate([
             'item_ids' => ['required', 'array', 'min:1'],
@@ -251,26 +287,19 @@ class EbaySyncController extends Controller
             'item_ids.required' => 'Tick at least one product to import, or click Discard to throw the list away.',
         ]);
 
-        // Images download one product at a time, so a big selection needs room.
-        set_time_limit(900);
-
-        try {
-            $result = $importer->commit($ebayAccount, $request->item_ids);
-        } catch (Throwable $e) {
-            return back()->with('error', "{$ebayAccount->store_name} — {$e->getMessage()}");
+        if ($blocked = $this->importAlreadyRunning()) {
+            return $blocked;
         }
 
-        $message = "{$result['created']} new ".Str::plural('product', $result['created'])." imported from \"{$ebayAccount->store_name}\".";
+        $count = count($request->item_ids);
 
-        if ($result['linked'] > 0) {
-            $message .= " {$result['linked']} existing ".Str::plural('product', $result['linked']).' linked.';
-        }
+        // Each product fetches its details and downloads its pictures, which
+        // for a big selection is minutes — so it runs on the queue.
+        EbayImportStatus::put($ebayAccount->id, 'importing', "Importing {$count} ".Str::plural('product', $count)." from \"{$ebayAccount->store_name}\"…");
+        ImportEbayListings::dispatch($ebayAccount->id, array_map('intval', $request->item_ids));
 
-        if ($result['skipped'] > 0) {
-            $message .= " {$result['skipped']} already here, so ".Str::plural('it', $result['skipped']).' skipped.';
-        }
-
-        return redirect()->route('products.index')->with('status', $message);
+        return redirect()->route('products.index')
+            ->with('status', "Importing {$count} ".Str::plural('product', $count)." from \"{$ebayAccount->store_name}\" in the background. They appear here as soon as it finishes.");
     }
 
     /**
@@ -278,6 +307,13 @@ class EbaySyncController extends Controller
      */
     public function importDiscard(EbayAccount $ebayAccount, EbayListingImporter $importer): RedirectResponse
     {
+        if (EbayImportStatus::busy($ebayAccount->id)) {
+            return redirect()->route('products.index')
+                ->with('warning', "An import from \"{$ebayAccount->store_name}\" is running, so there is nothing to discard yet.");
+        }
+
+        EbayImportStatus::forget($ebayAccount->id);
+
         $discarded = $importer->clearStaging($ebayAccount);
 
         return redirect()->route('products.index')

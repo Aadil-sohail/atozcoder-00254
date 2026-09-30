@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Subcategory;
 use App\Services\ChunkedUploadStore;
 use App\Services\ProductExcelImporter;
+use App\Support\EbayImportStatus;
 use App\Support\ServerTable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -48,8 +49,23 @@ class ProductController extends Controller
         // The same modal can create a missing sub category on the spot, which
         // needs a main category to file it under.
         $categories = Category::where($this->filter)->orderBy('name')->get();
+        // Background "Import from eBay" runs, one banner per store. A finished
+        // or failed run is shown once, then cleared.
+        $importStatuses = $ebayAccounts->mapWithKeys(function (EbayAccount $account) {
+            $status = EbayImportStatus::get($account->id);
 
-        return view('products.index', compact('productCount', 'ebayAccounts', 'subcategories', 'categories'));
+            if ($status && in_array($status['state'], ['done', 'failed'], true)) {
+                EbayImportStatus::forget($account->id);
+            }
+
+            return [$account->id => $status ? $status + ['store' => $account->store_name] : null];
+        })->filter();
+
+        // Only one eBay import runs at a time, so the button warns instead.
+        $runningImportId = EbayImportStatus::runningAccountId();
+        $runningImportStore = $runningImportId ? EbayAccount::find($runningImportId)?->store_name : null;
+
+        return view('products.index', compact('productCount', 'ebayAccounts', 'subcategories', 'categories', 'importStatuses', 'runningImportStore'));
     }
 
     /**

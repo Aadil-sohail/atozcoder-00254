@@ -24,6 +24,45 @@
         </div>
     @endif
 
+    @can('sync ebay products')
+        @foreach ($importStatuses as $accountId => $import)
+            @switch($import['state'])
+                @case('fetching')
+                    <div class="alert alert-info d-flex align-items-center gap-2">
+                        <span class="spinner-border spinner-border-sm"></span>
+                        Fetching listings from "{{ $import['store'] }}" in the background…
+                    </div>
+                    @break
+                @case('importing')
+                    <div class="alert alert-info d-flex align-items-center gap-2">
+                        <span class="spinner-border spinner-border-sm"></span>
+                        {{ $import['message'] ?? 'Importing products from "'.$import['store'].'"…' }}
+                    </div>
+                    @break
+                @case('ready')
+                    <div class="alert alert-primary d-flex align-items-center justify-content-between gap-2">
+                        <span>{{ $import['message'] }}</span>
+                        <a href="{{ route('ebay.import.select', $accountId) }}" class="btn btn-sm btn-primary text-nowrap">
+                            {{ __('Choose products') }}
+                        </a>
+                    </div>
+                    @break
+                @case('done')
+                    <div class="alert alert-success alert-dismissible fade show">
+                        {{ $import['message'] }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    @break
+                @case('failed')
+                    <div class="alert alert-danger alert-dismissible fade show">
+                        {{ $import['message'] }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    @break
+            @endswitch
+        @endforeach
+    @endcan
+
     <div class="card shadow-sm border-0 p-2">
         <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
             <div>
@@ -34,7 +73,12 @@
                 @can('sync ebay products')
                     @if ($ebayAccounts->isNotEmpty())
                     <button type="button" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-2"
-                        data-bs-toggle="modal" data-bs-target="#ebayImportModal">
+                        @if ($runningImportStore)
+                            onclick="importBlockedAlert(@js('An import from "'.$runningImportStore.'" is already running. Only one eBay import can run at a time — wait for it to finish, then try again.'))"
+                        @else
+                            data-bs-toggle="modal" data-bs-target="#ebayImportModal"
+                        @endif
+                        >
                         <i class="fa-brands fa-ebay"></i>
                         {{ __('Import from eBay') }}
                     </button>
@@ -180,6 +224,38 @@
 @endsection
 
 @push('scripts')
+@can('sync ebay products')
+<script>
+    function importBlockedAlert(message) {
+        Swal.fire({ icon: 'warning', title: 'Import already running', text: message, confirmButtonText: 'OK' });
+    }
+
+    @if (session('import_blocked'))
+        $(function () { importBlockedAlert(@json(session('import_blocked'))); });
+    @endif
+
+    // While an eBay fetch/import runs on the queue, check on it every few
+    // seconds and reload once any store's state moves on, so its banner (and
+    // the new products) show up without the user refreshing.
+    (function () {
+        const shown = @json($importStatuses->map(fn ($import) => $import['state']));
+        const running = Object.values(shown).some(state => state === 'fetching' || state === 'importing');
+
+        if (! running) return;
+
+        const timer = setInterval(function () {
+            $.getJSON(@json(route('ebay.import.status')), function (now) {
+                const changed = Object.keys(shown).some(id => now[id] !== shown[id]);
+
+                if (changed) {
+                    clearInterval(timer);
+                    window.location.reload();
+                }
+            });
+        }, 5000);
+    })();
+</script>
+@endcan
 <script>
     // Rows are fetched a page at a time from products.data — the catalog can
     // run to thousands of products, which is far too many to render up front.

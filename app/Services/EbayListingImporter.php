@@ -25,8 +25,6 @@ class EbayListingImporter
      * Pull the store's eBay listings and create a local product for each one
      * that does not exist here yet, linking it back to the store. Items whose
      * SKU already matches a local product are linked without duplicating it.
-     *
-     * @return array{created: int, linked: int, skipped: int}
      */
     public function import(EbayAccount $account): array
     {
@@ -89,8 +87,6 @@ class EbayListingImporter
      * Images are deliberately NOT downloaded yet, only their eBay URLs stored.
      * A shop of several hundred listings would otherwise spend minutes fetching
      * pictures for products nobody asked for.
-     *
-     * @return int how many listings are waiting to be picked
      */
     public function stage(EbayAccount $account): int
     {
@@ -137,10 +133,6 @@ class EbayListingImporter
             EbayImportItem::insert($chunk);
         }
 
-        // The thumbnail count is worth knowing: GetMyeBaySelling is thin and
-        // does not always carry a gallery image. A zero here means the import
-        // screen shows placeholders — the products themselves still get their
-        // full picture set from GetItem when they are saved.
         Log::info('eBay: '.count($rows)." listing(s) staged for store \"{$account->store_name}\", waiting on a selection", [
             'with_a_thumbnail' => count(array_filter($rows, fn (array $row) => $row['image_urls'] !== '[]')),
         ]);
@@ -151,9 +143,6 @@ class EbayListingImporter
     /**
      * Import the picked rows, then clear the staging area for the store —
      * whether every row was picked or none of them were.
-     *
-     * @param  list<int|string>  $ids  ebay_import_items ids the user ticked
-     * @return array{created: int, linked: int, skipped: int}
      */
     public function commit(EbayAccount $account, array $ids): array
     {
@@ -285,8 +274,6 @@ class EbayListingImporter
 
     /**
      * One listing in full, via the Trading API's GetItem.
-     *
-     * @return array{description: string|null, imageUrls: list<string>, aspects: array<string, list<string>>}
      */
     private function fetchListingDetails(EbayAccount $account, string $itemId): array
     {
@@ -359,8 +346,6 @@ class EbayListingImporter
 
     /**
      * The picture set, item specifics and description carried by one <Item>.
-     *
-     * @return array{description: string|null, imageUrls: list<string>, aspects: array<string, list<string>>}
      */
     private function detailsFromItemNode(SimpleXMLElement $item, string $itemId): array
     {
@@ -384,10 +369,7 @@ class EbayListingImporter
             }
         }
 
-        // eBay descriptions are seller-authored HTML and can run to tens of
-        // kilobytes of markup. The product field is a plain text box, so the
-        // markup is stripped and the result kept to something a column and a
-        // human can both hold.
+      
         $description = trim(html_entity_decode(strip_tags((string) $item->Description)));
 
         Log::info("eBay: listing {$itemId} detail fetched", [
@@ -406,8 +388,6 @@ class EbayListingImporter
     /**
      * The seller's warranty from the listing's item specifics, as a number of
      * months the product form would accept.
-     *
-     * @param  array<string, list<string>>  $aspects
      */
     private function warrantyMonths(array $aspects): ?int
     {
@@ -470,8 +450,6 @@ class EbayListingImporter
     /**
      * Both sources merged into one list of {item, offer} pairs, keyed by SKU so
      * a listing the Inventory API already reported is not counted twice.
-     *
-     * @return list<array{item: array<string, mixed>, offer: array<string, mixed>|null}>
      */
     private function collectListings(EbayAccount $account): array
     {
@@ -495,8 +473,6 @@ class EbayListingImporter
     /**
      * The live offer for a SKU on this store's marketplace, or null when the
      * item has none, only a draft, or offers only on other marketplaces.
-     *
-     * @return array<string, mixed>|null
      */
     private function resolveOffer(EbayAccount $account, string $sku): ?array
     {
@@ -682,9 +658,18 @@ class EbayListingImporter
      * Give each product its own budget instead of racing one deadline for the
      * whole run: a shop with hundreds of listings downloads an image set per
      * product and would otherwise die partway through.
+     *
+     * Web requests only. On the command line PHP has no time limit, and
+     * setting one would outlive the job: a queue worker or the scheduled
+     * order sync would be killed 60 seconds later while sitting idle. Queued
+     * jobs are bounded by their own $timeout instead.
      */
     private function extendTimeLimit(): void
     {
+        if (app()->runningInConsole()) {
+            return;
+        }
+
         if (! str_contains((string) ini_get('disable_functions'), 'set_time_limit')) {
             @set_time_limit(60);
         }
