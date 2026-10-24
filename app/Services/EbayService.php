@@ -927,7 +927,8 @@ class EbayService
 
     private function fetchLegacyOrders(EbayAccount $account, int $lookbackDays, array $known = []): array
     {
-        $from = now()->utc()->subDays($lookbackDays)->format('Y-m-d\TH:i:s.v\Z');
+        // GetOrders refuses a CreateTimeFrom more than 90 days back.
+        $from = now()->utc()->subDays(min($lookbackDays, 90))->format('Y-m-d\TH:i:s.v\Z');
         $to = now()->utc()->format('Y-m-d\TH:i:s.v\Z');
 
         $body = '<?xml version="1.0" encoding="utf-8"?>'

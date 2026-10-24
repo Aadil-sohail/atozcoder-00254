@@ -53,6 +53,13 @@ class ImportEbayListings implements ShouldQueue
             $message .= " {$result['skipped']} already here, so ".($result['skipped'] === 1 ? 'it was' : 'they were').' skipped.';
         }
 
+        // The products are here now, so their past sales can be recorded.
+        if ($result['created'] + $result['linked'] > 0) {
+            SyncEbayOrderHistory::dispatch($account->id);
+
+            $message .= ' Their past sales are being fetched in the background.';
+        }
+
         EbayImportStatus::put($account->id, 'done', $message);
     }
 

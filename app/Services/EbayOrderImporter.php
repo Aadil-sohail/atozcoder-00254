@@ -8,6 +8,7 @@ use App\Models\EbayListing;
 use App\Models\Product;
 use App\Models\Sale;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +26,9 @@ class EbayOrderImporter
      */
     private array $resolved = [];
 
+    /** @var array<int, string|null> */
+    private array $productCreatedAt = [];
+
     public function __construct(
         private EbayService $ebay,
     ) {}
@@ -39,16 +43,16 @@ class EbayOrderImporter
      *
      * @return array{created: int, skipped: int}
      */
-    public function import(EbayAccount $account): array
+    public function import(EbayAccount $account, ?int $lookbackDays = null): array
     {
-        $lock = Cache::lock("ebay:orders:{$account->id}", 900);
+        $lock = Cache::lock("ebay:orders:{$account->id}", 1800);
 
         if (! $lock->get()) {
             throw new RuntimeException('a sync for this store is already running, give it a moment to finish.');
         }
 
         try {
-            $orders = $this->ebay->fetchOrders($account, (int) config('ebay.orders_lookback_days', 30));
+            $orders = $this->ebay->fetchOrders($account, $lookbackDays ?? (int) config('ebay.orders_lookback_days', 30));
 
             $created = 0;
             $skipped = 0;
@@ -135,7 +139,12 @@ class EbayOrderImporter
                         'inserted_by' => 'eBay Sync',
                     ]);
 
-                    ProductStock::sold($item['product_id'], $item['quantity']);
+                    // A product imported from eBay arrives with eBay's stock
+                    // figure at that moment, which already has every earlier
+                    // sale taken off. Counting those again would sink it.
+                    if (! $this->soldBeforeImport($item['product_id'], $order)) {
+                        ProductStock::sold($item['product_id'], $item['quantity']);
+                    }
                 }
             });
         } catch (QueryException $e) {
@@ -156,6 +165,20 @@ class EbayOrderImporter
         Log::info("eBay: order {$key} imported as sale EBAY-{$key} for store \"{$account->store_name}\"");
 
         return true;
+    }
+
+    /**
+     * True when the order was placed before the product existed here.
+     */
+    private function soldBeforeImport(int $productId, array $order): bool
+    {
+        if (empty($order['creationDate'])) {
+            return false;
+        }
+
+        $createdAt = $this->productCreatedAt[$productId] ??= Product::whereKey($productId)->value('created_at');
+
+        return $createdAt !== null && Carbon::parse($order['creationDate'])->lt(Carbon::parse($createdAt));
     }
 
     /**

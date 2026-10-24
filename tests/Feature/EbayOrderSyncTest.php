@@ -58,12 +58,13 @@ class EbayOrderSyncTest extends TestCase
      * @param  list<array<string, mixed>>  $lineItems
      * @return array<string, mixed>
      */
-    private function order(string $orderId, array $lineItems): array
+    private function order(string $orderId, array $lineItems, ?string $createdAt = null): array
     {
         return [
             'orderId' => $orderId,
             'legacyOrderId' => $orderId,
-            'creationDate' => '2026-08-30T10:12:00.000Z',
+            // After the products the tests import, unless told otherwise.
+            'creationDate' => $createdAt ?? now()->addMinute()->utc()->format('Y-m-d\TH:i:s.v\Z'),
             'buyer' => ['username' => 'partsbuyer'],
             'cancelStatus' => ['cancelState' => 'NONE_REQUESTED'],
             'lineItems' => $lineItems,
@@ -164,13 +165,14 @@ class EbayOrderSyncTest extends TestCase
     private function legacyOrdersXml(array $orders): string
     {
         $nodes = '';
+        $createdAt = now()->addMinute()->utc()->format('Y-m-d\TH:i:s.v\Z');
 
         foreach ($orders as $order) {
             $nodes .= <<<XML
             <Order>
               <OrderID>{$order['id']}</OrderID>
               <OrderStatus>Completed</OrderStatus>
-              <CreatedTime>2026-08-30T10:12:00.000Z</CreatedTime>
+              <CreatedTime>{$createdAt}</CreatedTime>
               <BuyerUserID>partsbuyer</BuyerUserID>
               <CheckoutStatus><Status>Complete</Status></CheckoutStatus>
               <TransactionArray>
@@ -269,6 +271,28 @@ class EbayOrderSyncTest extends TestCase
         $this->assertSame('EBAY-20-15093-30637', $sale->invoice_no);
         $this->assertEquals(59.50, $sale->total_amount);
         $this->assertSame($product->id, $sale->saleItems()->firstOrFail()->product_id);
+    }
+
+    /**
+     * An imported product starts from eBay's stock figure at that moment, which
+     * already has every earlier sale taken off. Such a sale is recorded, but
+     * must not take the stock down a second time.
+     */
+    public function test_a_sale_from_before_the_import_does_not_move_stock(): void
+    {
+        $product = $this->imported('110590104030', 'Audi A4 2015 Wing Mirror');
+
+        $this->fakeEbay(
+            [$this->order('20-15093-30637', [$this->lineItem('110590104030', 'Audi A4 2015 Wing Mirror')], '2026-08-30T10:12:00.000Z')],
+            $this->getItemXml('110590104030', 'Audi A4 2015 Wing Mirror'),
+        );
+
+        $this->assertSame(1, $this->sync()['created']);
+        $this->assertSame(1, Sale::count());
+
+        $product->refresh();
+        $this->assertEquals(3, $product->total_qty);
+        $this->assertEquals(0, $product->sold_qty);
     }
 
     /**
