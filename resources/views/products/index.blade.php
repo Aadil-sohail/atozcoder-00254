@@ -236,18 +236,24 @@
 
     // While an eBay fetch/import runs on the queue, check on it every few
     // seconds and reload once any store's state moves on, so its banner (and
-    // the new products) show up without the user refreshing.
+    // the new products) show up without the user refreshing. A fetch that
+    // finishes goes straight to its selection screen instead.
     (function () {
         const shown = @json($importStatuses->map(fn ($import) => $import['state']));
         const running = Object.values(shown).some(state => state === 'fetching' || state === 'importing');
+        const selectUrl = @json(route('ebay.import.select', '__ID__'));
 
         if (! running) return;
 
         const timer = setInterval(function () {
             $.getJSON(@json(route('ebay.import.status')), function (now) {
+                const ready = Object.keys(shown).find(id => shown[id] === 'fetching' && now[id] === 'ready');
                 const changed = Object.keys(shown).some(id => now[id] !== shown[id]);
 
-                if (changed) {
+                if (ready) {
+                    clearInterval(timer);
+                    window.location.href = selectUrl.replace('__ID__', ready);
+                } else if (changed) {
                     clearInterval(timer);
                     window.location.reload();
                 }

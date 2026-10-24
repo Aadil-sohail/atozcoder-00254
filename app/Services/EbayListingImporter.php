@@ -208,71 +208,6 @@ class EbayListingImporter
     }
 
     /**
-     * Import one listing straight from eBay by its item id, for a sale of
-     * something that was never picked on the import screen.
-     *
-     * An order is proof the item was sold on this store, so the listing is
-     * pulled in on the spot — product, pictures, specifics and store link —
-     * rather than dropping the sale on the floor. Returns the local product
-     * id, or null when eBay cannot tell us about the listing at all.
-     */
-    public function importByListingId(EbayAccount $account, string $itemId): ?int
-    {
-        $this->extendTimeLimit();
-
-        $node = $this->fetchListingItem($account, $itemId);
-
-        if ($node === null) {
-            return null;
-        }
-
-        $listing = $this->legacyListingToInventoryShape($node, $account);
-        $details = $this->detailsFromItemNode($node, $itemId);
-
-        $item = $listing['item'];
-        $sku = $item['sku'];
-
-        if ($details['imageUrls'] !== []) {
-            $item['product']['imageUrls'] = $details['imageUrls'];
-        }
-
-        $item['product']['description'] ??= $details['description'];
-        $item['product']['aspects'] = $details['aspects'];
-        $item['warranty_months'] = $this->warrantyMonths($details['aspects']);
-
-        try {
-            $this->importItem($account, $item, $listing['offer']);
-        } catch (Throwable $e) {
-            // One unimportable listing must not take the rest of the order
-            // sync down with it.
-            Log::warning("eBay: could not import listing {$itemId} from an order: ".$e->getMessage());
-
-            return null;
-        }
-
-        $link = EbayListing::where('ebay_account_id', $account->id)->where('sku', $sku)->first();
-
-        // A link made before the listing id was known would send the next
-        // order straight back to eBay for this same lookup.
-        if ($link && ! $link->listing_id) {
-            $link->update(['listing_id' => $itemId]);
-        }
-
-        $productId = $link?->product_id ?? Product::where('sku', $sku)->value('id');
-
-        if (! $productId) {
-            return null;
-        }
-
-        Log::info("eBay: listing {$itemId} pulled in from an order for store \"{$account->store_name}\"", [
-            'sku' => $sku,
-            'product_id' => (int) $productId,
-        ]);
-
-        return (int) $productId;
-    }
-
-    /**
      * One listing in full, via the Trading API's GetItem.
      */
     private function fetchListingDetails(EbayAccount $account, string $itemId): array
@@ -285,9 +220,7 @@ class EbayListingImporter
     }
 
     /**
-     * The raw <Item> node GetItem returns, or null when the lookup fails. Kept
-     * separate from the parsing below because an order that sells a listing
-     * nobody imported needs the whole node, not just its extra detail.
+     * The raw <Item> node GetItem returns, or null when the lookup fails.
      */
     private function fetchListingItem(EbayAccount $account, string $itemId): ?SimpleXMLElement
     {

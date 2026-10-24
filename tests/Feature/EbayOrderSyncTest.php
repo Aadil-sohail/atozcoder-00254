@@ -15,11 +15,10 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
- * The live store sold hundreds of items and not one order came through: its
- * listings carry no seller SKU, so every order arrived with sku: null and an
- * item id that matched nothing here, those listings never having been picked
- * on the import screen. These cover the order sync pulling the listing in for
- * itself instead of dropping the sale.
+ * The live store's listings carry no seller SKU, so every order arrives with
+ * sku: null and only the item id to match on. Products only ever come from the
+ * import screen: an order for a listing nobody picked there yet waits, and is
+ * recorded on a later run once the listing is imported.
  */
 class EbayOrderSyncTest extends TestCase
 {
@@ -199,6 +198,34 @@ class EbayOrderSyncTest extends TestCase
         return $request->header('X-EBAY-API-CALL-NAME')[0] ?? '';
     }
 
+    /**
+     * A listing as the import screen leaves it: a product under the synthetic
+     * "EBAY-{item id}" SKU, linked to the store.
+     */
+    private function imported(string $itemId, string $title): Product
+    {
+        $product = Product::create([
+            'name' => $title,
+            'sku' => 'EBAY-'.$itemId,
+            'category_id' => Category::firstOrCreate(['name' => 'eBay Imports'], ['inserted_by' => 'Test'])->id,
+            'selling_price' => '59.50',
+            'total_qty' => 3,
+            'sold_qty' => 0,
+            'inserted_by' => 'Test',
+        ]);
+
+        EbayListing::create([
+            'product_id' => $product->id,
+            'ebay_account_id' => $this->account->id,
+            'sku' => 'EBAY-'.$itemId,
+            'listing_id' => $itemId,
+            'condition' => 'NEW',
+            'sync_status' => 'synced',
+        ]);
+
+        return $product;
+    }
+
     private function getItemCallCount(): int
     {
         return collect(Http::recorded())
@@ -215,7 +242,7 @@ class EbayOrderSyncTest extends TestCase
         return app(EbayOrderImporter::class)->import($this->account);
     }
 
-    public function test_an_order_for_a_listing_nobody_imported_still_becomes_a_sale(): void
+    public function test_an_order_for_a_listing_not_imported_yet_waits_until_it_is(): void
     {
         $this->fakeEbay(
             [$this->order('20-15093-30637', [$this->lineItem('110590104030', 'Audi A4 2015 Wing Mirror')])],
@@ -224,17 +251,19 @@ class EbayOrderSyncTest extends TestCase
 
         $result = $this->sync();
 
-        $this->assertSame(1, $result['created']);
+        // No product is made behind the import screen's back.
+        $this->assertSame(0, $result['created']);
+        $this->assertSame(1, $result['skipped']);
+        $this->assertSame(0, Product::count());
+        $this->assertSame(0, EbayListing::count());
+        $this->assertSame(0, Sale::count());
+        $this->assertSame(0, $this->getItemCallCount());
 
-        // The listing was pulled in and linked, keyed by its item id because
-        // the seller never gave it a SKU.
-        $product = Product::where('sku', 'EBAY-110590104030')->firstOrFail();
-        $this->assertSame('Audi A4 2015 Wing Mirror', $product->name);
-        $this->assertEquals(1, $product->sold_qty);
+        // Picked on the import screen, the next run records the sale.
+        $product = $this->imported('110590104030', 'Audi A4 2015 Wing Mirror');
 
-        $listing = EbayListing::where('listing_id', '110590104030')->firstOrFail();
-        $this->assertSame($product->id, $listing->product_id);
-        $this->assertSame($this->account->id, $listing->ebay_account_id);
+        $this->assertSame(1, $this->sync()['created']);
+        $this->assertEquals(1, $product->refresh()->sold_qty);
 
         $sale = Sale::where('ebay_order_id', '20-15093-30637')->firstOrFail();
         $this->assertSame('EBAY-20-15093-30637', $sale->invoice_no);
@@ -243,11 +272,37 @@ class EbayOrderSyncTest extends TestCase
     }
 
     /**
+     * Recording only the imported half of an order would leave the other half
+     * out for good, since the order then counts as done.
+     */
+    public function test_an_order_only_partly_imported_waits_for_the_rest(): void
+    {
+        $this->imported('110590104030', 'Audi A4 2015 Wing Mirror');
+
+        $this->fakeEbay([
+            $this->order('20-15093-30637', [
+                $this->lineItem('110590104030', 'Audi A4 2015 Wing Mirror'),
+                $this->lineItem('110590104031', 'Audi A4 2015 Headlight'),
+            ]),
+        ], $this->getItemXml('110590104031', 'Audi A4 2015 Headlight'));
+
+        $this->assertSame(0, $this->sync()['created']);
+        $this->assertSame(0, Sale::count());
+
+        $this->imported('110590104031', 'Audi A4 2015 Headlight');
+
+        $this->assertSame(1, $this->sync()['created']);
+        $this->assertSame(2, Sale::firstOrFail()->saleItems()->count());
+    }
+
+    /**
      * A part that sells over and over is the normal case, not a duplicate:
      * every order is its own sale, all of them against the one product.
      */
     public function test_the_same_product_selling_in_several_orders_is_a_sale_each_time(): void
     {
+        $this->imported('110590104030', 'Audi A4 2015 Wing Mirror');
+
         $this->fakeEbay([
             $this->order('20-15093-30637', [$this->lineItem('110590104030', 'Audi A4 2015 Wing Mirror')]),
             $this->order('03-15123-68672', [$this->lineItem('110590104030', 'Audi A4 2015 Wing Mirror', 2, '119.00')]),
@@ -274,9 +329,6 @@ class EbayOrderSyncTest extends TestCase
         $this->assertEquals(2, $second->saleItems()->firstOrFail()->quantity);
         $this->assertSame($product->id, $first->saleItems()->firstOrFail()->product_id);
         $this->assertSame($product->id, $second->saleItems()->firstOrFail()->product_id);
-
-        // The listing itself was only fetched from eBay once.
-        $this->assertSame(1, $this->getItemCallCount());
     }
 
     /**
@@ -285,6 +337,8 @@ class EbayOrderSyncTest extends TestCase
      */
     public function test_the_same_product_twice_in_one_order_is_two_lines(): void
     {
+        $this->imported('110590104030', 'Audi A4 2015 Wing Mirror');
+
         $this->fakeEbay([
             $this->order('20-15093-30637', [
                 $this->lineItem('110590104030', 'Audi A4 2015 Wing Mirror'),
@@ -335,6 +389,8 @@ class EbayOrderSyncTest extends TestCase
 
     public function test_an_item_ebay_cannot_identify_is_skipped_without_breaking_the_run(): void
     {
+        $this->imported('110590104030', 'Audi A4 2015 Wing Mirror');
+
         $this->fakeEbay([
             $this->order('20-15093-30637', [$this->lineItem('', 'Mystery part')]),
             $this->order('03-15123-68672', [$this->lineItem('110590104030', 'Audi A4 2015 Wing Mirror')]),
@@ -350,6 +406,8 @@ class EbayOrderSyncTest extends TestCase
 
     public function test_an_order_already_imported_is_not_imported_twice(): void
     {
+        $this->imported('110590104030', 'Audi A4 2015 Wing Mirror');
+
         $this->fakeEbay(
             [$this->order('20-15093-30637', [$this->lineItem('110590104030', 'Audi A4 2015 Wing Mirror')])],
             $this->getItemXml('110590104030', 'Audi A4 2015 Wing Mirror'),
@@ -371,6 +429,8 @@ class EbayOrderSyncTest extends TestCase
      */
     public function test_an_order_seen_by_both_apis_is_imported_only_once(): void
     {
+        $this->imported('110590104030', 'Audi A4 2015 Wing Mirror');
+
         $fulfillmentOrder = $this->order('17-09717-33189', [$this->lineItem('110590104030', 'Audi A4 2015 Wing Mirror')]);
         $fulfillmentOrder['legacyOrderId'] = '110590104030-10000011957210';
 
@@ -401,6 +461,8 @@ class EbayOrderSyncTest extends TestCase
      */
     public function test_an_order_imported_from_the_trading_fallback_is_not_reimported(): void
     {
+        $this->imported('110590104030', 'Audi A4 2015 Wing Mirror');
+
         $this->fakeEbay([], $this->getItemXml('110590104030', 'Audi A4 2015 Wing Mirror'), $this->legacyOrdersXml([[
             'id' => '110590104030-10000011957210',
             'item_id' => '110590104030',
@@ -426,6 +488,8 @@ class EbayOrderSyncTest extends TestCase
      */
     public function test_a_second_sync_for_the_same_store_is_refused_while_one_is_running(): void
     {
+        $this->imported('110590104030', 'Audi A4 2015 Wing Mirror');
+
         $this->fakeEbay(
             [$this->order('20-15093-30637', [$this->lineItem('110590104030', 'Audi A4 2015 Wing Mirror')])],
             $this->getItemXml('110590104030', 'Audi A4 2015 Wing Mirror'),

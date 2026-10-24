@@ -18,8 +18,8 @@ class EbayOrderImporter
 {
     /**
      * Products already resolved during this run, keyed by eBay item id. The
-     * same listing routinely sells across many orders and every miss costs a
-     * call to eBay, so each id is looked up once per sync.
+     * same listing routinely sells across many orders, so each id is looked
+     * up once per sync.
      *
      * @var array<string, int|null>
      */
@@ -27,7 +27,6 @@ class EbayOrderImporter
 
     public function __construct(
         private EbayService $ebay,
-        private EbayListingImporter $listings,
     ) {}
 
     /**
@@ -97,6 +96,15 @@ class EbayOrderImporter
 
         $items = $this->matchLineItems($account, $order['lineItems'] ?? []);
 
+        // Products only ever come from the import screen, so an order for a
+        // listing nobody picked yet waits. Orders are re-read every run over
+        // the lookback window, so it is recorded — whole — once it is imported.
+        if ($items === null) {
+            Log::info("eBay: order {$orderId} waiting, it sells a listing not imported from \"{$account->store_name}\" yet");
+
+            return false;
+        }
+
         if ($items === []) {
             Log::warning("eBay: order {$orderId} skipped, no line item matches a local product");
 
@@ -160,17 +168,23 @@ class EbayOrderImporter
     }
 
     /**
-     * Map eBay line items onto local products. A listing that is not here yet
-     * is imported from eBay on the spot, so an order is only ever skipped when
-     * eBay itself cannot identify the item.
+     * Map eBay line items onto local products. Null when any of them is for a
+     * listing that has not been imported yet, so the order is left for a later
+     * run rather than recorded with lines missing. A line eBay gives no item id
+     * or SKU for can never match, so it alone is dropped.
      */
-    private function matchLineItems(EbayAccount $account, array $lineItems): array
+    private function matchLineItems(EbayAccount $account, array $lineItems): ?array
     {
         $items = [];
 
         foreach ($lineItems as $line) {
             $quantity = (float) ($line['quantity'] ?? 0);
             $productId = $this->resolveProduct($account, $line);
+            $identifiable = ($line['sku'] ?? null) || trim((string) ($line['legacyItemId'] ?? '')) !== '';
+
+            if (! $productId && $identifiable) {
+                return null;
+            }
 
             if (! $productId || $quantity <= 0) {
                 Log::warning('eBay: line item skipped, no matching local product', [
@@ -206,8 +220,9 @@ class EbayOrderImporter
      *  1. the SKU, against this store's links and then the products table;
      *  2. the item id, against this store's links and any other store's;
      *  3. the synthetic "EBAY-{item id}" SKU a listing with no SKU of its own
-     *     is imported under, for a product whose store link went missing;
-     *  4. failing all of that, the listing is fetched from eBay and imported.
+     *     is imported under, for a product whose store link went missing.
+     *
+     * Nothing is created here: no match means the listing is not imported.
      */
     private function resolveProduct(EbayAccount $account, array $line): ?int
     {
@@ -235,10 +250,6 @@ class EbayOrderImporter
             ->orderByRaw('ebay_account_id = ? desc', [$account->id])
             ->value('product_id')
             ?? Product::where('sku', 'EBAY-'.$itemId)->value('id');
-
-        if (! $productId) {
-            $productId = $this->listings->importByListingId($account, $itemId);
-        }
 
         return $this->resolved[$itemId] = $productId ? (int) $productId : null;
     }

@@ -28,7 +28,23 @@ class EbayImportStatus
 
     public static function get(int $accountId): ?array
     {
-        return Cache::get(self::key($accountId));
+        $status = Cache::get(self::key($accountId));
+
+        // The job writes its own outcome, so one that died without writing it
+        // (worker killed, out of memory, never picked up) would otherwise
+        // leave the banner spinning forever. Report it as failed instead.
+        if ($status
+            && in_array($status['state'], ['fetching', 'importing'], true)
+            && $status['at'] <= now()->subMinutes(self::STALE_AFTER_MINUTES)->timestamp) {
+            $status = [
+                'state' => 'failed',
+                'message' => ($status['state'] === 'fetching' ? 'Fetching listings' : 'Importing')
+                    .' did not finish — the background queue worker stopped or never picked the job up. Make sure the worker is running, then try again.',
+                'at' => $status['at'],
+            ];
+        }
+
+        return $status;
     }
 
     public static function put(int $accountId, string $state, ?string $message = null): void
