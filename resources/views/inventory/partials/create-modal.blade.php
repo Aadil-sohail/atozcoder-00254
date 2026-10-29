@@ -47,7 +47,8 @@
                 <option value="">{{ __('Select a product') }}</option>
                 @foreach ($products as $product)
                     <option value="{{ $product->id }}">
-                        {{ $product->name }}{{ $product->sku ? ' (' . $product->sku . ')' : '' }}
+                        @php($stores = $product->groupStores()->pluck('store_name')->implode(', '))
+                        {{ $product->name }}{{ $product->sku ? ' (' . $product->sku . ')' : '' }}{{ $stores ? ' — ' . $stores : '' }}
                     </option>
                 @endforeach
             </select>

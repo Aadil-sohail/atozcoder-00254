@@ -34,6 +34,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>{{ __('Product') }}</th>
+                        <th>{{ __('Store') }}</th>
                         <th>{{ __('SKU / Part Number') }}</th>
                         <th>{{ __('Category') }}</th>
                         <th>{{ __('Total Stocked') }}</th>
@@ -60,6 +61,7 @@
                                     </a>
                                 </div>
                             </td>
+                            <td>@include('products.partials.cells.stores')</td>
                             <td class="text-secondary">{{ $product->sku ?? '—' }}</td>
                             <td class="text-secondary">{{ $product->category->name ?? '—' }}</td>
                             <td class="text-secondary">{{ $product->total_qty + 0 }}</td>

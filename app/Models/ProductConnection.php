@@ -40,6 +40,29 @@ class ProductConnection extends Model
     }
 
     /**
+     * Give every member the master's cost and selling price.
+     *
+     * The connection sells at one price, so each member's own row carries it
+     * too — what its store shows, what its sales are costed at in profit &
+     * loss, and what goes out to its eBay listing.
+     */
+    public function sharePrices(): void
+    {
+        $master = $this->masterProduct()->first();
+
+        if (! $master) {
+            return;
+        }
+
+        Product::whereIn('id', $this->items()->pluck('product_id'))
+            ->where('id', '!=', $master->id)
+            ->update([
+                'cost_price' => $master->cost_price,
+                'selling_price' => $master->selling_price,
+            ]);
+    }
+
+    /**
      * Every store the connection is listed on, each named once.
      *
      * Taken from the stores ticked for each member, topped up with any store

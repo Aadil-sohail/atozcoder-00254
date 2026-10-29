@@ -53,6 +53,7 @@
                     <tr>
                         <th>{{ __('Invoice No') }}</th>
                         <th>{{ __('Customer') }}</th>
+                        <th>{{ __('Store') }}</th>
                         <th>{{ __('Sale Date') }}</th>
                         <th>{{ __('Discount') }}</th>
                         <th>{{ __('Total') }}</th>
@@ -113,13 +114,14 @@
             columns: [
                 { data: 'invoice_no' },
                 { data: 'customer_name' },
+                { data: 'store_name' },
                 { data: 'sale_date' },
                 { data: 'discount' },
                 { data: 'total_amount' },
                 { data: 'actions', orderable: false, searchable: false },
             ],
             // Newest sales first, as the page has always shown them.
-            order: [[2, 'desc']],
+            order: [[3, 'desc']],
         });
     });
 </script>

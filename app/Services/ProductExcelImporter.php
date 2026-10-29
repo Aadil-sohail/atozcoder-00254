@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\EbayAccount;
 use App\Models\EbayListing;
 use App\Models\Inventory;
+use App\Models\InventoryLog;
 use App\Models\Product;
 use App\Models\Subcategory;
 use Illuminate\Support\Facades\DB;
@@ -290,13 +291,21 @@ class ProductExcelImporter
             $this->linkListing($product, $account, $row['listing_id'], $insertedBy);
         }
 
-        Inventory::create([
+        $entry = Inventory::create([
             'product_id' => $product->id,
             'quantity' => $row['quantity'],
             'inserted_by' => $insertedBy,
         ]);
 
         $product->increment('total_qty', $row['quantity']);
+
+        ProductStock::log($product->id, $row['quantity'], [
+            'inventory_id' => $entry->id,
+            'type' => InventoryLog::EXCEL_IMPORT,
+            'ebay_account_id' => $account->id,
+            'note' => 'Excel import, listing '.$row['listing_id'],
+            'inserted_by' => $insertedBy,
+        ]);
 
         return $product->wasRecentlyCreated ? 'created' : 'restocked';
     }

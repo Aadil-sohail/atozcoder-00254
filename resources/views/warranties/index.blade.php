@@ -83,6 +83,7 @@
                         <th>{{ __('Invoice No') }}</th>
                         <th>{{ __('Customer') }}</th>
                         <th>{{ __('Product') }}</th>
+                        <th>{{ __('Store') }}</th>
                         <th>{{ __('Sale Date') }}</th>
                         <th>{{ __('Qty') }}</th>
                         <th>{{ __('Status') }}</th>
@@ -111,6 +112,7 @@
                 { data: 'invoice_no' },
                 { data: 'customer_name' },
                 { data: 'product_name' },
+                { data: 'store_name' },
                 { data: 'sale_date' },
                 { data: 'qty', searchable: false },
                 { data: 'status', orderable: false, searchable: false },
@@ -118,7 +120,7 @@
                 { data: 'days_left', searchable: false },
             ],
             // Soonest to expire first, as before.
-            order: [[6, 'asc']],
+            order: [[7, 'asc']],
             ajax: {
                 data: function (params) {
                     new FormData(filters).forEach(function (value, key) {

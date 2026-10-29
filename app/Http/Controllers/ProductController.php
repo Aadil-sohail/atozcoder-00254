@@ -9,7 +9,9 @@ use App\Models\EbayAccount;
 use App\Models\Product;
 use App\Models\Subcategory;
 use App\Services\ChunkedUploadStore;
+use App\Services\EbayStockSync;
 use App\Services\ProductExcelImporter;
+use App\Services\ProductStock;
 use App\Support\EbayImportStatus;
 use App\Support\ServerTable;
 use Illuminate\Http\JsonResponse;
@@ -76,9 +78,9 @@ class ProductController extends Controller
      * stay an eager-load because a product can have several and joining them
      * would multiply the rows.
      *
-     * The grid shows eBay listing ids where it used to show SKUs, so they are
-     * also pulled in as a scalar subquery — one row per product, listing ids
-     * joined — which keeps that column sortable and searchable in SQL.
+     * eBay listing ids are no longer a column, but a product can still be
+     * found by one: they are searched through a scalar subquery — one row per
+     * product, listing ids joined — so the search stays in SQL.
      */
     public function data(Request $request): JsonResponse
     {
@@ -112,14 +114,12 @@ class ProductController extends Controller
                 'productConnection.items.stores',
                 'productConnection.items.product.ebayListings.ebayAccount',
             ])
-            ->select('products.*', 'categories.name as category_name')
-            ->selectRaw($listingIds.' as listing_ids');
+            ->select('products.*', 'categories.name as category_name');
 
         return ServerTable::make($request, $query, [
             'name' => 'products.name',
-            // Ordered on the alias and searched on the subquery itself: MySQL
-            // takes an alias in ORDER BY but not in WHERE.
-            'listing_ids' => ['order' => 'listing_ids', 'search' => DB::raw($listingIds)],
+            // Not a column in the grid, but still worth finding a product by.
+            'listing_ids' => ['search' => DB::raw($listingIds)],
             'category_name' => 'categories.name',
             'size' => 'products.size',
             'cost_price' => 'products.cost_price',
@@ -131,7 +131,6 @@ class ProductController extends Controller
             'select' => '<input type="checkbox" class="form-check-input product-select" value="'.$product->id.'">',
             'image' => view('products.partials.cells.image', compact('product'))->render(),
             'name' => view('products.partials.cells.name', compact('product'))->render(),
-            'listing_ids' => view('products.partials.cells.listing-ids', compact('product'))->render(),
             'stores' => view('products.partials.cells.stores', compact('product'))->render(),
             'category_name' => e($product->category_name ?? '—'),
             'size' => e($product->size ?? '—'),
@@ -312,7 +311,7 @@ class ProductController extends Controller
         $products = Product::where($this->filter)
             ->withoutConnectionDuplicates()
             ->whereRaw('(total_qty - sold_qty) <= 0')
-            ->with('category')
+            ->with(['category', 'ebayListings.ebayAccount', 'productConnection.items.stores'])
             ->orderBy('name')
             ->get();
 
@@ -405,6 +404,21 @@ class ProductController extends Controller
             'category_id' => $request->category_id,
             'subcategory_id' => $request->subcategory_id,
         ]);
+
+        // A connection sells at one price: a new price on any of its products
+        // is the connection's price, so every member takes it and every
+        // listing on eBay is sent it.
+        $connection = $product->productConnection;
+
+        if ($connection && $product->wasChanged(['cost_price', 'selling_price'])) {
+            Product::whereIn('id', $connection->items()->pluck('product_id'))->update([
+                'cost_price' => $product->cost_price,
+                'selling_price' => $product->selling_price,
+            ]);
+
+            ProductStock::forget();
+            app(EbayStockSync::class)->push($connection->master_product_id);
+        }
 
         return redirect()->route('products.index')->with('status', 'Product updated successfully.');
     }

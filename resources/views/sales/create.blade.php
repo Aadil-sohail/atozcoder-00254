@@ -153,7 +153,8 @@
                     <option value="{{ $product->id }}"
                         data-price="{{ $product->selling_price }}"
                         data-stock="{{ $product->total_qty }}">
-                        {{ $product->name }}{{ $product->sku ? ' (' . $product->sku . ')' : '' }}
+                        @php($stores = $product->groupStores()->pluck('store_name')->implode(', '))
+                        {{ $product->name }}{{ $product->sku ? ' (' . $product->sku . ')' : '' }}{{ $stores ? ' — ' . $stores : '' }}
                     </option>
                 @endforeach
             </select>

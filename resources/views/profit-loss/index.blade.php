@@ -195,6 +195,7 @@
             <thead class="table-light">
                 <tr>
                     <th>{{ __('Product') }}</th>
+                    <th class="no-sort">{{ __('Store') }}</th>
                     <th>{{ __('Category') }}</th>
                     <th>{{ __('Cost Price') }}</th>
                     <th>{{ __('Avg Sale Price') }}</th>
@@ -242,6 +243,7 @@
             url: @json(route('profit-loss.data')),
             columns: [
                 { data: 'product' },
+                { data: 'stores', orderable: false, searchable: false },
                 { data: 'category' },
                 { data: 'cost_price', searchable: false },
                 { data: 'avg_price', searchable: false },
@@ -253,7 +255,7 @@
                 { data: 'actions', orderable: false, searchable: false },
             ],
             // Biggest earners first; sorting the column flips to the losses.
-            order: [[7, 'desc']],
+            order: [[8, 'desc']],
             ajax: {
                 data: function (params) {
                     new FormData(filters).forEach(function (value, key) {

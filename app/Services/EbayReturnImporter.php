@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\EbayAccount;
 use App\Models\EbayListing;
+use App\Models\InventoryLog;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -142,7 +143,14 @@ class EbayReturnImporter
             // Same restock rule as manual returns: only sellable items go
             // back into stock (see ReturnController::store()).
             if ($condition === 'good') {
-                ProductStock::returned($saleItem->product_id, $quantity);
+                ProductStock::returned($saleItem->product_id, $quantity, [
+                    'type' => InventoryLog::EBAY_RETURN,
+                    'sale_id' => $sale->id,
+                    'sale_return_id' => $saleReturn->id,
+                    'ebay_account_id' => $sale->ebay_account_id,
+                    'note' => 'eBay return '.$returnId,
+                    'inserted_by' => 'eBay Sync',
+                ]);
             }
 
             $this->refreshSaleTotal($sale);

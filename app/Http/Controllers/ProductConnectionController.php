@@ -7,6 +7,7 @@ use App\Models\EbayAccount;
 use App\Models\Product;
 use App\Models\ProductConnection;
 use App\Models\ProductConnectionItem;
+use App\Services\EbayStockSync;
 use App\Services\ProductStock;
 use App\Support\ServerTable;
 use Illuminate\Http\JsonResponse;
@@ -173,18 +174,24 @@ class ProductConnectionController extends Controller
             ]);
 
             $this->saveItems($connection, $request->input('items'));
+            $connection->sharePrices();
 
             return $connection;
         });
 
         ProductStock::forget();
 
+        // Every listing now quotes the master's stock, not its own.
+        $pushed = $this->pushStock([$connection->master_product_id]);
+
         return redirect()->route('connections.index')
-            ->with('status', "Connection \"{$connection->name}\" created. Its products now count as one.");
+            ->with('status', "Connection \"{$connection->name}\" created. Its products now count as one.".$pushed);
     }
 
     public function update(StoreProductConnectionRequest $request, ProductConnection $connection): RedirectResponse
     {
+        $formerMembers = $connection->items->pluck('product_id');
+
         DB::transaction(function () use ($request, $connection) {
             $master = Product::findOrFail($this->masterProductId($request->input('items'), $request->master_ebay_account_id));
 
@@ -200,12 +207,18 @@ class ProductConnectionController extends Controller
             $connection->items->each->delete();
 
             $this->saveItems($connection, $request->input('items'));
+            $connection->sharePrices();
         });
 
         ProductStock::forget();
 
+        // The members quote the (possibly new) master's stock; a product taken
+        // out of the connection goes back to quoting its own.
+        $removed = $formerMembers->diff($connection->load('items')->items->pluck('product_id'));
+        $pushed = $this->pushStock([$connection->master_product_id, ...$removed]);
+
         return redirect()->route('connections.index')
-            ->with('status', "Connection \"{$connection->name}\" updated.");
+            ->with('status', "Connection \"{$connection->name}\" updated.".$pushed);
     }
 
     /**
@@ -216,13 +229,35 @@ class ProductConnectionController extends Controller
     public function destroy(ProductConnection $connection): RedirectResponse
     {
         $name = $connection->name;
+        $members = $connection->items->pluck('product_id')->all();
 
         $connection->delete();
 
         ProductStock::forget();
 
+        // Each product goes back to quoting its own stock.
+        $pushed = $this->pushStock($members);
+
         return redirect()->route('connections.index')
-            ->with('status', "Connection \"{$name}\" removed. Its products are separate again.");
+            ->with('status', "Connection \"{$name}\" removed. Its products are separate again.".$pushed);
+    }
+
+    /**
+     * Send the current stock of these products to all their eBay listings —
+     * across the connection where they are in one — and say how it went.
+     * Failures are logged by EbayStockSync, never thrown.
+     */
+    private function pushStock(array $productIds): string
+    {
+        if (! config('ebay.push_stock', true)) {
+            return '';
+        }
+
+        $pushed = app(EbayStockSync::class)->pushMany(array_unique(array_filter($productIds)));
+
+        return $pushed > 0
+            ? " Stock pushed to {$pushed} eBay ".str('listing')->plural($pushed).'.'
+            : ' No eBay listing was updated — see the log.';
     }
 
     /**

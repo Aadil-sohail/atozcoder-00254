@@ -10,10 +10,15 @@
     <span class="text-muted small">—</span>
 @endforelse
 
-@if ($product->productConnection)
+@if ($connection = $product->productConnection)
     <div>
-        <span class="badge bg-dark-subtle text-dark-emphasis border" title="{{ __('Connected product: one price, one stock, shared across these stores') }}">
+        {{-- Opens the connection's members in a modal; see layouts/footer. --}}
+        <button type="button" class="badge bg-dark-subtle text-dark-emphasis border connection-badge"
+            title="{{ __('Show the connected products') }}">
             <i class="fa-solid fa-link me-1"></i>{{ __('Connected') }}
-        </span>
+        </button>
+        <template class="connection-details">
+            @include('products.partials.connection-details', compact('connection'))
+        </template>
     </div>
 @endif

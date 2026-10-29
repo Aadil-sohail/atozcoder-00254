@@ -96,6 +96,17 @@
             </a>
         @endcan
 
+        @can('view stock adjustments')
+            <a href="{{ route('stock-adjustments.index') }}"
+                class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small
+                {{ request()->routeIs('stock-adjustments.*') ? 'bg-primary text-white' : 'text-white-50' }}"
+                onmouseover="{{ request()->routeIs('stock-adjustments.*') ? '' : "this.style.background='#1f2937'" }}"
+                onmouseout="{{ request()->routeIs('stock-adjustments.*') ? '' : "this.style.background=''" }}">
+                <i class="fa-solid fa-sliders" style="width:18px; text-align:center;"></i>
+                {{ __('Stock Adjustments') }}
+            </a>
+        @endcan
+
         @can('view products')
             <a href="{{ route('out-of-stock.index') }}"
                 class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small

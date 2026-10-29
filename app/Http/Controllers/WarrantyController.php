@@ -48,6 +48,7 @@ class WarrantyController extends Controller
             'invoice_no' => 'sales.invoice_no',
             'customer_name' => 'customers.name',
             'product_name' => 'products.name',
+            'store_name' => 'ebay_accounts.store_name',
             'sale_date' => 'sales.sale_date',
             // Sortable only — all three are computed in the SELECT, and MySQL
             // will not accept an alias in a WHERE clause.
@@ -65,6 +66,7 @@ class WarrantyController extends Controller
                 'invoice_no' => view('warranties.partials.cells.invoice', compact('item'))->render(),
                 'customer_name' => e($item->customer_name ?? '—'),
                 'product_name' => e($item->product_name ?? '—'),
+                'store_name' => e($item->store_name ?? '—'),
                 'sale_date' => e(Carbon::parse($item->sale_date)->format('M d, Y')),
                 'qty' => view('warranties.partials.cells.qty', compact('item'))->render(),
                 'status' => view('warranties.partials.cells.status', $cell)->render(),
@@ -81,12 +83,14 @@ class WarrantyController extends Controller
     {
         return SaleItem::query()
             ->select('sale_items.*', 'customers.name as customer_name', 'products.name as product_name',
-                'sales.invoice_no', 'sales.sale_date')
+                'sales.invoice_no', 'sales.sale_date', 'ebay_accounts.store_name')
             ->selectRaw(self::EXPIRY_SQL.' as warranty_expiry')
             ->selectRaw('(sale_items.quantity - sale_items.returned_qty) as remaining_qty')
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->join('products', 'products.id', '=', 'sale_items.product_id')
             ->leftJoin('customers', 'customers.id', '=', 'sales.customer_id')
+            // The store the sale came from; manual sales have none.
+            ->leftJoin('ebay_accounts', 'ebay_accounts.id', '=', 'sales.ebay_account_id')
             ->whereNotNull('products.warranty_months')
             ->when($request->filled('customer_id'), fn ($q) => $q->where('sales.customer_id', $request->customer_id))
             ->when($request->filled('product_id'), fn ($q) => $q->where('sale_items.product_id', $request->product_id))

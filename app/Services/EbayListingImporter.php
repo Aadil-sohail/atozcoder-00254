@@ -7,6 +7,7 @@ use App\Models\EbayAccount;
 use App\Models\EbayImportItem;
 use App\Models\EbayListing;
 use App\Models\Inventory;
+use App\Models\InventoryLog;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -651,16 +652,19 @@ class EbayListingImporter
         DB::transaction(function () use ($account, $item, $sku, $offer, $existing) {
             $product = $existing ?: $this->createProduct($item, $offer, $sku);
 
-            // Stock lives in two places: products.total_qty is the running
-            // balance the Inventory screen reads, and inventories is the ledger
-            // saying where each movement came from. Creating the product
-            // already set the balance, so this row explains it rather than
-            // adding to it — no increment here, or the stock would double.
-            // An existing product keeps whatever stock it already had.
+            
             if (! $existing && $product->total_qty > 0) {
-                Inventory::create([
+                $entry = Inventory::create([
                     'product_id' => $product->id,
                     'quantity' => $product->total_qty,
+                    'inserted_by' => 'eBay Import',
+                ]);
+
+                ProductStock::log($product->id, $product->total_qty, [
+                    'inventory_id' => $entry->id,
+                    'type' => InventoryLog::EBAY_IMPORT,
+                    'ebay_account_id' => $account->id,
+                    'note' => 'Opening stock from eBay',
                     'inserted_by' => 'eBay Import',
                 ]);
             }

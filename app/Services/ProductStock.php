@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\InventoryLog;
 use App\Models\Product;
 use App\Models\ProductConnectionItem;
+use Illuminate\Support\Facades\DB;
 
 class ProductStock
 {
@@ -37,10 +39,15 @@ class ProductStock
 
     /**
      * Units left the shelf.
+     *
+     * Each movement also writes an inventory log row; $log says why it moved
+     * (see log() for the keys).
      */
-    public static function sold(int|string $productId, float|int|string $quantity): void
+    public static function sold(int|string $productId, float|int|string $quantity, array $log = []): void
     {
         Product::where('id', self::keeperId($productId))->increment('sold_qty', $quantity);
+
+        self::log($productId, -$quantity, $log + ['type' => InventoryLog::SALE]);
 
         self::moved($productId);
     }
@@ -48,9 +55,11 @@ class ProductStock
     /**
      * Units came back — a return, or a sale undone.
      */
-    public static function returned(int|string $productId, float|int|string $quantity): void
+    public static function returned(int|string $productId, float|int|string $quantity, array $log = []): void
     {
         Product::where('id', self::keeperId($productId))->decrement('sold_qty', $quantity);
+
+        self::log($productId, $quantity, $log + ['type' => InventoryLog::RETURN]);
 
         self::moved($productId);
     }
@@ -58,14 +67,49 @@ class ProductStock
     /**
      * Units were taken into stock.
      */
-    public static function received(int|string $productId, float|int|string $quantity): void
+    public static function received(int|string $productId, float|int|string $quantity, array $log = []): void
     {
         Product::where('id', self::keeperId($productId))->increment('total_qty', $quantity);
+
+        self::log($productId, $quantity, $log + ['type' => InventoryLog::STOCK_ADDED]);
 
         // Stock booked in from the Add Stock modal is not pushed to the eBay
         // stores for now — they pick up the new figure on the next sale, return
         // or manual resync. Uncomment to send it straight away again.
         self::moved($productId);
+    }
+
+    /**
+     * Stock corrected by hand: $change is signed, and moves the units taken in
+     * rather than the units sold, since nothing was sold.
+     */
+    public static function adjusted(int|string $productId, float|int|string $change, array $log = []): void
+    {
+        Product::where('id', self::keeperId($productId))->increment('total_qty', $change);
+
+        self::log($productId, $change, $log + ['type' => InventoryLog::ADJUSTMENT]);
+
+        self::moved($productId);
+    }
+
+    /**
+     * Record a stock movement in the inventory log.
+     *
+     * Called by the methods above, and directly by the importers that set a
+     * product's stock themselves. $log takes the InventoryLog columns: type,
+     * sale_id, sale_return_id, ebay_account_id, note, inserted_by.
+     *
+     * The balance is read off the keeper, so on a connected product it is the
+     * stock the whole connection has left.
+     */
+    public static function log(int|string $productId, float|int|string $change, array $log = []): void
+    {
+        InventoryLog::create($log + [
+            'product_id' => (int) $productId,
+            'quantity' => $change,
+            'balance_after' => Product::whereKey(self::keeperId($productId))->value(DB::raw('total_qty - sold_qty')),
+            'inserted_by' => auth()->user()?->name ?? 'System',
+        ]);
     }
 
     private static function moved(int|string $productId): void

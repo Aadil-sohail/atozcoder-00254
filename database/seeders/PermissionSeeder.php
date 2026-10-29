@@ -26,6 +26,7 @@ class PermissionSeeder extends Seeder
             'subcategories' => ['view', 'create', 'edit', 'delete'],
             'products' => ['view', 'create', 'edit', 'delete'],
             'inventories' => ['view', 'create'],
+            'stock adjustments' => ['view', 'create', 'edit'],
             'connections' => ['view', 'create', 'edit', 'delete'],
             'company settings' => ['edit'],
             'smtp settings' => ['edit'],

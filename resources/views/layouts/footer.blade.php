@@ -75,6 +75,36 @@
         return Toast.fire({ icon, title });
     };
 
+    // ── "Connected" badge → modal listing the connection's products ──
+    // The badge (products/partials/cells/stores) carries the details in a
+    // <template> next to it; one shared modal shows whichever was clicked.
+    // Delegated, so rows drawn later by DataTables work too.
+    $(document).on('click', '.connection-badge', function () {
+        const template = this.parentElement.querySelector('template.connection-details');
+        if (!template) return;
+
+        let modal = document.getElementById('connection-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'connection-modal';
+            modal.className = 'modal fade';
+            modal.tabIndex = -1;
+            modal.innerHTML =
+                '<div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">'
+                + '<div class="modal-header"><h5 class="modal-title"></h5>'
+                + '<button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>'
+                + '<div class="modal-body"></div></div></div>';
+            document.body.appendChild(modal);
+        }
+
+        const body = modal.querySelector('.modal-body');
+        body.replaceChildren(template.content.cloneNode(true));
+        modal.querySelector('.modal-title').textContent =
+            'Connection: ' + (body.querySelector('[data-title]')?.dataset.title || '');
+
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+    });
+
     // ── Auto-init Dropify on any <input class="dropify"> ────────
     // Configure per input via data attributes, e.g.:
     //   data-default-file, data-max-file-size, data-allowed-file-extensions

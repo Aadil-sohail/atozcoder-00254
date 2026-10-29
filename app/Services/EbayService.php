@@ -728,7 +728,12 @@ class EbayService
         Log::info("eBay: SKU {$listing->sku} removed from \"{$account->store_name}\"".($listing->listing_id ? " (listing {$listing->listing_id} ended)" : ''));
     }
 
-    public function updateListingQuantity(EbayListing $listing, int $quantity): void
+    /**
+     * Set a live listing's quantity, and its price too when one is given —
+     * a connection keeps every member's listing at the preferred product's
+     * price.
+     */
+    public function updateListingQuantity(EbayListing $listing, int $quantity, ?float $price = null): void
     {
         if (! $listing->listing_id) {
             throw new RuntimeException('That listing has no eBay item id yet, so its quantity cannot be set.');
@@ -744,8 +749,8 @@ class EbayService
         foreach ($listing->offer_id ? ['offer', 'legacy'] : ['legacy', 'offer'] as $route) {
             try {
                 $route === 'offer'
-                    ? $this->updateOfferQuantity($listing, $quantity)
-                    : $this->reviseListingQuantity($listing, $quantity);
+                    ? $this->updateOfferQuantity($listing, $quantity, $price)
+                    : $this->reviseListingQuantity($listing, $quantity, $price);
 
                 return;
             } catch (Throwable $e) {
@@ -760,7 +765,7 @@ class EbayService
      * The Inventory API route: set the offer's available quantity, and the
      * stock behind the SKU it draws on.
      */
-    private function updateOfferQuantity(EbayListing $listing, int $quantity): void
+    private function updateOfferQuantity(EbayListing $listing, int $quantity, ?float $price = null): void
     {
         $account = $listing->ebayAccount;
         $offerId = $listing->offer_id ?: $this->findOfferId($account, $listing->sku);
@@ -769,11 +774,20 @@ class EbayService
             throw new RuntimeException("No eBay offer found for SKU {$listing->sku}.");
         }
 
+        $offer = ['offerId' => $offerId, 'availableQuantity' => $quantity];
+
+        if ($price !== null) {
+            $offer['price'] = [
+                'value' => number_format($price, 2, '.', ''),
+                'currency' => config("ebay.marketplaces.{$account->marketplace_id}.currency", 'USD'),
+            ];
+        }
+
         $response = $this->api($account)->post('/sell/inventory/v1/bulk_update_price_quantity', [
             'requests' => [[
                 'sku' => $listing->sku,
                 'shipToLocationAvailability' => ['quantity' => $quantity],
-                'offers' => [['offerId' => $offerId, 'availableQuantity' => $quantity]],
+                'offers' => [$offer],
             ]],
         ]);
 
@@ -789,21 +803,23 @@ class EbayService
             );
         }
 
-        Log::info("eBay: listing {$listing->listing_id} on \"{$account->store_name}\" set to {$quantity} available (offer {$offerId})");
+        Log::info("eBay: listing {$listing->listing_id} on \"{$account->store_name}\" set to {$quantity} available"
+            .($price !== null ? ' at '.number_format($price, 2) : '')." (offer {$offerId})");
     }
 
     /**
      * The legacy route, for listings the Inventory API never knew about —
      * which is most of a shop listed through eBay's own tools.
      */
-    private function reviseListingQuantity(EbayListing $listing, int $quantity): void
+    private function reviseListingQuantity(EbayListing $listing, int $quantity, ?float $price = null): void
     {
         $account = $listing->ebayAccount;
         $itemId = $listing->listing_id;
+        $startPrice = $price !== null ? '<StartPrice>'.number_format($price, 2, '.', '').'</StartPrice>' : '';
 
         $body = '<?xml version="1.0" encoding="utf-8"?>'
             .'<ReviseInventoryStatusRequest xmlns="urn:ebay:apis:eBLBaseComponents">'
-            ."<InventoryStatus><ItemID>{$itemId}</ItemID><Quantity>{$quantity}</Quantity></InventoryStatus>"
+            ."<InventoryStatus><ItemID>{$itemId}</ItemID><Quantity>{$quantity}</Quantity>{$startPrice}</InventoryStatus>"
             .'</ReviseInventoryStatusRequest>';
 
         $response = Http::withHeaders([
@@ -831,7 +847,8 @@ class EbayService
             );
         }
 
-        Log::info("eBay: listing {$itemId} on \"{$account->store_name}\" set to {$quantity} available");
+        Log::info("eBay: listing {$itemId} on \"{$account->store_name}\" set to {$quantity} available"
+            .($price !== null ? ' at '.number_format($price, 2) : ''));
     }
 
     /*

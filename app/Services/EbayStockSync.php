@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Sends a product's stock back out to eBay.
+ * Sends a product's stock (and, for a connection, its price) back out to eBay.
  *
  * The store an order came from lowers its own listing by itself; every other
  * store selling the same part knows nothing about it and would keep offering
@@ -45,9 +45,15 @@ class EbayStockSync
         $quantity = max(0, (int) round($product->availableStock()));
         $updated = 0;
 
+        // A connection sells at its preferred product's price on every store,
+        // so that goes out with the stock. eBay refuses a price of 0, so an
+        // unpriced master leaves the listings' prices as they are.
+        $masterPrice = $product->productConnection ? (float) $product->connectionMaster()->selling_price : 0;
+        $price = $masterPrice > 0 ? $masterPrice : null;
+
         foreach ($this->listingsFor($product) as $listing) {
             try {
-                $this->ebay->updateListingQuantity($listing, $quantity);
+                $this->ebay->updateListingQuantity($listing, $quantity, $price);
                 $updated++;
             } catch (Throwable $e) {
                 Log::warning(sprintf(

@@ -37,24 +37,28 @@ class SaleController extends Controller
     }
 
     /**
-     * Rows for the sales grid. The customer is joined so the column can be
-     * sorted and searched in SQL rather than after the fact.
+     * Rows for the sales grid. The customer and store are joined so their
+     * columns can be sorted and searched in SQL rather than after the fact.
      */
     public function data(Request $request): JsonResponse
     {
         $query = Sale::query()
             ->leftJoin('customers', 'customers.id', '=', 'sales.customer_id')
-            ->select('sales.*', 'customers.name as customer_name');
+            // The store the sale came from; manual sales have none.
+            ->leftJoin('ebay_accounts', 'ebay_accounts.id', '=', 'sales.ebay_account_id')
+            ->select('sales.*', 'customers.name as customer_name', 'ebay_accounts.store_name');
 
         return ServerTable::make($request, $query, [
             'invoice_no' => 'sales.invoice_no',
             'customer_name' => 'customers.name',
+            'store_name' => 'ebay_accounts.store_name',
             'sale_date' => 'sales.sale_date',
             'discount' => 'sales.discount',
             'total_amount' => 'sales.total_amount',
         ], fn (Sale $sale) => [
             'invoice_no' => view('sales.partials.cells.invoice', compact('sale'))->render(),
             'customer_name' => e($sale->customer_name ?? '—'),
+            'store_name' => e($sale->store_name ?? '—'),
             'sale_date' => e(Carbon::parse($sale->sale_date)->format('M d, Y')),
             'discount' => number_format((float) $sale->discount, 2),
             'total_amount' => number_format((float) $sale->total_amount, 2),
@@ -68,7 +72,7 @@ class SaleController extends Controller
         // A connected product has no stock or price of its own, so what the
         // screen offers is the connection's figures (the master store's) —
         // otherwise a copy that never moves would happily be oversold.
-        $products = Product::with('productConnection.masterProduct')
+        $products = Product::with(['productConnection.masterProduct', 'ebayListings.ebayAccount', 'productConnection.items.stores'])
             ->orderBy('name')
             ->get(['id', 'name', 'sku', 'selling_price', 'total_qty', 'sold_qty']);
 
@@ -113,7 +117,10 @@ class SaleController extends Controller
                 'inserted_by' => auth()->user()->name,
             ]);
 
-            ProductStock::sold($item['product_id'], $item['quantity']);
+            ProductStock::sold($item['product_id'], $item['quantity'], [
+                'sale_id' => $sale->id,
+                'note' => 'Sale '.$sale->invoice_no,
+            ]);
         }
 
         return redirect()->route('sales.index')->with('status', 'Sale #'.$sale->invoice_no.' created successfully.');

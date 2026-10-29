@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreInventoryRequest;
 use App\Models\Category;
 use App\Models\Inventory;
+use App\Models\InventoryLog;
 use App\Models\Product;
 use App\Support\ServerTable;
 use App\Services\ProductStock;
@@ -29,7 +30,9 @@ class InventoryController extends Controller
     {
         $filter=['status'=>'1','close'=>'1'];
         $categoryCount = Category::where($filter)->count();
-        $products = Product::where($filter)->orderBy('name')->get();
+        $products = Product::where($filter)
+            ->with(['ebayListings.ebayAccount', 'productConnection.items.stores'])
+            ->orderBy('name')->get();
 
         return view('inventory.index', compact('categoryCount', 'products'));
     }
@@ -99,6 +102,11 @@ class InventoryController extends Controller
             ->where('status', '1')
             // One row per part, the same as the products screen shows.
             ->withoutConnectionDuplicates()
+            // For the store column, as on the products screen.
+            ->with([
+                'ebayListings.ebayAccount',
+                'productConnection.items.stores',
+            ])
             ->select('products.*')
             ->selectRaw('(products.total_qty - products.sold_qty) as available_stock');
 
@@ -107,6 +115,7 @@ class InventoryController extends Controller
             'available_stock' => ['order' => 'available_stock'],
         ], fn (Product $product) => [
             'name' => e($product->name),
+            'stores' => view('products.partials.cells.stores', compact('product'))->render(),
             'available_stock' => view('inventory.partials.cells.stock', [
                 'available' => $product->available_stock,
             ])->render(),
@@ -121,13 +130,16 @@ class InventoryController extends Controller
     {
         DB::transaction(function () use ($request) {
             foreach ($request->items as $item) {
-                Inventory::create([
+                $entry = Inventory::create([
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
                     'inserted_by' => auth()->user()->name,
                 ]);
 
-                ProductStock::received($item['product_id'], $item['quantity']);
+                ProductStock::received($item['product_id'], $item['quantity'], [
+                    'inventory_id' => $entry->id,
+                    'note' => 'Added from Add Stock',
+                ]);
             }
         });
 
@@ -135,12 +147,43 @@ class InventoryController extends Controller
     }
 
     /**
-     * Display all stock entries for the given product.
+     * Display the inventory log of the given product: every stock movement,
+     * newest first.
+     *
+     * Stock entries with no log row of their own (those added before the log
+     * existed) are listed too, so the history is complete without copying
+     * them over.
+     *
+     * A connected product shares one stock with the rest of its connection,
+     * so its page shows the movements of every member — the same list
+     * whichever member is opened.
      */
     public function show(Product $product): View
     {
-        $entries = Inventory::where('product_id', $product->id)->latest()->get();
+        $product->load('productConnection.items.product');
 
-        return view('inventory.show', compact('product', 'entries'));
+        $members = $product->productConnection?->items->pluck('product')->filter()->keyBy('id')
+            ?? collect([$product->id => $product]);
+
+        $logs = InventoryLog::whereIn('product_id', $members->keys())
+            ->with(['sale', 'ebayAccount', 'product'])
+            ->get();
+
+        $unlogged = Inventory::whereIn('product_id', $members->keys())
+            ->whereNotExists(fn ($logged) => $logged
+                ->selectRaw('1')
+                ->from('inventory_logs')
+                ->whereColumn('inventory_logs.inventory_id', 'inventories.id'))
+            ->get()
+            ->map(fn (Inventory $entry) => InventoryLog::fromInventory($entry)
+                ->setRelation('product', $members->get($entry->product_id)));
+
+        $logs = $logs->concat($unlogged)
+            ->sortByDesc(fn (InventoryLog $log) => [$log->created_at?->timestamp ?? 0, $log->id ?? 0])
+            ->values();
+
+        $connected = $members->count() > 1;
+
+        return view('inventory.show', compact('product', 'logs', 'connected'));
     }
 }

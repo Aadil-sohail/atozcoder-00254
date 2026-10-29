@@ -17,6 +17,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\SmtpSettingController;
+use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\SubcategoryController;
 use App\Http\Controllers\WarrantyController;
 
@@ -124,6 +125,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventories/category/{category}', [InventoryController::class, 'category'])->name('inventories.category');
     Route::get('/inventories/category/{category}/data', [InventoryController::class, 'categoryData'])->name('inventories.category.data');
     Route::get('/inventories/{product}', [InventoryController::class, 'show'])->name('inventories.show');
+
+    // Stock adjustments
+    Route::get('/stock-adjustments', [StockAdjustmentController::class, 'index'])->name('stock-adjustments.index');
+    Route::get('/stock-adjustments/data', [StockAdjustmentController::class, 'data'])->name('stock-adjustments.data');
+    Route::get('/stock-adjustments/products', [StockAdjustmentController::class, 'products'])->name('stock-adjustments.products');
+    Route::post('/stock-adjustments', [StockAdjustmentController::class, 'store'])->name('stock-adjustments.store');
+    Route::put('/stock-adjustments/{adjustment}', [StockAdjustmentController::class, 'update'])->name('stock-adjustments.update');
 
     // eBay stores & product sync
     Route::get('/ebay/stores', [EbayAccountController::class, 'index'])->name('ebay.index');

@@ -33,6 +33,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>{{ __('Product') }}</th>
+                        <th class="no-sort">{{ __('Store') }}</th>
                         <th>{{ __('Stock') }}</th>
                         <th class="no-sort">{{ __('Actions') }}</th>
                     </tr>
@@ -52,6 +53,7 @@
             url: @json(route('inventories.category.data', $category)),
             columns: [
                 { data: 'name' },
+                { data: 'stores', orderable: false, searchable: false },
                 { data: 'available_stock', searchable: false },
                 { data: 'actions', orderable: false, searchable: false },
             ],

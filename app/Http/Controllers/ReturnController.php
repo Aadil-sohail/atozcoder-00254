@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSaleReturnRequest;
+use App\Models\InventoryLog;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Services\ProductStock;
@@ -145,7 +146,11 @@ class ReturnController extends Controller
                 $saleItem->increment('returned_qty', $item['quantity']);
 
                 if ($item['condition'] === 'good') {
-                    ProductStock::returned($saleItem->product_id, $item['quantity']);
+                    ProductStock::returned($saleItem->product_id, $item['quantity'], [
+                        'sale_id' => $saleReturn->sale_id,
+                        'sale_return_id' => $saleReturn->id,
+                        'note' => 'Returned in good condition',
+                    ]);
                 }
             }
 
@@ -175,7 +180,12 @@ class ReturnController extends Controller
                 SaleItem::where('id', $item->sale_item_id)->decrement('returned_qty', $item->quantity);
 
                 if ($item->condition === 'good') {
-                    ProductStock::sold($item->product_id, $item->quantity);
+                    // The return row is deleted below, so the log keeps only the sale.
+                    ProductStock::sold($item->product_id, $item->quantity, [
+                        'type' => InventoryLog::RETURN_DELETED,
+                        'sale_id' => $saleReturn->sale_id,
+                        'note' => 'Return #'.$saleReturn->id.' deleted',
+                    ]);
                 }
             }
 

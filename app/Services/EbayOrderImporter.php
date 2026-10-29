@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Customer;
 use App\Models\EbayAccount;
 use App\Models\EbayListing;
+use App\Models\InventoryLog;
 use App\Models\Product;
 use App\Models\Sale;
 use Illuminate\Database\QueryException;
@@ -143,7 +144,13 @@ class EbayOrderImporter
                     // figure at that moment, which already has every earlier
                     // sale taken off. Counting those again would sink it.
                     if (! $this->soldBeforeImport($item['product_id'], $order)) {
-                        ProductStock::sold($item['product_id'], $item['quantity']);
+                        ProductStock::sold($item['product_id'], $item['quantity'], [
+                            'type' => InventoryLog::EBAY_ORDER,
+                            'sale_id' => $sale->id,
+                            'ebay_account_id' => $account->id,
+                            'note' => 'eBay order '.$sale->ebay_order_id,
+                            'inserted_by' => 'eBay Sync',
+                        ]);
                     }
                 }
             });

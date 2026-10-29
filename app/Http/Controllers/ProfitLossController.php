@@ -73,7 +73,10 @@ class ProfitLossController extends Controller
      */
     public function data(Request $request): JsonResponse
     {
-        return ServerTable::make($request, $this->query($request), [
+        // Loaded here, not in query(): totals() reuses that query as a subquery.
+        $query = $this->query($request)->with(['ebayListings.ebayAccount', 'productConnection.items.stores']);
+
+        return ServerTable::make($request, $query, [
             'product' => 'products.name',
             'category' => 'categories.name',
             // Not columns in the grid, but still worth finding a product by.
@@ -90,6 +93,7 @@ class ProfitLossController extends Controller
             'margin' => ['order' => 'margin'],
         ], fn (Product $product) => [
             'product' => view('profit-loss.partials.cells.product', compact('product'))->render(),
+            'stores' => view('products.partials.cells.stores', compact('product'))->render(),
             'category' => e($product->category_name ?? '—'),
             'cost_price' => view('profit-loss.partials.cells.cost-price', compact('product'))->render(),
             'avg_price' => view('profit-loss.partials.cells.avg-price', compact('product'))->render(),
