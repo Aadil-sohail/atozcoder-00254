@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Collection;
 
-#[Fillable(['name', 'sku', 'variant', 'description', 'image', 'cost_price', 'selling_price', 'unit_price', 'size', 'warranty_months', 'warranty_expiry_date', 'total_qty', 'sold_qty', 'category_id', 'subcategory_id', 'status', 'close', 'inserted_by'])]
+#[Fillable(['name', 'sku', 'variant', 'description', 'image', 'cost_price', 'selling_price', 'unit_price', 'size', 'warranty_months', 'warranty_expiry_date', 'total_qty', 'sold_qty', 'category_id', 'subcategory_id', 'shelf_id', 'status', 'close', 'inserted_by'])]
 class Product extends Model
 {
     /**
@@ -35,6 +35,14 @@ class Product extends Model
     public function subcategory(): BelongsTo
     {
         return $this->belongsTo(Subcategory::class);
+    }
+
+    /**
+     * Where the product is kept in the warehouse.
+     */
+    public function shelf(): BelongsTo
+    {
+        return $this->belongsTo(Shelf::class);
     }
 
     public function inventories(): HasMany

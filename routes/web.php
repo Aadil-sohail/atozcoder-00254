@@ -19,6 +19,8 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\SmtpSettingController;
 use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\SubcategoryController;
+use App\Http\Controllers\RackController;
+use App\Http\Controllers\ShelfController;
 use App\Http\Controllers\WarrantyController;
 
 Route::get('/', function () {
@@ -92,12 +94,30 @@ Route::middleware('auth')->group(function () {
     Route::delete('/subcategories/{subcategory}', [SubcategoryController::class, 'destroy'])->name('subcategories.destroy');
     Route::post('/subcategories/check-name', [SubcategoryController::class, 'checkName'])->name('subcategories.check-name');
 
+    // Racks
+    Route::get('/racks', [RackController::class, 'index'])->name('racks.index');
+    Route::post('/racks', [RackController::class, 'store'])->name('racks.store');
+    Route::match(['put', 'patch'], '/racks/{rack}', [RackController::class, 'update'])->name('racks.update');
+    Route::delete('/racks/{rack}', [RackController::class, 'destroy'])->name('racks.destroy');
+    Route::post('/racks/check-name', [RackController::class, 'checkName'])->name('racks.check-name');
+
+    // Shelves
+    Route::get('/shelves', [ShelfController::class, 'index'])->name('shelves.index');
+    Route::post('/shelves', [ShelfController::class, 'store'])->name('shelves.store');
+    Route::match(['put', 'patch'], '/shelves/{shelf}', [ShelfController::class, 'update'])->name('shelves.update');
+    Route::delete('/shelves/{shelf}', [ShelfController::class, 'destroy'])->name('shelves.destroy');
+    Route::post('/shelves/check-name', [ShelfController::class, 'checkName'])->name('shelves.check-name');
+    Route::post('/shelves/reorder', [ShelfController::class, 'reorder'])->name('shelves.reorder');
+    Route::get('/shelves/{shelf}', [ShelfController::class, 'show'])->name('shelves.show');
+
     // Out of stock products
     Route::get('/out-of-stock', [ProductController::class, 'outOfStock'])->name('out-of-stock.index');
 
     // Products
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/data', [ProductController::class, 'data'])->name('products.data');
+    // The search box in the page header; before /products/{product} so "quick-search" isn't read as an id.
+    Route::get('/products/quick-search', [ProductController::class, 'quickSearch'])->name('products.quick-search');
     Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
     Route::post('/products', [ProductController::class, 'store'])->name('products.store');
     Route::post('/products/import/chunk', [ProductController::class, 'importChunk'])->name('products.import.chunk');

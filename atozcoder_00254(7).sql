@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 29, 2026 at 01:06 PM
+-- Generation Time: Nov 25, 2026 at 01:08 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -38,8 +38,7 @@ CREATE TABLE `cache` (
 --
 
 INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
-('laravel-cache-ebay.oos_control.2', 'b:1;', 2108204761),
-('laravel-cache-spatie.permission.cache', 'a:3:{s:5:\"alias\";a:4:{s:1:\"a\";s:2:\"id\";s:1:\"b\";s:4:\"name\";s:1:\"c\";s:10:\"guard_name\";s:1:\"r\";s:5:\"roles\";}s:11:\"permissions\";a:46:{i:0;a:4:{s:1:\"a\";i:1;s:1:\"b\";s:10:\"view roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:1;a:4:{s:1:\"a\";i:2;s:1:\"b\";s:12:\"create roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:2;a:4:{s:1:\"a\";i:3;s:1:\"b\";s:10:\"edit roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:3;a:4:{s:1:\"a\";i:4;s:1:\"b\";s:12:\"delete roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:4;a:4:{s:1:\"a\";i:5;s:1:\"b\";s:10:\"view users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:5;a:4:{s:1:\"a\";i:6;s:1:\"b\";s:12:\"create users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:6;a:4:{s:1:\"a\";i:7;s:1:\"b\";s:10:\"edit users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:7;a:4:{s:1:\"a\";i:8;s:1:\"b\";s:12:\"delete users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:8;a:4:{s:1:\"a\";i:9;s:1:\"b\";s:14:\"view customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:9;a:4:{s:1:\"a\";i:10;s:1:\"b\";s:16:\"create customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:10;a:4:{s:1:\"a\";i:11;s:1:\"b\";s:14:\"edit customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:11;a:4:{s:1:\"a\";i:12;s:1:\"b\";s:16:\"delete customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:12;a:4:{s:1:\"a\";i:13;s:1:\"b\";s:10:\"view sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:13;a:4:{s:1:\"a\";i:14;s:1:\"b\";s:12:\"create sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:14;a:4:{s:1:\"a\";i:15;s:1:\"b\";s:12:\"delete sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:15;a:4:{s:1:\"a\";i:16;s:1:\"b\";s:12:\"view returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:16;a:4:{s:1:\"a\";i:17;s:1:\"b\";s:14:\"create returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:17;a:4:{s:1:\"a\";i:18;s:1:\"b\";s:14:\"delete returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:18;a:4:{s:1:\"a\";i:19;s:1:\"b\";s:15:\"view categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:19;a:4:{s:1:\"a\";i:20;s:1:\"b\";s:17:\"create categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:20;a:4:{s:1:\"a\";i:21;s:1:\"b\";s:15:\"edit categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:21;a:4:{s:1:\"a\";i:22;s:1:\"b\";s:17:\"delete categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:22;a:4:{s:1:\"a\";i:23;s:1:\"b\";s:18:\"view subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:23;a:4:{s:1:\"a\";i:24;s:1:\"b\";s:20:\"create subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:24;a:4:{s:1:\"a\";i:25;s:1:\"b\";s:18:\"edit subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:25;a:4:{s:1:\"a\";i:26;s:1:\"b\";s:20:\"delete subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:26;a:4:{s:1:\"a\";i:27;s:1:\"b\";s:13:\"view products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:27;a:4:{s:1:\"a\";i:28;s:1:\"b\";s:15:\"create products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:28;a:4:{s:1:\"a\";i:29;s:1:\"b\";s:13:\"edit products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:29;a:4:{s:1:\"a\";i:30;s:1:\"b\";s:15:\"delete products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:30;a:4:{s:1:\"a\";i:31;s:1:\"b\";s:16:\"view inventories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:31;a:4:{s:1:\"a\";i:32;s:1:\"b\";s:18:\"create inventories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:32;a:4:{s:1:\"a\";i:33;s:1:\"b\";s:16:\"view connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:33;a:4:{s:1:\"a\";i:34;s:1:\"b\";s:18:\"create connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:34;a:4:{s:1:\"a\";i:35;s:1:\"b\";s:16:\"edit connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:35;a:4:{s:1:\"a\";i:36;s:1:\"b\";s:18:\"delete connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:36;a:4:{s:1:\"a\";i:37;s:1:\"b\";s:21:\"edit company settings\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:37;a:4:{s:1:\"a\";i:38;s:1:\"b\";s:18:\"edit smtp settings\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:38;a:4:{s:1:\"a\";i:39;s:1:\"b\";s:16:\"view ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:39;a:4:{s:1:\"a\";i:40;s:1:\"b\";s:18:\"create ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:40;a:4:{s:1:\"a\";i:41;s:1:\"b\";s:16:\"edit ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:41;a:4:{s:1:\"a\";i:42;s:1:\"b\";s:18:\"delete ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:42;a:4:{s:1:\"a\";i:43;s:1:\"b\";s:18:\"sync ebay products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:43;a:4:{s:1:\"a\";i:44;s:1:\"b\";s:22:\"view stock adjustments\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:44;a:4:{s:1:\"a\";i:45;s:1:\"b\";s:24:\"create stock adjustments\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:45;a:4:{s:1:\"a\";i:46;s:1:\"b\";s:22:\"edit stock adjustments\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}}s:5:\"roles\";a:1:{i:0;a:3:{s:1:\"a\";i:1;s:1:\"b\";s:5:\"Admin\";s:1:\"c\";s:3:\"web\";}}}', 1793352657);
+('laravel-cache-spatie.permission.cache', 'a:3:{s:5:\"alias\";a:4:{s:1:\"a\";s:2:\"id\";s:1:\"b\";s:4:\"name\";s:1:\"c\";s:10:\"guard_name\";s:1:\"r\";s:5:\"roles\";}s:11:\"permissions\";a:54:{i:0;a:4:{s:1:\"a\";i:1;s:1:\"b\";s:10:\"view roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:1;a:4:{s:1:\"a\";i:2;s:1:\"b\";s:12:\"create roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:2;a:4:{s:1:\"a\";i:3;s:1:\"b\";s:10:\"edit roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:3;a:4:{s:1:\"a\";i:4;s:1:\"b\";s:12:\"delete roles\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:4;a:4:{s:1:\"a\";i:5;s:1:\"b\";s:10:\"view users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:5;a:4:{s:1:\"a\";i:6;s:1:\"b\";s:12:\"create users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:6;a:4:{s:1:\"a\";i:7;s:1:\"b\";s:10:\"edit users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:7;a:4:{s:1:\"a\";i:8;s:1:\"b\";s:12:\"delete users\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:8;a:4:{s:1:\"a\";i:9;s:1:\"b\";s:14:\"view customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:9;a:4:{s:1:\"a\";i:10;s:1:\"b\";s:16:\"create customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:10;a:4:{s:1:\"a\";i:11;s:1:\"b\";s:14:\"edit customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:11;a:4:{s:1:\"a\";i:12;s:1:\"b\";s:16:\"delete customers\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:12;a:4:{s:1:\"a\";i:13;s:1:\"b\";s:10:\"view sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:13;a:4:{s:1:\"a\";i:14;s:1:\"b\";s:12:\"create sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:14;a:4:{s:1:\"a\";i:15;s:1:\"b\";s:12:\"delete sales\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:15;a:4:{s:1:\"a\";i:16;s:1:\"b\";s:12:\"view returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:16;a:4:{s:1:\"a\";i:17;s:1:\"b\";s:14:\"create returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:17;a:4:{s:1:\"a\";i:18;s:1:\"b\";s:14:\"delete returns\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:18;a:4:{s:1:\"a\";i:19;s:1:\"b\";s:15:\"view categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:19;a:4:{s:1:\"a\";i:20;s:1:\"b\";s:17:\"create categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:20;a:4:{s:1:\"a\";i:21;s:1:\"b\";s:15:\"edit categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:21;a:4:{s:1:\"a\";i:22;s:1:\"b\";s:17:\"delete categories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:22;a:4:{s:1:\"a\";i:23;s:1:\"b\";s:18:\"view subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:23;a:4:{s:1:\"a\";i:24;s:1:\"b\";s:20:\"create subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:24;a:4:{s:1:\"a\";i:25;s:1:\"b\";s:18:\"edit subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:25;a:4:{s:1:\"a\";i:26;s:1:\"b\";s:20:\"delete subcategories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:26;a:4:{s:1:\"a\";i:27;s:1:\"b\";s:13:\"view products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:27;a:4:{s:1:\"a\";i:28;s:1:\"b\";s:15:\"create products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:28;a:4:{s:1:\"a\";i:29;s:1:\"b\";s:13:\"edit products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:29;a:4:{s:1:\"a\";i:30;s:1:\"b\";s:15:\"delete products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:30;a:4:{s:1:\"a\";i:31;s:1:\"b\";s:16:\"view inventories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:31;a:4:{s:1:\"a\";i:32;s:1:\"b\";s:18:\"create inventories\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:32;a:4:{s:1:\"a\";i:33;s:1:\"b\";s:16:\"view connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:33;a:4:{s:1:\"a\";i:34;s:1:\"b\";s:18:\"create connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:34;a:4:{s:1:\"a\";i:35;s:1:\"b\";s:16:\"edit connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:35;a:4:{s:1:\"a\";i:36;s:1:\"b\";s:18:\"delete connections\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:36;a:4:{s:1:\"a\";i:37;s:1:\"b\";s:21:\"edit company settings\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:37;a:4:{s:1:\"a\";i:38;s:1:\"b\";s:18:\"edit smtp settings\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:38;a:4:{s:1:\"a\";i:39;s:1:\"b\";s:16:\"view ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:39;a:4:{s:1:\"a\";i:40;s:1:\"b\";s:18:\"create ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:40;a:4:{s:1:\"a\";i:41;s:1:\"b\";s:16:\"edit ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:41;a:4:{s:1:\"a\";i:42;s:1:\"b\";s:18:\"delete ebay stores\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:42;a:4:{s:1:\"a\";i:43;s:1:\"b\";s:18:\"sync ebay products\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:43;a:4:{s:1:\"a\";i:44;s:1:\"b\";s:22:\"view stock adjustments\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:44;a:4:{s:1:\"a\";i:45;s:1:\"b\";s:24:\"create stock adjustments\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:45;a:4:{s:1:\"a\";i:46;s:1:\"b\";s:22:\"edit stock adjustments\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:46;a:4:{s:1:\"a\";i:47;s:1:\"b\";s:10:\"view racks\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:47;a:4:{s:1:\"a\";i:48;s:1:\"b\";s:12:\"create racks\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:48;a:4:{s:1:\"a\";i:49;s:1:\"b\";s:10:\"edit racks\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:49;a:4:{s:1:\"a\";i:50;s:1:\"b\";s:12:\"delete racks\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:50;a:4:{s:1:\"a\";i:51;s:1:\"b\";s:12:\"view shelves\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:51;a:4:{s:1:\"a\";i:52;s:1:\"b\";s:14:\"create shelves\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:52;a:4:{s:1:\"a\";i:53;s:1:\"b\";s:12:\"edit shelves\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}i:53;a:4:{s:1:\"a\";i:54;s:1:\"b\";s:14:\"delete shelves\";s:1:\"c\";s:3:\"web\";s:1:\"r\";a:1:{i:0;i:1;}}}s:5:\"roles\";a:1:{i:0;a:3:{s:1:\"a\";i:1;s:1:\"b\";s:5:\"Admin\";s:1:\"c\";s:3:\"web\";}}}', 1795687248);
 
 -- --------------------------------------------------------
 
@@ -178,8 +177,8 @@ CREATE TABLE `ebay_accounts` (
 --
 
 INSERT INTO `ebay_accounts` (`id`, `store_name`, `ebay_username`, `marketplace_id`, `access_token`, `access_token_expires_at`, `refresh_token`, `refresh_token_expires_at`, `fulfillment_policy_id`, `payment_policy_id`, `return_policy_id`, `merchant_location_key`, `status`, `close`, `inserted_by`, `created_at`, `updated_at`) VALUES
-(1, 'store1', 'testuser_buyer1122121', 'EBAY_US', 'eyJpdiI6IlNORitFQnhDaW1BOVBTTW0zbG1wK2c9PSIsInZhbHVlIjoiTktFWTFMaW1zTVVwZDhKS1NWS1F2VTU3eGNWekRNaGwxT1RyR3dDQ2NjMVhUcm1sYmNzTm5iMkRIUlc3VDhBVlBYT3VlcGthU2pBMGZzeG5HT1dYcEVyMU1SdStDbXh5aWRHMU1LSVNjaGRTeEgzWmNsUTlCTnNpUlVMR1QzbmdiSFpMdEpRbVBpMWZBRWhZcFgycGVZWUJjMjM4a3Y2RmVXUFRkUVQvN0xZL014czhvNStJWWhzUXlBZmVGN21QMis4bFJ0UHRXb3pLZkZpSy9lWi9PMUk2RDBFYUVpVFVPK2VKYkZpTkdTSU1taGY0eUo1ejZMNjhMTUdZb2NnUytNSjNIRGlUS1pQKzZTWXEyZ2pHdEJYVUVkd1k2THFPL3NtRFFHWXpJZGVtZzNOclVrdW55WE9IMlQvS1V3ckJOWldqTklmejFmZzRwQkZLQXdPQW1jR083YUJ2N3Z3OUxpM2RmTUwwbVExbjh2QWNJWWliN2s2ZFRYSWpEVERnUTYybFVVcEdrZ1J3QkZuckxWc0JxelphME4zVmp2TkxHNGZRdlFrTkVTWFNkMFB5YXAzVlJjL0RxNFFUdG9EWmxVWi9Rc1EvOVN3bU9FSU9aZzVMYzBVVy9hMzNYK3I5ci8yQnBsUk1ONXRlVU80SFlCR3pKSy9KdEFmV2NKbDMzQjBvOEFwRnhsRHVTZ0ZkL3hJK3IwRlhxU1JiR0Z1eUNnWjdJQ0tBVDR3Um1CYWhzanhxQ0NRQkdWTjJMdlE5OTE4ZWZPRjF5eVNhcVgxSlhXYUlTV2VFTEhhZllFSXRqbmVmM0lYY3NPdVg1K2dHMldLbG1ZOHdXQjZ5OXBndHZoc1BYZi9TMEI0bmxUakR0ZUhTRmlxNUc4aUZOYlJhOUp6MGEzcGFKUk9JaVRqbEpJMjlsSWtqNmNjVTdNeWE0RitPZjB6d3Btc3lFQVk4REttTFY4d3ZpZ2hjL25rRlNpQkN0UkpMbXV6NFhMM21nQjltR2tVd0JpSktTellid3c5R1VmTjFqeExVL3hZUHNYQmpncUNMK3lIZUpCSTdtTDRycWJRSUNSbzdZSDVkVFNCVkxET0lHZHVTK0dzSGhrdFB2OGtoTnZjUDNlZEFHKzFTVGZ5aEV6b2N4QU9Qck51R3pCdnBFUzY2cVp3VHoyQkFoS0hxc0pVYm5tU2dWL0pIb0hTUWprN0krTW1rM0lEYzhxazlJSGRTOVNQbi81K3VpNnhGZldScjBnWUtiRnFQTERidkZXQnJkSk5oSGhCb1FHdzBjYVc0SWxRZFJMNGFkRmcwRkM5M1BreXp4MnpNQ21hWHdLQnJJNFpCSGxoOURSWGRZZVYvU09YZFRsM2FSdVlBdm5XbDRSaFJSblBZMCtlSlVkTVBXajI3UFJOaE1jaExDNUpsRmZYVXdvam9jS3lKUHVpNTFjalNCQjl1TzBHVWVpWHFSRUZxa0lTZWoydHh2MG1jRTArWHorandITHNSeXNYcUFISGZvMjA4VURCTmRpeFBKUzdrc0p3d3RJaWc5MlJodElGTE9sa05OLzM4Ukl2aGUwRG51bXpUMFVSSHBwazdWczg4bFpqckdPekIxak8xM2l4dkMrZlJVMmtuRE5DOFhRNTZicDJ3Q3dZRXlKQVRPUHNpRXoyc2dJdEc2YUhBSitkUTBMRnZWMEVkbDg2RjdhMVVUak44NmpGZzAzNCtrQ1JWYVRMclpaK04ycVd4WTFSdHh6NXRDbG5XNUJBZkJhZkVwalZvd0Z3dnloY2grMEpreGxGbFVpemI2SEZZc3RPTHdoR09JQ25ZOHFLSVNTYUEyMVNxQXlnMnJFSzNSbVRwU095aVhDbEFPNllSRGxVUVhWWHJLZTEySGYvTll4T3U1eGVEWi9YKzdYbjExTWZqbFhUc1NRM213TWowTEhHZ3R6d0RKcmk1MnZCbmNFSVVDSWZaL2lUdjA3ZEZCbm04c3dCNmhyeWpudG9adzZqYkpHSU15ajJGMlVwT1ExSWo4aHR1TXpWR1V5dXV2VzZnR1NPSGpMb2lqWm9haWEyVzltOG8yVDNGT0FpQ1NWZU5xd1dHaENuK0M4L1Z1ZHhYdXJUZWlGSWJFZ3NvSVE5YmVvZ3FUKy9jS1hISjhIaFArbVRQeHhpczRHYnFYK2tPOE9mM1lQdHMwdTNIRXhwQWlxeGFNSmZDekVSMzVMSXZlRHNjOXNFclF2MmdXaS9PWURxT3pEWUVVT0ZsZnBOTUtEUm8wQ0cxYnB5VSttNkVDMkkzekY2WmQxVFl5ZmlsWnNaOE8zNWJNa3ZmMEdjNTFyR25DSGRyQmI1eTVGSU54L052SEVNcVNoK3NwanNuUkhVN1pzRGtGYnUrVmR4Wmg2RlhicVZ2UEVDYmZxTDFzRmhyUTN3aU91KzVNTHEwV3kwSkh0MHdnTVluWnc5aEdiWEJyZnZScXBxM0Y4UjRjd2dDYkU4alF4U1NvMlJnTTdSNHVkdzl5VmdKTXQyUER4OVBCQ2FmTll2WTBhc2k4eE96Qk54QlQrcFZVRUp3TnpHK0VmRlNnSzRkQ0ZERmtYeXRZYm51WGpiZC9RUjVsdktuNHI3enQrT0NSam12VXBGQTlQUUh2SzU4elZDdGh3ZWd2aXNpRkNNeXBFOTB4NjQ0MGt0VXF6bDFvSW05bUFZYm5tbytweHpIVmpLYVhLSjVreVJQdzhHTmM0NjV3ZjllanZhd1d2YURQb2JpSjF6alFtZkhMZnV3ZlZYQzVremlCVHNiYk5nTkxrWEJFTmNGT0ZCVHVsZUdRYTJQTFFxemsrVFpZc1cxTkNWdzZNL08rbGFEcHplMmU5YWo5S09WVjRMZHBxZUNtb3VmK0RjM0NuN2ZGdU5UK29odXIwR2pkRG1Od1VUc0J4SzdMMUV6aTA2R2xjVEtMSVBWYWR0SkgzTk5VVStESzBEZVFtTFF5NW1BZWx0L1RpQjcwOWRJWS9kdDlRSHpsNU1LMFpUWGVTYjZDdVArNEFqeFpHRU5zYUZVQWU0TmpuSTB2VFUrdnJiZVMvMjR0WnVGY0cvY2JwNUdTZVptRmZUdC9LSEV1SHNqRVV1OWNieU5NajJQMEpJQ1dPY3kxT1BTUFVJdnAvNkhQT0RMc2wvbERWZ1RoUm1GYzBod2FuQ0MvSUUraFc5alhEWjBjVTJ1ZGlra1A2TWloM1kyNVhyNHdNbTUvVUNUUmYyekxlTkJpeVVKanR4bVAvSUdqWWxNaTFZWVlsVU8vZ0oyN01rK0pSeXgzWnJWWW5BVUpwakV3aEU4R2wvS1NVRjNQZHJEelk5L1lRWE5YOE1SMTlUN3FPTmVPVldnTnpEZDFwenhqdWNRajdOc0lCTE0yRXd6eDZ2ZktPbFBIejJaRlJFRlZNMjlHV3piMmIwa0tMWVVyczVrZ2tvTURvN0NWVWpqYUZoV2xlelN0Tm5HbWVLdXlQeGYxMU5ES3NRQ29peXdYamRoWFB0OUlEODNIZXhrWkQrRlU5VklkMHdlaUlkOXd5TS9NaEZGYy9VVnNHMUU3Zm8zTnRnbWhaU0VUNWNEK3hKMlVEbFQ5R0o1cHMxdnJLcUc4K2ZvL2hjdnh4c2tOdjczMWYxUXN3Y0xDdndiNmtyYTB6TExSc09CSStySDBYVUg0SjFjcmJ4NFBMTVdJQ09vZXRaazZDbzRwVnF2YUhSV2JhTVpSN0ViQnFMK2lVQnVXRXE0VWNZeTNCZHdkUjg3NlJIU0hNa25vdDJLLzhqWEV0L0RDQ3JkUFdhVWMwdUZFdGNraDRmdE9OaEhEdnYzRUdmenVXREFrNURaL3c3SDY4YkJCU1lhYzR0Y092VmNMdTMzbGNIYk8yY1h2ZU9LTEZGNHdXWEJFZUZ3OGlHeENpNWR3Uy9pMy8zR25GK3hIUkR0SFpkOVJPdWZaTzJUamh3bmtFajVoUXZpdHFocWZUeWkySXRPa25tanYyNzMvSWxsRjZmZk4yVGh6QmpUTi9KUDE5WGI1eS8wVWZqYVVtYW1aaU5nVFVaL3J0SGZ3UWpJT09VVzRSWEErSkl3NWx2ajA4VU5HNkpRU3FoaW5sRWVMTjhXVE1HcTJQdUgrZE1jNENiTmFRWmlrK250RkxPNUFyZEhxNGcvNkl0bnRleXMrU1N3VEh0OCIsIm1hYyI6ImNhNjdkYmE2NjQ5NzVjMmQ5NmRlNzQ3ZjVkOTBlNTI1Mjc3ZGQwYTA3MTE5NTYxM2IzZjE2ZDk0YWUyZTUyMGUiLCJ0YWciOiIifQ==', '2026-10-29 06:33:02', 'eyJpdiI6Im1maEh0SkNjdnpKdzVQQUZHaGJjcFE9PSIsInZhbHVlIjoiUlRBa1VNMDZIUURHaTcyVkNYZHVXdStUcGlPd1I1dnp5VUJqVHdCVDZVMkRtMER3WVJ3aTV5eFVITTcrL1RENlgxVC9yVnVBaVhzVW9BMVRtOGkrdVFzRUFYMVU0aWdESnQ1VDdUOFZhcVZ1cThNVU14Sm5ObENNeHYzc2ZvMTZMMjFNbzV0cFJYZXdjKytiZDRMSVN3PT0iLCJtYWMiOiI2NGNkMTk4ZmE2MzNjNTkxNWNkMTJmMTA1OWMwNmIzODhlMTQ4NDk0ZDdlZmNkZDVmYThhZWM3M2M1MjZiZmEyIiwidGFnIjoiIn0=', '2028-04-23 19:19:52', '6238383000', '6238384000', '6238385000', 'main-warehouse-16', '1', '1', 'Admin', '2026-10-24 07:19:54', '2026-10-29 04:33:02'),
-(2, 'store 2', 'testuser_zain123', 'EBAY_US', 'eyJpdiI6InZPbCtHQ0s5ancybEtlNVdpWVV6aUE9PSIsInZhbHVlIjoiWlk3Nk9BMTNDVUpKdll0UU5kbTJrbkpNV213R3RSclNHMjM1ZXhpMkFWa2RhL2dTSXpRR3NvNWs0U2lhb29Ta3RldlB3YkpoZFdrc2U0SU5TRVpmMWhseUtXK2FCSEdlNkpqMnRqRHRPYnBXN3Y5dTRWWHIzUWI0OHovRDdxTWUxVFJiQk5LTWdxdG8zckJQRjVudXY0UHZSa2RSUFFSWHZNb1FuTmlJWEFIUThWZUprQUJjSC9SWXUvbXBkOEgxNTA5VWNMQUNIU2FmYWZxVDRJNDN0RnZRdHFkMjdaSG1iNk11dnZzWUZJaEtYTFh5NUo2VUlwM0dBRklscG5QNHBkWUg1bGZOWWg1ckRaMFNaV3RZcENKNXFOWGl4azBOWWpheG11RTc5MlJCM1ZSNEFvOU90Ti9JZzNPZ1ZoWk1JLzd2RldBUXJvUHhPWHQzd2Z6K1dWZjIyVVpHTW1qSzY1dUM4RFVUVTMrN1d3c3liamJpNU4xQ0JTWmd1aGJtc3hMQW1kL1doTkJONVpkbWUwNEkwZktja0FvcFcrVElodXhwdE8rdWNkaWh5MTB6amYyNE9kRUV4Y3FrMnl0eGoxNEc5VXhpUFd0ODVCanp4VUlYdWozVDBoQlk5dWVwNk1KQmlJNnVxSHdleG5zL3VsT1NOYVR4aExsOGhZZEwvNTVSblhJNDBtd3h6Sm1ZOWdpRmxJa1RGaXhyTnBORFVUcS81ZFNBUjJSL09Oc2RkNWdpQmN3eG1wSGNYUTQxYjBUSzM4VFRjK1cyS0JZbVIvTXQ3a3diVWtRYjJVTWh4dzBCNE9aZ2h1N2MrWmlIVUFPTlJJSkpJeWRhSjBJMklKaVhEMytPK2RZeFJWd0JQNGV3OWRRMUpXOFR0SkE4RnVlNVZYZzNoSjdVdDJiUHJOSUFsL1FUVzdOWFNaNDBvenFIcE42bGJMejNTV0Jzb0J0amtJMGpYbUxFanpORGdQWG1ETjlMRHptSE1ReW1xWThJc1hsd3dhck5DcTBzS3NTaHBJcTRHMExGTUQ1K1JlQ1FNWU1yRmxOOVQ0RXdMQnVYNTQySlZaQWZNK2YzRkhudFNheGtlMFZYSmdVemdHMWxXd0NMdDRtMmRFVTFjdG5wWmJBVXpRK3kzUE9HZTBGSEx1MnVISzhxYUZGdU56NE9pcHhTVlVLSjcxQlNEWnJSQ0ZMVHk3aDhRSGRJbXB6bkRZb3RwcGNwUmhOTnFiR0lGSzF0UDdwazhMZlNQdGxCQTVSMUNsR3Z4U080Y3NhNE1rMTFsY0RPMkhwVithTit0TzlPZllKcXkxTTR4anRFRUJaRUtBdkpHMzhPNE55YXU3NXNtcWs4aHdwZi9HbU5reTdBVmVSRS9pWXlvS2VXRDRvZDJ6M2xjcTBtSTdUb2lVb1FZOUwrUGhoWWZ1dkxZNmtPcnl6dk95YmVBUkpYZ0FiSFdsRDQwM0FrQk13eFJUNWRuNjVOSHZ1ZXJBT1RQb2NDdVd2RGt6SU9yNkw4RDJGNitXaGRGOU9MbWtnbTNqZVZGQlZ3MkZHeExLRzNTUnJlZHA0VzJrWlpiVGxIcHRUSU1HRDlxalg1cXF5MkVoWTNCV05mSlZ5bzVoeGJqUnhFcCszSVlxd241b2xqU2J6bzNOdlU2OGw2TzZGdWlxUlFVb2ZoaWREUG1tazZVNWdhOUFyRGI5VG5HdW5oOWsxRXVHMEZqRzNtcTluUzUvMmxXZnNFNHlOMDkwSVhDSitTVmEzWGhCVHRoOEV0Vjlla1NTRzYvU0NuRjdUOXFkWUh4Uk5xY2dPdnVJUy93YjdWWFNDMWkxOWRBVU1YQlFEeXJQTjJaR013bDkxWTh1M2JtYTBQL3BaQnNvcnl1S3ViNTM5cEJQV1RYTWpPZG0zbUg3SW92Nk9XWjRGSklJcW9ZcWZGc2IweThkZEZRRnpMUCt6eXBvMlZDcDVJZStCMCtSZnlDVWMxbFhlR3RGSUFFRkZoTTZLUkxxR3RtL1dpYzA0UERwRWprUmZGeVcvbDYyVFVEeWRBbkZNVjdDNjQzNTdwSlg0NW00OUVZTklWamY0ci9EYVVJVmFsZHNIN1FUQU1WS0MyN0wwS1BOWHJubzFSQnIvVFpBeXp2ZkRXSGhlRkdkMlJGRmRNelE0VXNScGtPbFNvYmo1aUhzNEpERXNPVmNTSksxVVZYdHUvRUdWVWpZNk1pSE9IYlJuSVFUcTRVOU02TTVhbVBDblNGbSswMjk5ZU1RcG5JanFjZUZWaHg2clV0em1xUnlJVW13WlVwdGRsWm1LeDhjdUJoUmFEQklRVDZ2L1A5aXBya3Zvd2ZvcHBDVzFLang0RkdmOGVXTVczVUtmYmIzYzRlUXZWbktZOHo5eE5UMHY0eXVIQkFQYlhnNUZOdUhMb252V3NjeDhQaDVEL3E3OFhyYkEvSW5EYkJBQ3lQVHlZWTd1MEliRFF1S0szNlZObVlRYWhHQlA1T0Jxb0QwQk5PaThLWjg2SzBxOUVwaGZuamgrVXdJUS93SkVidk1sL2kzdFlrMGYyek1sR3NPSGlEN3JPWEtvMHBycm96cC9Nb3FBWkZJRFcyRDVKYzJtTWgzYmErSjQ5VTk5bnBlK1VqaWVEY0NBS1hhMEY2UHZCN1cxQXd1RWJqUlAvSms5bXBMMXRUTE4yNHNaak80UHZjUWRuQU5KaUNDVUQvRzlyMlVrRkMwbnh1UlJlOFA2bzVuZmhpKzg5Yk90L2I3WU9oQ1JPRERYRmswSXJYYWo5RXRUK3N2R0s5Rk5ZdVhmRnk1SHhPeW45ZWlpb0VsTnpDVTVraHhwRzE2OE1MZUx5bUdoTkdyK2xtNC8zaHhuaEhnazhiSHUrVHg2OU9ab250SFBJYVg2QUNBUXlBeU5uT1hyTGtFVkNvUUdNUURIK0dRRlJwZnRDUFJxc0tDOXQ4Q2U1OVNUM0w5em0rUllLcEs4YW5kNWY1RmVCOG1LdnY1UlpRMXBnL3FQNWh4UHM1YzdyTEltNmhVVUpoUFpWQXlYNkFGdFY0aUNVbmRzMnZZZjNKUDFCUUlXNytHdU1STjdYZXY2Z1kvSTdIY0RDSWZ1MVYraUVSN20xWU1LWG5KTExMcDRDNUZOS2FPYWF4bFg2NWxrR21XSktXZ3VjbXRRWkZmM3IwQlZFNWQ4RVEyZzI3Y1J6am5ncHVueGRVRDc5VGxDSjh6eEU4YXpaS3Rma08xUFZGRlhJK29wT1FxUWUzSjlSeXJ1c2hlWjUzdVFrSHFWdzNmMEVGZFEwYU1pWWhIVmxiTlIvaERhVm5rbWtiU0piVUdSY1hnaUxPNzNJMWdueitnY3RidDZtdXZIMkdrVytYbElFd3hCVko1akFzeU5LVHJWY1BlM05qQUJuWTc0SDJKNWNicDByKzdJaXI3aWE0U0U4blp4SHc3ZFQzY0tlQVhDdUVCakZkVHFxWFU1c1JpeWwvaWlnYktORlZzVXRONnJYenV2Zzlhd3VZbFlNVHFrVm52MGR1azNtUVpSdi9SV2FRYmdiWm9ic3VYdzEvS0txMXVuSEYxejd3WFBSU00wVGkyZjBURld4SjdOWmJuWG9tSlBtd0FPc0YwMHpnKzFYYWYzaVJHY2RWSEVlWEFiYSt5ckhaR1BIb25sQjBFcHRRcE5yMlg2cStCR1YrMGxaOEZhVlBWUjVJVXZSeU91cUJ3ZzdueXpPRW9IbzVJTmh2Mm9mRjdtam9ua1BXT2JrU0VWVG03a3JiOFYzZ2g0TklTOHM4RWRTVTB6aFFJUjlqclpGWXg2QnpwbE5xVjFQR3doNWgxaTRvN3E0RkJ2YktZbTVRVUhkRXNTOGZwSHRLa3ExbnIvd0VhK3RDWFhWczk5ditzMytuTGh3RkxnaExLK2gvb0hYQnRKSk5lTU55em1LOElER3llbm1HeStHZWhrOGM2S1dVTmFWL2VMR3J4bUhWOTlMQ1U2T0Vqbm13OUV4WlhTL3EvZXlVdkt2cTlablBxMktoTlh6VldvV1l4b0NYallEV3RUZFc2UXk1RGNVZitmM0ZSeFBWdU84TTJkajJqZW93a1I0NUExNzZMMGdodU1MK2xXRTNuVlpmTkdFbHBjQTBDT2hVRGhuMWlOV3FTVT0iLCJtYWMiOiIxMTgyZTNiNzk3OTU5OTRhODEwM2I3NDlmYzYzNTEyNWQ3ZTZkZTRkZDc3NTc3MjM5NjY2NWJhOWM1Y2UxZTE1IiwidGFnIjoiIn0=', '2026-10-29 06:33:13', 'eyJpdiI6InVTTWVzaStYd3UyenZKbFpPK2tJNHc9PSIsInZhbHVlIjoiQ1VXV21BYkNFR1F4WEJNbXBnazJJcUpNSTlUTXNjcC9tRnRxZVk2SmJWWm1GaW9wYjEwZXZ0MzZocXFPV2IyTjkycVduUzE5RC9haHV5MEViaVMrM3NpSGZHZVJIR3dNWnU0OEhmd3MrRWY3dVd6VjdPbXM4OWZhWGIyYWl6dUVNbXVCWXVRa3ZYT2J2ZDJlU01hcG13PT0iLCJtYWMiOiI1ODlkYzQyZGM5ZmNkYTkwMzNkNGM5ZjQ5ZTVmMGFjOWViY2Q0NTZjNDg2ODVmNjVlNmU2YzVjYzI0N2U4NjdmIiwidGFnIjoiIn0=', '2028-04-23 19:20:32', '6234437000', '6234438000', '6234439000', 'main-warehouse-1', '1', '1', 'Admin', '2026-10-24 07:20:33', '2026-10-29 04:33:13');
+(1, 'store1', 'testuser_buyer1122121', 'EBAY_US', 'eyJpdiI6IlUvYWM0RGJZVWRWVGREZm4wenVjekE9PSIsInZhbHVlIjoibW12VEhaaGg5VkZPRlcrbWYvZzU0ZFdMM3h0TWdVVkNqa2FvNFVoV0hVUzFPUjE1YUY5ODk5SDBTeDVvaDhtY3ZUQXE3MUlqUVF6UU85OTNwMy8rbnhnUm1OY2d6bUJaaUNhaGZTd0g4ZlBLVzVaWGJBYnU5Mk44VElFbE1HZE9idFMweElXNVRLRnFVTEhGS2ZRa1JqN2JzNFVkVi9YQlRscjAvYXNGRFlGeFQ1VTRuZUM3czVWQ0d6eHFOUHJxTDB1aE5MU0QzeW1IaUxkZndJUVB1TkMwZnFyNGJyRWliQ1BjQnpNcm5XOW9aYjliRTV5ZWJHenIwT3laeVViR2VzUCs5SzNHTXFSY2NNQVl6KzRqb0YyYnh5V2Zuc05RNCt0WUtmaUQySEE5Rm9STHYyYStldEVMMVJhSUtPM2E0Z0dSU3k4SFZ1L1VPRWpEVjVDRDNGQWsxVzdKYzdiWjV6SENxcUxMTEtKRnVNbzBCNnQ4dnZINzQydGVkNXRTTVkvU0NIZkJXTlZJK0d5UUVsZ3FHZDBnNWcxSVhWWHVTVFlSdjk5dmRveS9IUnJOSTcrb3BYb1h0WTZhWmVuQTNUenlGTVpxaHZ2a2gzaGFPRitLZjhaTXBNQm43V0hYOXhtaVJrOUtJaE0rK0dHSWF2WHIyQ21pb1NhVFdTZ1gxeis2M0pUdmU4UFJ2cm0vbVFyeTJrUXl4blFJc3JTRkpFSXFzaXRPeHFQMnFMOGdDOVpubmM0c2k1UFVURnpaRUo1a0dRZ0pmMmx2eGIxQU94Y0ZVZUNheWpWYk5hRU5xcWw2WjFNQ09uTFpmRSt2bEIwRnN1Z3RoMndSRG9laGJGZDBPc01USUdzV2pGQkdaM2VaZDBxQSs2cnNBb0UzVmVXazJVV0VvQVh3RzRSWDZ0UVBuWG1HZ0NLZVA1endsU3VTOWlTSmFPRmRJWklRVWVLeEx2Rnc1c0xGYk5NRnhPLzM3SjF4enA3am1ibGYraXFoQloySjRLK2hSUEhNaVU1anduRzQxa3JzM2NhbGNFV3N3OExPZTV0eEFHOUUzNE9UWEp1WUg4UHJZSzVjVzgxLy9wUlFyV1NOWWdTME5VMUNBTUc0Y0xTN0cvcXJjRnhNTjhNNVUwNGhBYVp0Wi8yV25Ya290MFIxOWFRZWdCYVVMQ1FBeEovRXB4WjQyOFc2d2VnRmFQZkJRLzdINTMxeGZKa2NxaFgzQ2VXWERlL29yM25CNkRvYzY2QXQvU1pDeGVUb1RtclF2WDVwTzlxTjNOR3p1amNTMEZuYk5uMHo5VU91a25RNVREWTR6TDZ4cDlLZWFHSlNZanpISGc1UmYrTDVveGpKVnB0QkxWRGZSci9VSGZ3TG9OL3c5ckw2cEZwTUNEbWQwUEJ3UHJKT1gvdUJlKzhXanJDa21YWHpYWmVvV2FmMFdTOVdHQWJlOEtvZ2tRMm9ub295ZFhBWU5mbTl4UERreUxBaXBTK0VqVUFUajV1UTVzM1dRRzNValozeUQrYWdnV0E5MlBKdklHV0xCMVpBajI0TTU0aXUwUXV4dHJsRjNzRmdqcm5PMFYycWZTVUNmRDJEbGUzUFErQ0s1RitPK2dLdzlyQlJRcTdSY0RYNWtaSS9sZ0Y0UDRUY3ZZU25JN2djTTQ0a0VpSlg5ZTRXS0VFZ1RRWmdnb2FBYkpwSXBpMndneEFyellmK1NIbjBmT2tFeXFZYXhqYjlJVlBObCtTYUJEN3NqeTVUUXpOUDNhVDhZdTRJN1VoY1RHTThEMzVvUVoxNGIvbnhYdUJiVUtCZytabi9rUjErRXM2TG5uZ1RRZUN0UkFrclpzSlIrbUh1WS94ZDRkbk5ILzhPSUdMRThoRTAxRUJ3SjVSamlXYTdiU0Mxa3E0dkpraFc5OWNJd1JDbE5GZ1VOcDh3Vnd3cklNYzE2MlAzYlBmMVB3cGNkWER6bG5kdjRpdE1QWmc0aVdHUjk2SFhOYlljWXY2cW5WSXVTdncyYWp4dUk2VzdzOVVaTjZ4UnVhUFJtQzJhNWI1ejZLR1h0UHZMNEZyeFUrL1l1ZTVvRDZJbG04L0tGSGx2R1dCL0N4cWlNc3pwTi84N1kzZ0dlVW1uSXRVNjIyNVNOcGNBZHdROU5FekdkTGRRVlNtZVVHVlkyQmtobEVJTmhmU3BiajZGd2U1b1A4Q3J6VWJmRXFZK2QvZXFETCtYYWpTZG1NREVPNlBMM1ZRaXhmVzZCeDBldGdzVk5QdzRHZ1cwVXo0S2h5dks3VWVJKzc0eEJVRFV1YU9BUnRVeXkyeS9ZZENLY09sVU82YTFQU2JUOWxNUVhoMGp4UXBRZWljK00vTjhrcW5SVlQ5TFEzTnQvcFFWL2FtWlJ2QXdTdFQ4eWdxL3VaZUhKUXVOR3RjdElSb0NwVmw5NVQ0QzVIR1dsV3hHRTg5L0FtMEhJcXVTS1pNbU1sck1FSjdVNnJMMVFjWXhmWWNFMTU4aHdjbXRWUVlKV0o0eHlRbjdPckpyamxOeXk0ODA3ZjVxeDdvVXRKRXk2MEVhSGFhTnVSMkFTSm9adjJKZlkvRmNaK0RyZ1NCckR6T0krZ0ZYSWZ2YVd5cGRKREdNUGJtMGJSbTNCSWlXMi9TbGE2d0JVcWNpTmlxd01GQXkxSXAwV3NLazVnTDNKT1F2bkgxakYvdnVvY0F2ZER1djh6YUovdWJ6RWhzZFJhMFJ0cDJRWTZmMlgrUnVFTmszZmV5WjYyTFg5TzFwWEo3Qkl1dFByNjNqQXU0OE9qYnorTnVJcGFGeGpvZXdEMXJ6R1N2NUc2WWpKTzRid3UrUis5MWRsUWhhejV0TUZnYU5wcXVwMEdxYytPUUdrNDFYYTNvWkVFSUNnMVhWRTBxT0xkUmZFWGlWR3VrbW8vVU1TWnBBQlRVb2JUcUV4SUs1d0FtNGlyaDF1ZDdkTUc4SXROODhkeGw2NmE0a3hoK01INGNnZlVhZFZyOVNPaVlVV0VBZTRBbXkrR1JwUDBiODRDQkpUdG4rdEVzTTIvQUs5YnJUS1FzQWp1L0s5bnVVWWt0VmJoVjhzZUZRQWcrZzF4dGlrWHQzL3FldUdsZHBnL0Y4VWtPcmtKZWVCNjRjQWxjZUE0ZG1iSGcxQlYzbGx1T2ZzRlNhcmhScWlGU0hNT0FaNHJTZ0hPRlAwR3hZb0V6eEdJZUo4TUpldU9MQUk2WG16UnFFT21qT3pTaGF5QjVxN3dNdTRoSE5GT1B2WElrYTBZeUJvVk5NTStoVjk2VE9Kb1VjY1NSY2hFZkcwYUhWaXZpM1ZETlFERSs5V20zQStWY3h0akdLcENnYk11UWU4ZzZlL3hOY2Fidkp0ZUZyZnZiZ1JROFJjeHZkNXZ5eFozdURIR3QvSkdnM2VRUjVvcWwvMzhNTkV6N1hSNHdTSmQrQmNpQlErdnBSVUVxU2JSM2cxZWJrOWlYSUhmSnlMSTBMUnJ0aUZOMnFlelcyOG0yNmtPSG9xOGNYUEZaN0d5cmxPaWk0SDVwTkIzeFV0aHZIc3JLbndCd0F2ampCL09jbEhwUUdoOFhaY0JoNjM4SGxHM0N2cVZrVnNwbEpFSVBKY2t3cEE0MlJJVldiREFsY0EybFpSZnA4Sit1aVJkcVl0Z1dJcmZmdkpVNU5ZMjdwVmNOMHRiUkpkOWM2RytMNHRGYVg4VDVvN2MzSy9mYVoyWWRHRHpTM1Nqbkxta3RwbE5kVHVzZXNhMTNTbzFmVHgyNG9EU0dNb1Yya1VkMWdONXR5U21sTHdKcVpJVWNnNElXRys4cHZRT2FwS0JucHdEMlBsbFRLT1lPYU5tOElXTkZGT1NNU1FpSHBBQnJTRWNlT29nTmNyZnVlL1QybjRiOElyWTlnS3FUWVZqdDhMd1Q5cmJvWW5BMDZSTytJRDJueGJHU1E5cnQ1c0J6UmxXcUF0OVZmMGZsWXRLc3R6VUZuUlEwOGRUUFVIL01TdzVQOGJFaUx2dHdyWEJUdklIeGo3S3djZm5kb2JWNk1CK29uelhIYVFNNitoVStQUlJpNWxuTXM1Vm9Ta3Vhd0IrOGZDK1JWRmxsVlRDVWg1N0ZRVzBVQ2svdURvcXpRYmthc0ZmeThKQWtBakFXVGd1cSs1VTZSZGY4S1B6MGtud1c3OXMwNCIsIm1hYyI6ImJkZTVhN2Q1NzdhNjE1NDllM2Y5ODBmZjEwZjU3Y2IzM2UwYzYzYWQ0ZDcwZTliNmY5YTU4MjAzOWE2ODM2NDQiLCJ0YWciOiIifQ==', '2026-11-25 08:40:20', 'eyJpdiI6Im1maEh0SkNjdnpKdzVQQUZHaGJjcFE9PSIsInZhbHVlIjoiUlRBa1VNMDZIUURHaTcyVkNYZHVXdStUcGlPd1I1dnp5VUJqVHdCVDZVMkRtMER3WVJ3aTV5eFVITTcrL1RENlgxVC9yVnVBaVhzVW9BMVRtOGkrdVFzRUFYMVU0aWdESnQ1VDdUOFZhcVZ1cThNVU14Sm5ObENNeHYzc2ZvMTZMMjFNbzV0cFJYZXdjKytiZDRMSVN3PT0iLCJtYWMiOiI2NGNkMTk4ZmE2MzNjNTkxNWNkMTJmMTA1OWMwNmIzODhlMTQ4NDk0ZDdlZmNkZDVmYThhZWM3M2M1MjZiZmEyIiwidGFnIjoiIn0=', '2028-04-23 19:19:52', '6238383000', '6238384000', '6238385000', 'main-warehouse-16', '1', '1', 'Admin', '2026-10-24 07:19:54', '2026-11-25 06:40:20'),
+(2, 'store 2', 'testuser_zain123', 'EBAY_US', 'eyJpdiI6IjhjZmJuU0Zid1p6U0pBV0VqMWZOOHc9PSIsInZhbHVlIjoiY0c4N1dQZjJMQTIzN21xek01a1Z3cTF6elpMcGVGQlBGY01BTk56TnV6UkRVYlZDNmxFWm95ZUt3K2VMd0xQRTFjYysxSTZpWEtscExBb2U3cVg0VFlXSVZES3pNZVNqYTlHdXJGMHFvM0pQMjNpSHN1bDJDL0RWOUtINlg2bmozV1VtUWJYV0xRMU4vYkl4TUN2VVhMb251U2s1c2c3aWJvZkVhQlNZTU1mdmpDcjZZc2tSei9oRFdVMmhXWHNHRC9xTndsMGFMUmV1U1BoL29yS1JhRGRRdTlYSHZ5d1lFQVR3bUZxRjF2bytKbCtvbE56bHpoV3RnbHpINVdqNUhTMkEvdTcrN0hQWVJaR3h2S3lodzQzNTRoYVQ0MkxzMjBCYTdwUVlLUmcrRWJrclhDbE95WkRrK0psTDZzQ2RoT1g5NWdScm5nQXRiUDBNUkQ1dmdONkxGQ2dUZjhYb201NGt6Mk02bS9TNFV3UFRsTmlsYXNnaEo2QnFPV1BoN0FuQW9Rd2xNVjBZZkhWcy9SbzNHQjJDYzRzQ2VhNWFjaFd1VS9BRXZ3REp3OC94aUtjZkUvL1paWEc3UTAzWnljbTB1emRuR1BWanMxQzNiclZiK3g0cU11RGhVWEdLaEdoUDZ5RnpDV2gvU2lXcnU4YWttVmxXaGFydlFSaVBWdUVtZUU5NU9VVTFtSXkwTjRpUmJyQmdzMVNvWkQxQzhkZ0tOcjhmRFBCOUN1a2N2cHAzZml5YlpLY1J1N0tFdmtrWDFUdmJESGl0a0ZnV1lOMjVzRk5XQmJETWI2U0ZWbjB5RE9rSkk3Q0hIVHpRNy9KOWNEakEzQm9vTlF0WVFtVGVNYUJKdlV5L0pqVFNtWHBLLysxQ3ovTkVqWVRrR2xoSkZuSm4vV2hVaE1leU5LbmRYOUc4Z0ZEZkhLSkZUdGlYVk1OSlVaT1hRTVNaUFJ0UWZGVkl4alBZMCtzb1pUSEp2ZHQ5L0wwZDZ6QVNGY1FJUXRGdVh0UmgxTkVqOTYwTjBnbVlIc3VKcDExV2l0dzEvazdVbVg2RHlFbUNNeHhWTHdubFFpVzFxbEpzcmdHQmNSdTNDTjdqcTNIMWJsS0F6TkxES2ZBYjhLUURzakEvUFl0eHJmUHRISTc0UUl1b043elE5SHV3RVg1S0FBbHBHUllTWTZuN0VsTFBMbDJSOHpNYkljQ1phZ0IrOVNTL0ExR0lxa2tsL0pVaVlMZWFBaHBWYzlUS2prYkNlSkRNQ3Bpb3R4Q2llYXFZM3BPV1lndmtjTFF0QSt4WUZEY1A3S2NSNkNla2NWbkM2NUxsZll3djVrNko2aTRxRUpWQ3M0Tmw3N1A5dlBLTUVCQlNYaG8vMTZQdDNuU3A4aEpJemZoV29DZXg3MThZMy84bDJYajExS29IL0U1YVd5K05KVmNVb3RIMXBkaE1hUS84K1JqNEFKQURYdFVDQWtOYnpnRUxxMTFWMTlWN0gxUDhVVEZEYjZGWTcvNlBHTERRTFQrcWl0VDd2UXFCcERiNVNjZlhZOG9TQ2xweTcwaDRkK2c0VnJxT0JZY2NYZUVkMis5NGxiVXFmM0Z2NmN4YXkvWFh0WkF0b3dzVmpLUFdiT2dqZVJUQ0ZjL1RxYVZVR2J1RnRVdHkya1I5ejdtS0krNzNyRjRCOXBMdjE4c3V3Q1VKbXA3UHAvNW5LbFdVdDRIQTNNYUtKRTBHUTUvMEdkRXFlSmNIaHhiV0p0K3h1YlBzKzdUb1pqay9rcUdrMVJtb0hhc1VuUXZ1V3grTXVlcVNGTFllVmtxTGxPTkFGRW42Q2RJQ3M2SlJJa0JLZldlemVKOSt5MFlHSVNEN0lRamZacThLUnRZYjlUUmV0dEJIc0QzblJnQVl4L0FzczlJbXhMUkt0cDdkVm5VZ2JhbXZYdFF1eEZMckoyN0hYcERsV3lvMVBhUVYvL3RuVThnUmJZNCtlNkRWQys3VU1vQ2FCMEZjZFM5UjlBd1ZHckZVVXdYbDVPRHZnc2xZY3ZaMWUzcU4xd3ZzSE4wZkU5NVpXQ0dLQ1pHYURBQUZzcGpyL1oxVFI3YlVURFc5K0k2SHhCU2hlY1JnNlpzVWFyOGZ0WkwvaDBPN2c3Qy84NFZCd1UzeVdLWDgzbW9EVnNRODlZZXZVczRMQkZmb3Yzd1Z3d0JDVitxNjFJeStLeG5uY1BNbWxDVTFUcWhRZ1kwcnQ1Z1ZqSnpTME5vM2hMemN6ZnNqWnRTbzNjMnJMbS9HQmh5bjRqSzI5eXpjS3gwS09nRloxY0d1Q1FiNjFYb3hFdSsvYzh1dG9DamlYNWswdE5BY01MRnM5YkUrVGtKemg1Vk9rWDJDTFdST0Y0SGorMkJmVDZONUlyVUFJdUZiQWNuTTlJOG1QZWlMUGg0dHREdmZidG5JS1d1MWx6aGR2cDlVUURsNXhwRWFTQmp2QTQ4bXVhSUxOZXhiN2p5Y2gycHY3ak9uL3NVZG5oeno2enRUaHpWY1oxMXFmYnd5R0xBRmROU002SjVlK2xZMTRjT0drSXQyeloxTW4ybTlwMkNqSGQ2cHdrTS9TM0lsbDdUQWViS0RnQnJpaVVDQVVNMTdpaWN1RTNKcVdaeDFMektvamQ4UkJaY05TeGJjakdma280QzEwTnp1YUh6SG5ySTJENit6dmxSelM4emNDQ2FuUUYva1JQajVUZzJwSnNzbXB1czhBc0N6cXJyMnRoME1lUXpPNmloekp2ZTg5U05EeUIyNjRIdTh5amdTTjlPekRXK3ZrZHk0VmFWS0liZzYzaTI1ckcyVHFybmhrclJLbVFPMm0vTysxWVBLdWpzS25GbkxJSFVxOHFBVUVmdzM3QVBBaXdSaS9wMDhrckRlczZsVmorb2xCRjNGQ0VhNDRqZzFrRUdqQzg4NlF4WW9FUDkycUs1T2hIalBvWFZQVytwblM5NUtLSFZQN3ZXdGUvOUhMTDEvWXB5bEprcExOVERmN1lpalQzNFpSTUI1YitkdE02RzVBQVJuTDg3aGdUUGRCMENTNWk2WHNLOHV0UXcvRTBKV0VlYTdlV2VQZ1BIa3dwZVY1NjFGVEY0c3N0TVNhbHo5bk9XZFFwTlcxNDhTUjNFQ3ZOQ0VTVVdZaTh1N2RQbm1SZWhxYjlKU0RZN0NXT2xJSTlYRytyVExZS1FtS3kxMldSZDJmaUlrVW9RZzlnYW1HM1pKa1pzQVZMSjI4aCtjM1hBSzU1Vmo0ZW45cTBoNGdCdFVEQUNGVFlnc0J1Z1ZSTG94c0VKM3o1ZXB5bThIMWxsU1VOZ09rMms4WXl5M0I1NjdBYzQ2K1FQT1JmTTErTG5VWGNrZ1pYcytOWVNKT3k5S1AzSEVHTXN6cVN6VTc3TVNzdEFpcTNLNVJwUVFsYm5OVmhwZnMxQm42dHlaMzZOaGRiaDAvNXloOCtJMSs4V2VacWVMazdhTC9SSitBSERiZVZBaWRCODZ2bVZuc0JuMVZwRUxFZWtSbmdtaGhSNGhXb0xaZk91bFp0WW1kNDJ4VFpkWlROUXZuVEp2NFlLTVkzSE04ckc4WnNVNXVWS1psbjBhUmtMRWx2NWhOSFNiK1h3VTY2R0NDOTBVZ0dLdGNTcVVnaTNLQVI5UnRuUWJabkFUWVBVMWoySkNqU3FMZC8xM3RMUDdZVXl5V05ZT29DWlphVVZMTWY1WkFhNGY1MSsrS0czTU4xYTRyU0cyM3dqYlNlVVNmSncrMi90MldZRWM5bzBlSjUyUjFqbC83Ky94NkFDVk5La1ZQTDM0WVZKK0QvdzAwZXFtZys2M01aSjR4VWFUZ2FCU2E5dzZCbVp4NzFYZHpZQWhPSmJ4Y2w1TnJkZGxwZGJtRnRCYXpuNDdjT1FzM0VuTWU4blgwMXZkc3dZWElHR1Vxa0NvQmc3eEt4UExmNFNUNHNGY3Vaa01WVy9Jc2RDKy9UekpmdE1yb3lmZEREcGU5MUZjUWpnckplbEdwTGhhTWpDNXFYTFJLNjRZVEJXcG90OUxKVndwdld1dXIzdXZPZU1pNmlOcDRSVWk5N25OOS9Lbkpac1I0ek85ai92SXNPRngySHNWVUd4RGdDcW1jWnhzdzFTdkszQkhRMmFlTTRBMkovaz0iLCJtYWMiOiJjZDFhNzhhYTU0YjUxYzU1NmU4N2MzYjdkZjA2MDRmYjM0YTRkM2VkNTg1NTc2NTkzOTg1MWU5ZmQyZTlkYmMyIiwidGFnIjoiIn0=', '2026-11-25 08:40:31', 'eyJpdiI6InVTTWVzaStYd3UyenZKbFpPK2tJNHc9PSIsInZhbHVlIjoiQ1VXV21BYkNFR1F4WEJNbXBnazJJcUpNSTlUTXNjcC9tRnRxZVk2SmJWWm1GaW9wYjEwZXZ0MzZocXFPV2IyTjkycVduUzE5RC9haHV5MEViaVMrM3NpSGZHZVJIR3dNWnU0OEhmd3MrRWY3dVd6VjdPbXM4OWZhWGIyYWl6dUVNbXVCWXVRa3ZYT2J2ZDJlU01hcG13PT0iLCJtYWMiOiI1ODlkYzQyZGM5ZmNkYTkwMzNkNGM5ZjQ5ZTVmMGFjOWViY2Q0NTZjNDg2ODVmNjVlNmU2YzVjYzI0N2U4NjdmIiwidGFnIjoiIn0=', '2028-04-23 19:20:32', '6234437000', '6234438000', '6234439000', 'main-warehouse-1', '1', '1', 'Admin', '2026-10-24 07:20:33', '2026-11-25 06:40:31');
 
 -- --------------------------------------------------------
 
@@ -342,7 +341,8 @@ INSERT INTO `inventory_logs` (`id`, `product_id`, `inventory_id`, `type`, `quant
 (29, 10, NULL, 'adjustment', 4.00, 8.00, NULL, NULL, 2, 'Adjustment #8', 'Admin', '2026-10-29 03:50:49', '2026-10-29 03:50:49'),
 (32, 3, NULL, 'ebay_order', -1.00, 7.00, 12, NULL, 1, 'eBay order 110591225361-523501569', 'eBay Sync', '2026-10-29 04:33:12', '2026-10-29 04:33:12'),
 (33, 3, NULL, 'adjustment', 1.00, 8.00, NULL, NULL, 1, 'Adjustment #9', 'Admin', '2026-10-29 04:35:15', '2026-10-29 04:35:15'),
-(34, 3, NULL, 'adjustment', -2.00, 6.00, NULL, NULL, 1, 'Adjustment #9 edited', 'Admin', '2026-10-29 04:36:20', '2026-10-29 04:36:20');
+(34, 3, NULL, 'adjustment', -2.00, 6.00, NULL, NULL, 1, 'Adjustment #9 edited', 'Admin', '2026-10-29 04:36:20', '2026-10-29 04:36:20'),
+(35, 10, NULL, 'ebay_return', 1.00, 7.00, 10, 1, 2, 'eBay return 5000026561', 'eBay Sync', '2026-11-25 03:53:51', '2026-11-25 03:53:51');
 
 -- --------------------------------------------------------
 
@@ -421,7 +421,10 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (23, '2026_09_09_000002_create_product_connection_item_stores_table', 1),
 (24, '2026_09_11_000001_add_master_store_to_product_connections', 1),
 (25, '2026_10_29_000001_create_inventory_logs_table', 2),
-(28, '2026_10_29_000003_create_stock_adjustments_table', 4);
+(28, '2026_10_29_000003_create_stock_adjustments_table', 4),
+(29, '2026_11_25_000001_create_racks_table', 5),
+(30, '2026_11_25_000002_create_shelves_table', 5),
+(31, '2026_11_25_000003_add_shelf_id_to_products_table', 6);
 
 -- --------------------------------------------------------
 
@@ -530,7 +533,15 @@ INSERT INTO `permissions` (`id`, `name`, `guard_name`, `created_at`, `updated_at
 (43, 'sync ebay products', 'web', '2026-10-24 07:18:44', '2026-10-24 07:18:44'),
 (44, 'view stock adjustments', 'web', '2026-10-29 02:17:32', '2026-10-29 02:17:32'),
 (45, 'create stock adjustments', 'web', '2026-10-29 02:17:32', '2026-10-29 02:17:32'),
-(46, 'edit stock adjustments', 'web', '2026-10-29 03:55:09', '2026-10-29 03:55:09');
+(46, 'edit stock adjustments', 'web', '2026-10-29 03:55:09', '2026-10-29 03:55:09'),
+(47, 'view racks', 'web', '2026-11-25 04:57:37', '2026-11-25 04:57:37'),
+(48, 'create racks', 'web', '2026-11-25 04:57:37', '2026-11-25 04:57:37'),
+(49, 'edit racks', 'web', '2026-11-25 04:57:37', '2026-11-25 04:57:37'),
+(50, 'delete racks', 'web', '2026-11-25 04:57:37', '2026-11-25 04:57:37'),
+(51, 'view shelves', 'web', '2026-11-25 04:57:37', '2026-11-25 04:57:37'),
+(52, 'create shelves', 'web', '2026-11-25 04:57:37', '2026-11-25 04:57:37'),
+(53, 'edit shelves', 'web', '2026-11-25 04:57:37', '2026-11-25 04:57:37'),
+(54, 'delete shelves', 'web', '2026-11-25 04:57:37', '2026-11-25 04:57:37');
 
 -- --------------------------------------------------------
 
@@ -558,27 +569,28 @@ CREATE TABLE `products` (
   `inserted_by` varchar(50) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `subcategory_id` bigint(20) UNSIGNED DEFAULT NULL
+  `subcategory_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `shelf_id` bigint(20) UNSIGNED DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `products`
 --
 
-INSERT INTO `products` (`id`, `name`, `sku`, `variant`, `description`, `image`, `cost_price`, `selling_price`, `size`, `total_qty`, `sold_qty`, `warranty_months`, `warranty_expiry_date`, `category_id`, `status`, `close`, `inserted_by`, `created_at`, `updated_at`, `subcategory_id`) VALUES
-(1, 'common prod 2', 'common-prod-2', NULL, 'common prod 2', NULL, NULL, 35.00, '12', 90.00, 10.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:21:48', '2026-10-29 02:05:19', NULL),
-(2, 'prod1-store2', 'prod-1-store2', NULL, 'prod1-store2', NULL, NULL, 200.00, '100', 70.00, 6.00, 3, '2027-01-24', 1, '1', '1', 'eBay Import', '2026-10-24 07:21:53', '2026-10-29 00:40:28', NULL),
-(3, 'Bianca Rivers', '626', NULL, 'Cillum in omnis et e', NULL, NULL, 870.00, 'Dolore vel quis sunt', 20.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:21:56', '2026-10-29 03:48:48', NULL),
-(4, 'Kessie Beard', '374', NULL, 'Cum reiciendis unde', NULL, NULL, 378.00, 'Aute omnis suscipit', 30.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:21:59', '2026-10-24 07:21:59', NULL),
-(5, 'Lareina Shannon', '967', NULL, 'Cupidatat obcaecati', NULL, NULL, 720.00, 'Pariatur Natus aliq', 40.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:22:01', '2026-10-24 07:22:01', NULL),
-(6, 'Mariam Burnett', '290', NULL, 'Commodi eveniet mol', NULL, NULL, 918.00, 'Distinctio Officia', 50.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:22:03', '2026-10-24 07:22:03', NULL),
-(7, 'prod2-store2', 'prod-2-store2', NULL, 'oijd', NULL, NULL, 30.00, '30', 120.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:22:06', '2026-10-24 07:22:06', NULL),
-(8, 'common prod', 'comm-pro', NULL, 'common prod', NULL, NULL, 20.00, '10', 4.00, 4.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:23:29', '2026-10-24 07:25:38', NULL),
-(9, 'Kane Green', '146', NULL, 'Deleniti aliquip qui', NULL, NULL, 634.00, 'Ratione quis ex temp', 39.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:23:31', '2026-10-24 07:23:31', NULL),
-(10, 'Amos Short', '144', NULL, 'Aut necessitatibus c', NULL, NULL, 870.00, 'Voluptatum aute volu', 23.00, 17.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:23:32', '2026-10-29 04:36:20', NULL),
-(11, 'Nash Mckenzie', '524', NULL, 'Fugit dolores nihil', NULL, NULL, 634.00, 'Et veniam consequun', 40.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:23:34', '2026-10-24 07:23:34', NULL),
-(12, 'prodname 2', 'prodname2', NULL, 'prodname 2', NULL, NULL, 30.00, '120', 34.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:23:39', '2026-10-24 07:23:39', NULL),
-(13, 'prod name', 'prodname', NULL, 'this idesicnwon', NULL, NULL, 20.00, '10', 8.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:23:43', '2026-10-24 07:23:43', NULL);
+INSERT INTO `products` (`id`, `name`, `sku`, `variant`, `description`, `image`, `cost_price`, `selling_price`, `size`, `total_qty`, `sold_qty`, `warranty_months`, `warranty_expiry_date`, `category_id`, `status`, `close`, `inserted_by`, `created_at`, `updated_at`, `subcategory_id`, `shelf_id`) VALUES
+(1, 'common prod 2', 'common-prod-2', NULL, 'common prod 2', NULL, NULL, 35.00, '12', 90.00, 10.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:21:48', '2026-10-29 02:05:19', NULL, NULL),
+(2, 'prod1-store2', 'prod-1-store2', NULL, 'prod1-store2', NULL, NULL, 200.00, '100', 70.00, 6.00, 3, '2027-01-24', 1, '1', '1', 'eBay Import', '2026-10-24 07:21:53', '2026-10-29 00:40:28', NULL, NULL),
+(3, 'Bianca Rivers', '626', NULL, 'Cillum in omnis et e', NULL, 800.00, 870.00, 'Dolore vel quis sunt', 20.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:21:56', '2026-11-25 05:53:58', NULL, 4),
+(4, 'Kessie Beard', '374', NULL, 'Cum reiciendis unde', NULL, NULL, 378.00, 'Aute omnis suscipit', 30.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:21:59', '2026-11-25 05:57:08', NULL, 4),
+(5, 'Lareina Shannon', '967', NULL, 'Cupidatat obcaecati', NULL, NULL, 720.00, 'Pariatur Natus aliq', 40.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:22:01', '2026-10-24 07:22:01', NULL, NULL),
+(6, 'Mariam Burnett', '290', NULL, 'Commodi eveniet mol', NULL, NULL, 918.00, 'Distinctio Officia', 50.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:22:03', '2026-11-25 05:57:24', NULL, 8),
+(7, 'prod2-store2', 'prod-2-store2', NULL, 'oijd', NULL, NULL, 30.00, '30', 120.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:22:06', '2026-10-24 07:22:06', NULL, NULL),
+(8, 'common prod', 'comm-pro', NULL, 'common prod', NULL, NULL, 20.00, '10', 4.00, 4.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:23:29', '2026-11-25 05:56:36', NULL, 4),
+(9, 'Kane Green', '146', NULL, 'Deleniti aliquip qui', NULL, NULL, 634.00, 'Ratione quis ex temp', 39.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:23:31', '2026-10-24 07:23:31', NULL, NULL),
+(10, 'Amos Short', '144', 'variant 123', 'Aut necessitatibus c', NULL, 800.00, 870.00, 'Voluptatum aute volu', 23.00, 16.00, 4, '2027-02-24', 1, '1', '1', 'eBay Import', '2026-10-24 07:23:32', '2026-11-25 05:54:18', 1, 4),
+(11, 'Nash Mckenzie', '524', NULL, 'Fugit dolores nihil', NULL, NULL, 634.00, 'Et veniam consequun', 40.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:23:34', '2026-10-24 07:23:34', NULL, NULL),
+(12, 'prodname 2', 'prodname2', NULL, 'prodname 2', NULL, NULL, 30.00, '120', 34.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:23:39', '2026-10-24 07:23:39', NULL, NULL),
+(13, 'prod name', 'prodname', NULL, 'this idesicnwon', NULL, NULL, 20.00, '10', 8.00, 0.00, NULL, NULL, 1, '1', '1', 'eBay Import', '2026-10-24 07:23:43', '2026-10-24 07:23:43', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -626,6 +638,30 @@ CREATE TABLE `product_connection_items` (
 INSERT INTO `product_connection_items` (`id`, `product_connection_id`, `product_id`, `created_at`, `updated_at`) VALUES
 (3, 2, 10, '2026-10-29 02:59:44', '2026-10-29 02:59:44'),
 (4, 2, 3, '2026-10-29 02:59:44', '2026-10-29 02:59:44');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `racks`
+--
+
+CREATE TABLE `racks` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `status` enum('1','0') NOT NULL DEFAULT '1',
+  `close` enum('1','0') NOT NULL DEFAULT '1',
+  `inserted_by` varchar(50) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `racks`
+--
+
+INSERT INTO `racks` (`id`, `name`, `status`, `close`, `inserted_by`, `created_at`, `updated_at`) VALUES
+(1, 'Rack 1', '1', '1', 'Admin', '2026-11-25 05:01:13', '2026-11-25 05:01:13'),
+(2, 'Rack 2', '1', '1', 'Admin', '2026-11-25 05:05:17', '2026-11-25 05:05:22');
 
 -- --------------------------------------------------------
 
@@ -709,7 +745,15 @@ INSERT INTO `role_has_permissions` (`permission_id`, `role_id`) VALUES
 (43, 1),
 (44, 1),
 (45, 1),
-(46, 1);
+(46, 1),
+(47, 1),
+(48, 1),
+(49, 1),
+(50, 1),
+(51, 1),
+(52, 1),
+(53, 1),
+(54, 1);
 
 -- --------------------------------------------------------
 
@@ -747,7 +791,7 @@ INSERT INTO `sales` (`id`, `customer_id`, `invoice_no`, `ebay_order_id`, `ebay_a
 (7, 5, 'EBAY-110590809110-10000016311010', '110590809110-10000016311010', 2, '2026-10-19', 0.00, 30.00, '1', '1', 'eBay Sync', '2026-10-24 07:25:42', '2026-10-24 07:25:42'),
 (8, 5, 'EBAY-00-12653-69089', '00-12653-69089', 2, '2026-10-29', 0.00, 900.00, '1', '1', 'eBay Sync', '2026-10-29 02:05:19', '2026-10-29 02:05:19'),
 (9, 5, 'EBAY-110591208648-558759937', '110591208648-558759937', 2, '2026-10-29', 0.00, 11310.00, '1', '1', 'eBay Sync', '2026-10-29 02:10:15', '2026-10-29 02:10:15'),
-(10, 5, 'EBAY-110591208648-642121729', '110591208648-642121729', 2, '2026-10-29', 0.00, 870.00, '1', '1', 'eBay Sync', '2026-10-29 03:09:16', '2026-10-29 03:09:16'),
+(10, 5, 'EBAY-110591208648-642121729', '110591208648-642121729', 2, '2026-10-29', 0.00, 0.00, '1', '1', 'eBay Sync', '2026-10-29 03:09:16', '2026-11-25 03:53:52'),
 (11, 1, 'EBAY-110591225361-566755329', '110591225361-566755329', 1, '2026-10-29', 0.00, 102.00, '1', '1', 'eBay Sync', '2026-10-29 03:45:30', '2026-10-29 03:45:30'),
 (12, 1, 'EBAY-110591225361-523501569', '110591225361-523501569', 1, '2026-10-29', 0.00, 870.00, '1', '1', 'eBay Sync', '2026-10-29 04:33:12', '2026-10-29 04:33:12');
 
@@ -793,7 +837,7 @@ INSERT INTO `sale_items` (`id`, `sale_id`, `product_id`, `quantity`, `returned_q
 (14, 8, 10, 1.00, 0.00, 870.00, 870.00, '1', '1', NULL, '2026-10-29 02:05:19', '2026-10-29 02:05:19'),
 (15, 8, 1, 1.00, 0.00, 30.00, 30.00, '1', '1', NULL, '2026-10-29 02:05:19', '2026-10-29 02:05:19'),
 (16, 9, 10, 13.00, 0.00, 870.00, 11310.00, '1', '1', NULL, '2026-10-29 02:10:15', '2026-10-29 02:10:15'),
-(17, 10, 10, 1.00, 0.00, 870.00, 870.00, '1', '1', NULL, '2026-10-29 03:09:16', '2026-10-29 03:09:16'),
+(17, 10, 10, 1.00, 1.00, 870.00, 870.00, '1', '1', NULL, '2026-10-29 03:09:16', '2026-11-25 03:53:51'),
 (18, 11, 3, 1.00, 0.00, 102.00, 102.00, '1', '1', NULL, '2026-10-29 03:45:30', '2026-10-29 03:45:30'),
 (19, 12, 3, 1.00, 0.00, 870.00, 870.00, '1', '1', NULL, '2026-10-29 04:33:12', '2026-10-29 04:33:12');
 
@@ -815,6 +859,13 @@ CREATE TABLE `sale_returns` (
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `sale_returns`
+--
+
+INSERT INTO `sale_returns` (`id`, `sale_id`, `return_date`, `ebay_return_id`, `status`, `close`, `inserted_by`, `created_at`, `updated_at`) VALUES
+(1, 10, '2026-11-25', '5000026561', '1', '1', 'eBay Sync', '2026-11-25 03:53:51', '2026-11-25 03:53:51');
+
 -- --------------------------------------------------------
 
 --
@@ -834,6 +885,13 @@ CREATE TABLE `sale_return_items` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `sale_return_items`
+--
+
+INSERT INTO `sale_return_items` (`id`, `sale_return_id`, `sale_item_id`, `product_id`, `quantity`, `condition`, `status`, `close`, `inserted_by`, `created_at`, `updated_at`) VALUES
+(1, 1, 17, 10, 1.00, 'good', '1', '1', NULL, '2026-11-25 03:53:51', '2026-11-25 03:53:51');
 
 -- --------------------------------------------------------
 
@@ -855,7 +913,54 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('ISsvpoj62dSm2JBzSbAjkATAS2V353Egsj58ojce', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJSYkR5dU9xdEdUVm5iZ2s1TnFOQm15YmljTG53R0FyYjBkYjUyTVh3IiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL2F0b3pjb2Rlci0wMDI1NC50ZXN0XC9lYmF5XC9zdG9yZXMiLCJyb3V0ZSI6ImViYXkuaW5kZXgifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119LCJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MX0=', 1793266919);
+('7h2Al65IvquXeHB3hP1RYMp2cgcpxYYOiCzBqe2i', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoiT2NxTkxiNFpONkxqcjViVlhZYkhIRFZ3YkdrWnlzaUVpSWFkVE0wNCIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3NoZWx2ZXMiLCJyb3V0ZSI6InNoZWx2ZXMuaW5kZXgifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1795604455),
+('c8TpFsE9oV1VypAb1bhuzQbSukrJeeGAUTgeNecb', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoiTmsyQnhiQjdia0xEUFljb2V5aGhHSUlRR29td2VZSHM3eEZ5NHYyTCIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3NoZWx2ZXMiLCJyb3V0ZSI6InNoZWx2ZXMuaW5kZXgifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1795603504),
+('iHVGc6BAiFQaUYJGjCKS4KKqOAQc6Cmn7yhPknsW', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoiZVVHY2lMbDJxeWJvV2k4dkhnRjJ0SDgxSk81SDVkbkdOWElKQ1BBTCIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3Byb2R1Y3RzXC9xdWljay1zZWFyY2g/cT1wcm9kIiwicm91dGUiOiJwcm9kdWN0cy5xdWljay1zZWFyY2gifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1795607097),
+('iQn84uxbAn4x6Cyt6Y4Bc5TAlbitcsKEisKyXtsF', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoicHpEdVk2RnhTN3JsdnlZWDd1QjZFOXo3WXRzRWJjVFVjYU5wTlRqdiIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3Byb2R1Y3RzXC9kYXRhP2NvbHVtbnMlNUIwJTVEJTVCZGF0YSU1RD1pbWFnZSZjb2x1bW5zJTVCMCU1RCU1QnNlYXJjaGFibGUlNUQ9dHJ1ZSZjb2x1bW5zJTVCMCU1RCU1Qm9yZGVyYWJsZSU1RD10cnVlJmNvbHVtbnMlNUIxJTVEJTVCZGF0YSU1RD1uYW1lJmNvbHVtbnMlNUIxJTVEJTVCc2VhcmNoYWJsZSU1RD10cnVlJmNvbHVtbnMlNUIxJTVEJTVCb3JkZXJhYmxlJTVEPXRydWUmY29sdW1ucyU1QjIlNUQlNUJkYXRhJTVEPXN0b3JlcyZjb2x1bW5zJTVCMiU1RCU1QnNlYXJjaGFibGUlNUQ9dHJ1ZSZjb2x1bW5zJTVCMiU1RCU1Qm9yZGVyYWJsZSU1RD10cnVlJmNvbHVtbnMlNUIzJTVEJTVCZGF0YSU1RD1jYXRlZ29yeV9uYW1lJmNvbHVtbnMlNUIzJTVEJTVCc2VhcmNoYWJsZSU1RD10cnVlJmNvbHVtbnMlNUIzJTVEJTVCb3JkZXJhYmxlJTVEPXRydWUmY29sdW1ucyU1QjQlNUQlNUJkYXRhJTVEPXNoZWxmX2xhYmVsJmNvbHVtbnMlNUI0JTVEJTVCc2VhcmNoYWJsZSU1RD10cnVlJmNvbHVtbnMlNUI0JTVEJTVCb3JkZXJhYmxlJTVEPXRydWUmY29sdW1ucyU1QjUlNUQlNUJkYXRhJTVEPXNpemUmY29sdW1ucyU1QjUlNUQlNUJzZWFyY2hhYmxlJTVEPXRydWUmY29sdW1ucyU1QjUlNUQlNUJvcmRlcmFibGUlNUQ9dHJ1ZSZjb2x1bW5zJTVCNiU1RCU1QmRhdGElNUQ9Y29zdF9wcmljZSZjb2x1bW5zJTVCNiU1RCU1QnNlYXJjaGFibGUlNUQ9dHJ1ZSZjb2x1bW5zJTVCNiU1RCU1Qm9yZGVyYWJsZSU1RD10cnVlJmNvbHVtbnMlNUI3JTVEJTVCZGF0YSU1RD1zZWxsaW5nX3ByaWNlJmNvbHVtbnMlNUI3JTVEJTVCc2VhcmNoYWJsZSU1RD10cnVlJmNvbHVtbnMlNUI3JTVEJTVCb3JkZXJhYmxlJTVEPXRydWUmY29sdW1ucyU1QjglNUQlNUJkYXRhJTVEPWFjdGlvbnMmY29sdW1ucyU1QjglNUQlNUJzZWFyY2hhYmxlJTVEPXRydWUmY29sdW1ucyU1QjglNUQlNUJvcmRlcmFibGUlNUQ9dHJ1ZSZkcmF3PTEmbGVuZ3RoPTMmc2VhcmNoJTVCdmFsdWUlNUQ9JnN0YXJ0PTAiLCJyb3V0ZSI6InByb2R1Y3RzLmRhdGEifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1795603873),
+('kSv4hENVv43pABeKbM7gsiIjXrFFH8daQXrtGeV8', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoid0ZCSWxIblo0UHlYSkkyOVN6bk5sSUNDM3BlNVdBWFIzZ3p3NnBTMSIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3Byb2R1Y3RzXC8xMFwvZWRpdCIsInJvdXRlIjoicHJvZHVjdHMuZWRpdCJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1795602398),
+('NmX7F3TIGYzLwWHMbVh9x0j2szKRkZGDSyXdsX3X', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoiMzRkOU4yT0RZRmJGYk5HNEpJV2d1QXllRUV0S0U2MTdtTERTenNLdyIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3Byb2R1Y3RzP3NlYXJjaD1BbW9zIiwicm91dGUiOiJwcm9kdWN0cy5pbmRleCJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1795607101),
+('nw7lfmgdsOmQe7H2R4HYSY9LualGSqwGGpWdSVFq', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoiUVdjVkpua0txa0tDSUZMNjl6b283SmdFRHdzZ0tmNmZxWnVadmJZeiIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3Byb2R1Y3RzXC9xdWljay1zZWFyY2g/cT1CaWFuY2EiLCJyb3V0ZSI6InByb2R1Y3RzLnF1aWNrLXNlYXJjaCJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1795607425),
+('OPD0YC5F0AXQHKAP9LOG4LkrWe7y8FWj2P8yOvLc', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoiNXYxSUxEaE5qd2VtcmFvU3dJUDBvTU9ObEh4U1E5TElnc25xM3hBdiIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3NoZWx2ZXNcLzEiLCJyb3V0ZSI6InNoZWx2ZXMuc2hvdyJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1795603506),
+('Sgs5fkosXNI3ovGrDTD4QPLN09mS7H8L4f1S9jwJ', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoid09WRXdSWmNxNnllZnBRdUpwazU0cUNzVzdjUUVWZEs0cFV4UEZmaSIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3Byb2R1Y3RzXC9xdWljay1zZWFyY2g/cT1CaWFuY2EiLCJyb3V0ZSI6InByb2R1Y3RzLnF1aWNrLXNlYXJjaCJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1795607710),
+('t2rVqWvvOYDSUkxBvFbw5TDfYmXsmdzQKbWBSdUt', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36', 'eyJfdG9rZW4iOiJJNlhWNUMybW9PWjFCdXk4OHVGa2NISllydnB5WkdLWXRxYmw0dzBhIiwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL2F0b3pjb2Rlci0wMDI1NC50ZXN0XC9wcm9kdWN0c1wvcXVpY2stc2VhcmNoP3E9YW1vIiwicm91dGUiOiJwcm9kdWN0cy5xdWljay1zZWFyY2gifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119LCJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MX0=', 1795607808),
+('uQMfURpHQZb7IFw3u0QZFOsF27T3azT0UP5Jdfk9', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoiTGFxZkNWZWFsTUs4Q3N6WDdPZGVSaGZraHo0cXFSVjhnTWphb2dWciIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3Byb2R1Y3RzIiwicm91dGUiOiJwcm9kdWN0cy5pbmRleCJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1795607429),
+('VGNN9a5SiyuEVjkGGGb5uAPqyNlWY0TcFrAAjf0X', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoiNU1zVjFaMUhkOHVKa2M5bEw4czh6cXRTa1labWN4elk0NUp0UDRMMCIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3NoZWx2ZXMiLCJyb3V0ZSI6InNoZWx2ZXMuaW5kZXgifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1795603655),
+('vsRZ5fwGj6Uk4CgJjB6DK2hzpLKGjiWFNK5GZs5a', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoibUdsOG41a1NQQ3lUM2tEcXFlemM0SDhZNlNNZXJScjhuRERGdXR4cCIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3NoZWx2ZXMiLCJyb3V0ZSI6InNoZWx2ZXMuaW5kZXgifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1795601780),
+('XWHl2E5m2RqD42R0IEco0NWslGUqzVK0TIZEfqJh', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoibFBPVnVUa1lheWVtaGZnVlJpWGlZTVdwbHNrNU9iemdRUDQ4eG9EZSIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3Byb2R1Y3RzXC9xdWljay1zZWFyY2g/cT1CaWFuY2EiLCJyb3V0ZSI6InByb2R1Y3RzLnF1aWNrLXNlYXJjaCJ9LCJfZmxhc2giOnsib2xkIjpbXSwibmV3IjpbXX19', 1795607764),
+('Z2Vajo8l5F3LBZRwkDzBFZ8GTjkNE88GPcFPdXKD', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoiRG9CeUJNVFJiTnhGczFJYWRRNXJNR0NDcGN3SVhhOFYzbzlDSUZuQSIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3NoZWx2ZXMiLCJyb3V0ZSI6InNoZWx2ZXMuaW5kZXgifSwiX2ZsYXNoIjp7Im9sZCI6W10sIm5ldyI6W119fQ==', 1795605955),
+('zIx4tdoeIQiHhlNaNLqwnAtDrIR1xrp4O2Vui4eq', 1, '127.0.0.1', 'Symfony', 'eyJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI6MSwiX3Rva2VuIjoiNTNVMGltVTY5czNSbkNjbUhRZzNGdXFlVm1VVGs4WkV4MWlOTjVjTSIsIl9wcmV2aW91cyI6eyJ1cmwiOiJodHRwOlwvXC9sb2NhbGhvc3RcL3Byb2R1Y3RzXC8zIiwicm91dGUiOiJwcm9kdWN0cy5zaG93In0sIl9mbGFzaCI6eyJvbGQiOltdLCJuZXciOltdfX0=', 1795603967);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `shelves`
+--
+
+CREATE TABLE `shelves` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `rack_id` bigint(20) UNSIGNED NOT NULL,
+  `sort_order` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `status` enum('1','0') NOT NULL DEFAULT '1',
+  `close` enum('1','0') NOT NULL DEFAULT '1',
+  `inserted_by` varchar(50) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `shelves`
+--
+
+INSERT INTO `shelves` (`id`, `name`, `rack_id`, `sort_order`, `status`, `close`, `inserted_by`, `created_at`, `updated_at`) VALUES
+(1, 'shelve 1', 1, 1, '1', '1', 'Admin', '2026-11-25 05:01:27', '2026-11-25 05:17:11'),
+(2, 'Shelve2', 1, 2, '1', '1', 'Admin', '2026-11-25 05:01:43', '2026-11-25 05:17:11'),
+(3, 'Shelve3', 1, 3, '1', '1', 'Admin', '2026-11-25 05:01:56', '2026-11-25 05:17:11'),
+(4, 'r2-shelve1', 2, 1, '1', '1', 'Admin', '2026-11-25 05:05:37', '2026-11-25 05:27:45'),
+(5, 'r2-shelve2', 2, 2, '1', '1', 'Admin', '2026-11-25 05:06:06', '2026-11-25 05:27:36'),
+(6, 'r2-shelve3', 2, 3, '1', '1', 'Admin', '2026-11-25 05:06:18', '2026-11-25 05:27:54'),
+(7, 'r2-shelve4', 2, 4, '1', '1', 'Admin', '2026-11-25 05:07:42', '2026-11-25 05:28:04'),
+(8, 'shelve4', 1, 4, '1', '1', 'Admin', '2026-11-25 05:08:40', '2026-11-25 05:17:11');
 
 -- --------------------------------------------------------
 
@@ -927,6 +1032,13 @@ CREATE TABLE `subcategories` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `subcategories`
+--
+
+INSERT INTO `subcategories` (`id`, `name`, `category_id`, `status`, `close`, `inserted_by`, `created_at`, `updated_at`) VALUES
+(1, 'sun cat 1', 1, '1', '1', 'Admin', '2026-11-25 05:53:08', '2026-11-25 05:53:08');
 
 -- --------------------------------------------------------
 
@@ -1102,7 +1214,8 @@ ALTER TABLE `permissions`
 ALTER TABLE `products`
   ADD PRIMARY KEY (`id`),
   ADD KEY `products_category_id_foreign` (`category_id`),
-  ADD KEY `products_subcategory_id_foreign` (`subcategory_id`);
+  ADD KEY `products_subcategory_id_foreign` (`subcategory_id`),
+  ADD KEY `products_shelf_id_foreign` (`shelf_id`);
 
 --
 -- Indexes for table `product_connections`
@@ -1119,6 +1232,12 @@ ALTER TABLE `product_connection_items`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `product_connection_items_product_id_unique` (`product_id`),
   ADD KEY `product_connection_items_product_connection_id_foreign` (`product_connection_id`);
+
+--
+-- Indexes for table `racks`
+--
+ALTER TABLE `racks`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `roles`
@@ -1176,6 +1295,13 @@ ALTER TABLE `sessions`
   ADD PRIMARY KEY (`id`),
   ADD KEY `sessions_user_id_index` (`user_id`),
   ADD KEY `sessions_last_activity_index` (`last_activity`);
+
+--
+-- Indexes for table `shelves`
+--
+ALTER TABLE `shelves`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `shelves_rack_id_foreign` (`rack_id`);
 
 --
 -- Indexes for table `smtp_settings`
@@ -1267,7 +1393,7 @@ ALTER TABLE `inventories`
 -- AUTO_INCREMENT for table `inventory_logs`
 --
 ALTER TABLE `inventory_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `jobs`
@@ -1279,13 +1405,13 @@ ALTER TABLE `jobs`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `permissions`
 --
 ALTER TABLE `permissions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
 -- AUTO_INCREMENT for table `products`
@@ -1304,6 +1430,12 @@ ALTER TABLE `product_connections`
 --
 ALTER TABLE `product_connection_items`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `racks`
+--
+ALTER TABLE `racks`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `roles`
@@ -1327,13 +1459,19 @@ ALTER TABLE `sale_items`
 -- AUTO_INCREMENT for table `sale_returns`
 --
 ALTER TABLE `sale_returns`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `sale_return_items`
 --
 ALTER TABLE `sale_return_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `shelves`
+--
+ALTER TABLE `shelves`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `smtp_settings`
@@ -1351,7 +1489,7 @@ ALTER TABLE `stock_adjustments`
 -- AUTO_INCREMENT for table `subcategories`
 --
 ALTER TABLE `subcategories`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -1416,6 +1554,7 @@ ALTER TABLE `model_has_roles`
 --
 ALTER TABLE `products`
   ADD CONSTRAINT `products_category_id_foreign` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`),
+  ADD CONSTRAINT `products_shelf_id_foreign` FOREIGN KEY (`shelf_id`) REFERENCES `shelves` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `products_subcategory_id_foreign` FOREIGN KEY (`subcategory_id`) REFERENCES `subcategories` (`id`);
 
 --
@@ -1466,6 +1605,12 @@ ALTER TABLE `sale_return_items`
   ADD CONSTRAINT `sale_return_items_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`),
   ADD CONSTRAINT `sale_return_items_sale_item_id_foreign` FOREIGN KEY (`sale_item_id`) REFERENCES `sale_items` (`id`),
   ADD CONSTRAINT `sale_return_items_sale_return_id_foreign` FOREIGN KEY (`sale_return_id`) REFERENCES `sale_returns` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `shelves`
+--
+ALTER TABLE `shelves`
+  ADD CONSTRAINT `shelves_rack_id_foreign` FOREIGN KEY (`rack_id`) REFERENCES `racks` (`id`);
 
 --
 -- Constraints for table `stock_adjustments`

@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\EbayAccount;
 use App\Models\Product;
+use App\Models\Shelf;
 use App\Models\Subcategory;
 use App\Services\ChunkedUploadStore;
 use App\Services\EbayStockSync;
@@ -17,6 +18,7 @@ use App\Support\ServerTable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,7 +32,7 @@ class ProductController extends Controller
 
     public function __construct()
     {
-        $this->middleware('permission:view products')->only(['index', 'data', 'show', 'outOfStock']);
+        $this->middleware('permission:view products')->only(['index', 'data', 'show', 'outOfStock', 'quickSearch']);
         $this->middleware('permission:create products')->only(['create', 'store', 'importChunk', 'importFinalize', 'importResolve']);
         $this->middleware('permission:edit products')->only(['edit', 'update']);
         $this->middleware('permission:delete products')->only('destroy');
@@ -97,6 +99,9 @@ class ProductController extends Controller
                    where member.product_connection_id = pc_item.product_connection_id
                ))';
 
+        // "Rack 2 › Top", or null for a product on no shelf.
+        $shelfLabel = "case when shelves.id is null then null else concat(racks.name, ' › ', shelves.name) end";
+
         $query = Product::query()
             ->where('products.status', '1')
             ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
@@ -114,13 +119,19 @@ class ProductController extends Controller
                 'productConnection.items.stores',
                 'productConnection.items.product.ebayListings.ebayAccount',
             ])
-            ->select('products.*', 'categories.name as category_name');
+            // Where it is kept; one shelf per product, so no extra rows either.
+            ->leftJoin('shelves', 'shelves.id', '=', 'products.shelf_id')
+            ->leftJoin('racks', 'racks.id', '=', 'shelves.rack_id')
+            ->select('products.*', 'categories.name as category_name')
+            ->selectRaw($shelfLabel.' as shelf_label');
 
         return ServerTable::make($request, $query, [
             'name' => 'products.name',
             // Not a column in the grid, but still worth finding a product by.
             'listing_ids' => ['search' => DB::raw($listingIds)],
             'category_name' => 'categories.name',
+            // Sorted on the alias, searched on the expression: a WHERE can't use the alias.
+            'shelf_label' => ['order' => 'shelf_label', 'search' => DB::raw($shelfLabel)],
             'size' => 'products.size',
             'cost_price' => 'products.cost_price',
             'selling_price' => 'products.selling_price',
@@ -133,6 +144,7 @@ class ProductController extends Controller
             'name' => view('products.partials.cells.name', compact('product'))->render(),
             'stores' => view('products.partials.cells.stores', compact('product'))->render(),
             'category_name' => e($product->category_name ?? '—'),
+            'shelf_label' => view('products.partials.cells.shelf', compact('product'))->render(),
             'size' => e($product->size ?? '—'),
             'cost_price' => number_format((float) $product->cost_price, 2),
             'selling_price' => number_format((float) $product->selling_price, 2),
@@ -144,6 +156,83 @@ class ProductController extends Controller
                 'hasEbayAccounts' => $hasEbayAccounts,
             ])->render(),
         ]);
+    }
+
+    /**
+     * global search 
+     */
+    public function quickSearch(Request $request): JsonResponse
+    {
+        $term = trim((string) $request->query('q', ''));
+
+        if (mb_strlen($term) < 2) {
+            return response()->json(['results' => [], 'more' => false]);
+        }
+
+        // Connected products are one part sold on several stores, so they are
+        // grouped and shown as one row: the part's preferred product.
+        $parts = $this->findProducts($term)
+            ->groupBy(fn (Product $product) => $product->connectionMaster()->id);
+
+        return response()->json([
+            'results' => $parts->take(8)->map(fn ($matched) => $this->searchResult($matched))->values(),
+            'more' => $parts->count() > 8,
+            'all_url' => route('products.index', ['search' => $term]),
+        ]);
+    }
+
+    /**
+     * Products whose name, SKU, eBay listing id, rack or shelf contains $term.
+     */
+    private function findProducts(string $term): Collection
+    {
+        $like = '%'.addcslashes($term, '\\%_').'%';
+
+        return Product::query()
+            ->where(['products.status' => '1', 'products.close' => '1'])
+            ->leftJoin('shelves', 'shelves.id', '=', 'products.shelf_id')
+            ->leftJoin('racks', 'racks.id', '=', 'shelves.rack_id')
+            ->where(fn ($q) => $q
+                ->where('products.name', 'like', $like)
+                ->orWhere('products.sku', 'like', $like)
+                ->orWhere('shelves.name', 'like', $like)
+                ->orWhere('racks.name', 'like', $like)
+                ->orWhereHas('ebayListings', fn ($listing) => $listing->where('listing_id', 'like', $like)))
+            ->orderBy('products.name')
+            ->select('products.*')
+            ->with(['shelf.rack', 'ebayListings.ebayAccount', 'productConnection.masterProduct.shelf.rack', 'productConnection.items.stores'])
+            ->limit(30) // more than 8: copies of one part become one row
+            ->get();
+    }
+
+    /**
+     * One row of the search dropdown.
+     *
+     * $matched holds the products that matched, all of the same part. The row
+     * shows the part's preferred product; any other product that matched is
+     * listed under "via", so the user sees why this row came up.
+     */
+    private function searchResult(Collection $matched): array
+    {
+        $product = $matched->first()->connectionMaster();
+        $shelf = $product->shelf;
+        $image = $product->image[0] ?? null;
+
+        return [
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'shelf' => $shelf ? "{$shelf->rack?->name} › {$shelf->name}" : null,
+            'stock' => rtrim(rtrim(number_format($product->availableStock(), 2), '0'), '.'),
+            'image' => $image ? asset($image) : null,
+            'url' => route('products.show', $product),
+            'connected' => (bool) $product->productConnection,
+            'stores' => $product->productConnection ? $product->groupStores()->pluck('store_name') : [],
+            'via' => $matched->where('id', '!=', $product->id)->map(fn (Product $other) => [
+                'name' => $other->name,
+                'sku' => $other->sku,
+                'store' => $other->ebayListings->first()?->ebayAccount?->store_name,
+            ])->values(),
+        ];
     }
 
     /**
@@ -164,13 +253,7 @@ class ProductController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    /**
-     * Assemble the uploaded chunks into a spreadsheet and import it. Rows are
-     * identified by their eBay listing id: one already known to the software is
-     * restocked, an unknown one is created fresh and linked to the chosen store
-     * under that listing id, filed under the sub category (and its category)
-     * named by the row's chassis number.
-     */
+   
     public function importFinalize(Request $request, ChunkedUploadStore $uploads, ProductExcelImporter $importer): JsonResponse
     {
         $request->validate([
@@ -323,7 +406,7 @@ class ProductController extends Controller
      */
     public function show(Product $product): View
     {
-        $product->load('category');
+        $product->load('category', 'shelf.rack');
 
         return view('products.show', compact('product'));
     }
@@ -335,8 +418,9 @@ class ProductController extends Controller
     {
         $categories = Category::where($this->filter)->orderBy('name')->get();
         $Subcategories = Subcategory::where($this->filter)->orderBy('name')->get();
+        $shelves = Shelf::choices();
 
-        return view('products.create', compact('categories', 'Subcategories'));
+        return view('products.create', compact('categories', 'Subcategories', 'shelves'));
     }
 
     /**
@@ -361,6 +445,7 @@ class ProductController extends Controller
                 : null,
             'category_id' => $request->category_id,
             'subcategory_id' => $request->subcategory_id,
+            'shelf_id' => $request->shelf_id,
             'inserted_by' => auth()->user()->name,
         ]);
 
@@ -374,8 +459,9 @@ class ProductController extends Controller
     {
         $categories = Category::where($this->filter)->orderBy('name')->get();
         $Subcategories = Subcategory::where($this->filter)->orderBy('name')->get();
+        $shelves = Shelf::choices();
 
-        return view('products.edit', compact('product', 'categories', 'Subcategories'));
+        return view('products.edit', compact('product', 'categories', 'Subcategories', 'shelves'));
     }
 
     /**
@@ -403,6 +489,7 @@ class ProductController extends Controller
                 : null,
             'category_id' => $request->category_id,
             'subcategory_id' => $request->subcategory_id,
+            'shelf_id' => $request->shelf_id,
         ]);
 
         // A connection sells at one price: a new price on any of its products
@@ -418,6 +505,14 @@ class ProductController extends Controller
 
             ProductStock::forget();
             app(EbayStockSync::class)->push($connection->master_product_id);
+        }
+
+        // Connected products are one stock on one shelf, however many stores
+        // list it, so moving any of them moves them all.
+        if ($connection && $product->wasChanged('shelf_id')) {
+            Product::whereIn('id', $connection->items()->pluck('product_id'))->update([
+                'shelf_id' => $product->shelf_id,
+            ]);
         }
 
         return redirect()->route('products.index')->with('status', 'Product updated successfully.');

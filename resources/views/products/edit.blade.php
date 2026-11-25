@@ -17,7 +17,7 @@
 
             @include('products.partials.form')
 
-            <div class="mt-4 d-flex align-items-center gap-3">
+            <div class="m-1 d-flex align-items-center gap-3">
                 <button type="submit" class="btn btn-dark">{{ __('Save Changes') }}</button>
                 <a href="{{ route('products.index') }}" class="btn btn-outline-secondary">{{ __('Cancel') }}</a>
             </div>

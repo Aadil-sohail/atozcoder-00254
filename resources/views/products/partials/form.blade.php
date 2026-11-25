@@ -56,6 +56,37 @@
         @enderror
     </div>
 
+    @php
+        $selectedShelfId = old('shelf_id', $product?->shelf_id);
+        $selectedRackId = $shelves->firstWhere('id', $selectedShelfId)?->rack_id;
+    @endphp
+
+    <div class="col-md-6">
+        <label for="rack_id" class="form-label">{{ __('Rack') }}</label>
+        {{-- Only narrows the shelf list below; the shelf is what gets saved, and
+             the rack comes with it. Racks without shelves are left out. --}}
+        <select id="rack_id" class="form-select">
+            <option value="">{{ __('Not on a shelf') }}</option>
+            @foreach ($shelves->pluck('rack')->unique('id') as $rack)
+                <option value="{{ $rack->id }}" @selected($selectedRackId == $rack->id)>{{ $rack->name }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="col-md-6">
+        <label for="shelf_id" class="form-label">{{ __('Shelf') }}</label>
+        {{-- Options are populated by JS, filtered to the selected rack. --}}
+        <select id="shelf_id" name="shelf_id" class="form-select @error('shelf_id') is-invalid @enderror"
+            data-selected="{{ $selectedShelfId }}">
+        </select>
+        @if ($product?->productConnection)
+            <div class="form-text">{{ __('This product is connected: the shelf is changed for every product in the connection.') }}</div>
+        @endif
+        @error('shelf_id')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
     <div class="col-md-6">
         <label for="size" class="form-label">{{ __('Size') }}</label>
         <input id="size" name="size" type="text" value="{{ old('size', $product?->size) }}"
@@ -159,6 +190,10 @@
         $subcategoryOptions = $Subcategories
             ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'category_id' => $s->category_id])
             ->values();
+
+        $shelfOptions = $shelves
+            ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'rack_id' => $s->rack_id])
+            ->values();
     @endphp
     <script>
         // Subcategory options are filtered to whichever category is selected. The
@@ -198,6 +233,42 @@
             // since a subcategory from the previous category no longer applies.
             renderSubcategories(subSelect.dataset.selected);
             categorySelect.addEventListener('change', () => renderSubcategories(''));
+        })();
+
+        // The same for racks and shelves: the shelf list follows the rack picked,
+        // in the order the shelves were arranged on the Shelves page.
+        (function () {
+            const shelves = @json($shelfOptions);
+
+            const rackSelect = document.getElementById('rack_id');
+            const shelfSelect = document.getElementById('shelf_id');
+
+            function renderShelves(keepValue) {
+                const rackId = String(rackSelect.value);
+                const matches = shelves.filter(s => String(s.rack_id) === rackId);
+
+                shelfSelect.innerHTML = '';
+
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = rackId ? @json(__('Select a shelf')) : @json(__('Select a rack first'));
+                shelfSelect.appendChild(placeholder);
+
+                matches.forEach(function (s) {
+                    const option = document.createElement('option');
+                    option.value = s.id;
+                    option.textContent = s.name;
+                    option.selected = String(s.id) === String(keepValue);
+                    shelfSelect.appendChild(option);
+                });
+
+                // No rack means no shelf: disabled, it submits nothing and the
+                // product is taken off its shelf.
+                shelfSelect.disabled = matches.length === 0;
+            }
+
+            renderShelves(shelfSelect.dataset.selected);
+            rackSelect.addEventListener('change', () => renderShelves(''));
         })();
 
         function handleFilesSelected(files) {

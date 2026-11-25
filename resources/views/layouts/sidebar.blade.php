@@ -42,6 +42,17 @@
             </a>
         @endcan
 
+        @can('view shelves')
+            <a href="{{ route('shelves.index') }}"
+                class="d-flex align-items-center gap-3 px-3 py-2 rounded text-decoration-none fw-medium small
+                {{ request()->routeIs('shelves.*') ? 'bg-primary text-white' : 'text-white-50' }}"
+                onmouseover="{{ request()->routeIs('shelves.*') ? '' : "this.style.background='#1f2937'" }}"
+                onmouseout="{{ request()->routeIs('shelves.*') ? '' : "this.style.background=''" }}">
+                <i class="fa-solid fa-layer-group" style="width:18px; text-align:center;"></i>
+                {{ __('Shelves') }}
+            </a>
+        @endcan
+
         @canany(['view products', 'view connections'])
             @php($productsActive = request()->routeIs('products.*') || request()->routeIs('connections.*'))
 

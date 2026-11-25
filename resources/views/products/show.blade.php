@@ -66,6 +66,25 @@
                 </div>
 
                 <div class="col-md-6">
+                    <p class="text-muted small mb-1">{{ __('Rack') }}</p>
+                    <p class="fw-medium mb-0">{{ $product->shelf?->rack?->name ?? '—' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="text-muted small mb-1">{{ __('Shelf') }}</p>
+                    <p class="fw-medium mb-0">
+                        @if ($product->shelf)
+                            @can('view shelves')
+                                <a href="{{ route('shelves.show', $product->shelf) }}" class="text-decoration-none">{{ $product->shelf->name }}</a>
+                            @else
+                                {{ $product->shelf->name }}
+                            @endcan
+                        @else
+                            {{ __('Not on a shelf') }}
+                        @endif
+                    </p>
+                </div>
+
+                <div class="col-md-6">
                     <p class="text-muted small mb-1">{{ __('Size') }}</p>
                     <p class="fw-medium mb-0">{{ $product->size ?? '—' }}</p>
                 </div>

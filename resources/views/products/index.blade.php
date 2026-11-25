@@ -117,6 +117,7 @@
                         <th>Name</th>
                         <th class="no-sort">{{ __('Listed On') }}</th>
                         <th>Category</th>
+                        <th>{{ __('Shelf') }}</th>
                         <th>Size</th>
                         <th>Cost</th>
                         <th>Selling</th>
@@ -269,6 +270,8 @@
     $(function () {
         serverTable('#products-table', {
             url: @json(route('products.data')),
+            // Arriving from the header search ("See all results"): start filtered.
+            search: { search: @json((string) request('search', '')) },
             columns: [
                 @can('sync ebay products')
                     @if ($ebayAccounts->isNotEmpty())
@@ -279,6 +282,7 @@
                 { data: 'name' },
                 { data: 'stores', orderable: false, searchable: false },
                 { data: 'category_name' },
+                { data: 'shelf_label' },
                 { data: 'size' },
                 { data: 'cost_price' },
                 { data: 'selling_price' },

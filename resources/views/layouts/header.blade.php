@@ -92,6 +92,44 @@
                 }
             }
             #topbar { height: 64px; }
+            /* ── Header product search ─────────────────────────── */
+            .header-search { position: relative; max-width: 460px; }
+            .header-search .form-control { padding-left: 32px; border-radius: 8px; background: #f9fafb; }
+            .header-search .form-control:focus { background: #fff; }
+            .header-search-icon {
+                position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+                color: #9ca3af; font-size: 13px; pointer-events: none;
+            }
+            .header-search-results {
+                display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1050;
+                background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+                box-shadow: 0 10px 25px rgba(0,0,0,.08); max-height: 420px; overflow-y: auto;
+            }
+            .header-search-results.open { display: block; }
+            .header-search-results a.hs-item {
+                display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+                color: #111827; text-decoration: none; border-bottom: 1px solid #f3f4f6;
+            }
+            .header-search-results a.hs-item:hover,
+            .header-search-results a.hs-item.active { background: #f3f4f6; }
+            .header-search-results .hs-thumb {
+                width: 36px; height: 36px; flex-shrink: 0; border-radius: 6px; object-fit: cover;
+                background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #9ca3af;
+            }
+            .header-search-results .hs-name { font-size: 14px; font-weight: 500; }
+            .header-search-results .hs-meta { font-size: 12px; color: #6b7280; }
+            .header-search-results .hs-stock { margin-left: auto; font-size: 12px; white-space: nowrap; }
+            .header-search-results .hs-badge {
+                display: inline-block; font-size: 10.5px; font-weight: 600; line-height: 1;
+                padding: 3px 6px; border-radius: 4px; vertical-align: middle;
+                background: #e5e7eb; color: #374151;
+            }
+            .header-search-results .hs-badge-preferred { background: #dbeafe; color: #1e40af; }
+            .header-search-results .hs-via { font-size: 12px; color: #92400e; }
+            .header-search-results .hs-note { padding: 10px 12px; font-size: 13px; color: #6b7280; }
+            .header-search-results a.hs-all { display: block; padding: 9px 12px; font-size: 13px; text-align: center; text-decoration: none; }
+            .header-search-results a.hs-all.active { background: #f3f4f6; }
+
             .user-dropdown { position: relative; }
             .user-dropdown-menu {
                 display: none;
@@ -163,6 +201,18 @@
                         @endif
                     </div>
 
+                    @can('view products')
+                        <!-- Product search: suggestions as you type, Enter for the full list -->
+                        <form id="header-search" class="header-search mx-3 flex-grow-1" action="{{ route('products.index') }}" method="GET" role="search" autocomplete="off">
+                            <i class="fa-solid fa-magnifying-glass header-search-icon"></i>
+                            <input type="search" name="search" id="header-search-input" class="form-control form-control-sm"
+                                placeholder="{{ __('Search products by name, SKU, listing ID or shelf…') }}"
+                                value="{{ request()->routeIs('products.index') ? request('search') : '' }}"
+                                aria-label="{{ __('Search products') }}" aria-autocomplete="list" aria-controls="header-search-results">
+                            <div id="header-search-results" class="header-search-results" role="listbox"></div>
+                        </form>
+                    @endcan
+
                     <!-- User Dropdown -->
                     <div class="user-dropdown">
                         <button class="btn btn-light d-flex align-items-center gap-2" onclick="toggleUserDropdown(event)">
@@ -216,6 +266,137 @@
                 document.getElementById('user-dropdown-menu').classList.remove('open');
             });
         </script>
+
+        @can('view products')
+            <script>
+                /**
+                 * Header product search. Suggestions come from products.quick-search
+                 * after a short pause in typing; ↑/↓ move through them, Enter opens the
+                 * highlighted one, or the full Products list filtered by the term.
+                 */
+                (function () {
+                    const form = document.getElementById('header-search');
+                    const input = document.getElementById('header-search-input');
+                    const box = document.getElementById('header-search-results');
+                    const url = @json(route('products.quick-search'));
+
+                    let timer = null;
+                    let request = 0;   // only the newest answer is drawn
+                    let active = -1;
+
+                    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+                    const items = () => Array.from(box.querySelectorAll('a.hs-item, a.hs-all'));
+
+                    function close() {
+                        box.classList.remove('open');
+                        active = -1;
+                    }
+
+                    function highlight(index) {
+                        const list = items();
+                        if (!list.length) return;
+                        active = (index + list.length) % list.length;
+                        list.forEach((el, i) => el.classList.toggle('active', i === active));
+                        list[active].scrollIntoView({ block: 'nearest' });
+                    }
+
+                    function render(data, term) {
+                        active = -1;
+
+                        if (!data.results.length) {
+                            box.innerHTML = '<div class="hs-note">No products match “' + esc(term) + '”.</div>';
+                        } else {
+                            box.innerHTML = data.results.map((p) =>
+                                '<a class="hs-item" role="option" href="' + esc(p.url) + '">' +
+                                    (p.image
+                                        ? '<img class="hs-thumb" src="' + esc(p.image) + '" alt="">'
+                                        : '<span class="hs-thumb"><i class="fa-solid fa-image"></i></span>') +
+                                    '<span class="d-flex flex-column" style="min-width:0;">' +
+                                        '<span class="hs-name text-truncate">' + esc(p.name) +
+                                            (p.connected
+                                                ? ' <span class="hs-badge" title="' + esc('Connected product, listed on: ' + p.stores.join(', ')) + '"><i class="fa-solid fa-link"></i> Connected</span>' +
+                                                  ' <span class="hs-badge hs-badge-preferred" title="Its price and stock are used for every store in the connection">Preferred</span>'
+                                                : '') +
+                                        '</span>' +
+                                        '<span class="hs-meta text-truncate">' +
+                                            (p.sku ? 'SKU ' + esc(p.sku) : '') +
+                                            (p.sku && p.shelf ? ' · ' : '') +
+                                            (p.shelf ? '<i class="fa-solid fa-layer-group me-1"></i>' + esc(p.shelf) : '') +
+                                        '</span>' +
+                                        // Why this row came up when a connected product matched.
+                                        p.via.map((v) =>
+                                            '<span class="hs-via text-truncate"><i class="fa-solid fa-link me-1"></i>Matched <strong>' + esc(v.name) + '</strong>' +
+                                            (v.store ? ' (' + esc(v.store) + ')' : (v.sku ? ' (SKU ' + esc(v.sku) + ')' : '')) +
+                                            ', connected to this product</span>'
+                                        ).join('') +
+                                    '</span>' +
+                                    '<span class="hs-stock ' + (Number(p.stock) > 0 ? 'text-success' : 'text-danger') + '">' + esc(p.stock) + ' in stock</span>' +
+                                '</a>'
+                            ).join('') +
+                            '<a class="hs-all" href="' + esc(data.all_url) + '">' +
+                                (data.more ? 'See all results for “' + esc(term) + '”' : 'Open in the Products list') +
+                                ' <i class="fa-solid fa-arrow-right ms-1"></i></a>';
+                        }
+
+                        box.classList.add('open');
+                    }
+
+                    input.addEventListener('input', function () {
+                        const term = input.value.trim();
+                        clearTimeout(timer);
+
+                        if (term.length < 2) {
+                            close();
+                            return;
+                        }
+
+                        timer = setTimeout(function () {
+                            const mine = ++request;
+
+                            fetch(url + '?q=' + encodeURIComponent(term), { headers: { 'Accept': 'application/json' } })
+                                .then((r) => r.ok ? r.json() : Promise.reject(r))
+                                .then((data) => { if (mine === request) render(data, term); })
+                                .catch(() => { if (mine === request) close(); });
+                        }, 250);
+                    });
+
+                    input.addEventListener('keydown', function (e) {
+                        if (!box.classList.contains('open')) return;
+
+                        if (e.key === 'ArrowDown') { e.preventDefault(); highlight(active + 1); }
+                        else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(active - 1); }
+                        else if (e.key === 'Escape') { close(); }
+                        else if (e.key === 'Enter' && active >= 0) {
+                            e.preventDefault();
+                            window.location = items()[active].href;
+                        }
+                        // Enter with nothing highlighted submits the form: the full list.
+                    });
+
+                    input.addEventListener('focus', function () {
+                        if (box.innerHTML && input.value.trim().length >= 2) box.classList.add('open');
+                    });
+
+                    // An empty search is not worth a page load.
+                    form.addEventListener('submit', function (e) {
+                        if (!input.value.trim()) e.preventDefault();
+                    });
+
+                    document.addEventListener('click', function (e) {
+                        if (!form.contains(e.target)) close();
+                    });
+
+                    // Ctrl+K / ⌘K jumps to the search box from anywhere.
+                    document.addEventListener('keydown', function (e) {
+                        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                            e.preventDefault();
+                            input.focus();
+                            input.select();
+                        }
+                    });
+                })();
+            </script>
+        @endcan
 
         @include('layouts.footer')
 

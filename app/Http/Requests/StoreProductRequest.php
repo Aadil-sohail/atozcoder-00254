@@ -43,7 +43,22 @@ class StoreProductRequest extends FormRequest
                 Rule::exists('subcategories', 'id')
                     ->where('category_id', $this->input('category_id')),
             ],
+            'shelf_id' => ['nullable', self::shelfInUse()],
         ];
+    }
+
+    /**
+     * A shelf that can still be picked: in use, and on a rack in use. Shared
+     * with UpdateProductRequest.
+     */
+    public static function shelfInUse(): \Illuminate\Validation\Rules\Exists
+    {
+        return Rule::exists('shelves', 'id')->where(fn ($q) => $q
+            ->where('status', '1')
+            ->where('close', '1')
+            ->whereIn('rack_id', fn ($racks) => $racks->select('id')->from('racks')
+                ->where('status', '1')
+                ->where('close', '1')));
     }
 
     public function messages(): array

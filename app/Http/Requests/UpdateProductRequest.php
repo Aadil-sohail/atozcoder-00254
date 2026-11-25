@@ -45,6 +45,7 @@ class UpdateProductRequest extends FormRequest
                 Rule::exists('subcategories', 'id')
                     ->where('category_id', $this->input('category_id')),
             ],
+            'shelf_id' => ['nullable', StoreProductRequest::shelfInUse()],
         ];
     }
 
