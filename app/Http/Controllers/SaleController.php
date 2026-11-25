@@ -46,7 +46,13 @@ class SaleController extends Controller
             ->leftJoin('customers', 'customers.id', '=', 'sales.customer_id')
             // The store the sale came from; manual sales have none.
             ->leftJoin('ebay_accounts', 'ebay_accounts.id', '=', 'sales.ebay_account_id')
-            ->select('sales.*', 'customers.name as customer_name', 'ebay_accounts.store_name');
+            ->select('sales.*', 'customers.name as customer_name', 'ebay_accounts.store_name')
+            // Units sold and units come back, so the grid can mark a sale as
+            // returned in full or in part without loading its items.
+            ->selectSub(fn ($q) => $q->from('sale_items')->whereColumn('sale_items.sale_id', 'sales.id')
+                ->selectRaw('COALESCE(SUM(quantity), 0)'), 'sold_units')
+            ->selectSub(fn ($q) => $q->from('sale_items')->whereColumn('sale_items.sale_id', 'sales.id')
+                ->selectRaw('COALESCE(SUM(returned_qty), 0)'), 'returned_units');
 
         return ServerTable::make($request, $query, [
             'invoice_no' => 'sales.invoice_no',

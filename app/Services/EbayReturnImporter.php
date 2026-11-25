@@ -89,11 +89,12 @@ class EbayReturnImporter
             return false;
         }
 
-        $sale = Sale::with('saleItems')->where('ebay_order_id', $return['orderId'] ?? '')->first();
+        $sale = Sale::with('saleItems')->whereIn('ebay_order_id', $this->orderKeys($return))->first();
 
         if (! $sale) {
             Log::warning("eBay: return {$returnId} skipped, its order was never imported as a sale", [
                 'order_id' => $return['orderId'] ?? null,
+                'tried' => $this->orderKeys($return),
             ]);
 
             return false;
@@ -161,12 +162,18 @@ class EbayReturnImporter
         return true;
     }
 
-    /**
-     * Find the sale item the return refers to. The return summary carries the
-     * eBay listing id (creationInfo.item.itemId), which maps to a local
-     * product via the ebay_listings table. Single-line orders are matched
-     * directly even when no listing record exists anymore.
-     */
+    private function orderKeys(array $return): array
+    {
+        $itemId = data_get($return, 'creationInfo.item.itemId');
+        $transactionId = data_get($return, 'creationInfo.item.transactionId');
+
+        return array_values(array_filter([
+            $return['orderId'] ?? null,
+            $itemId && $transactionId ? "{$itemId}-{$transactionId}" : null,
+        ]));
+    }
+
+   
     private function matchSaleItem(EbayAccount $account, Sale $sale, array $item): ?SaleItem
     {
         if (! empty($item['itemId'])) {

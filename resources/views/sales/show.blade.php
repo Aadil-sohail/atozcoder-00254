@@ -30,7 +30,18 @@
         <div class="row g-3">
             <div class="col-md-3">
                 <p class="text-muted small mb-1">{{ __('Invoice No') }}</p>
-                <p class="fw-semibold mb-0">{{ $sale->invoice_no }}</p>
+                <p class="fw-semibold mb-0">
+                    {{ $sale->invoice_no }}
+                    @php
+                        $soldUnits = (float) $sale->saleItems->sum('quantity');
+                        $returnedUnits = (float) $sale->saleItems->sum('returned_qty');
+                    @endphp
+                    @if ($returnedUnits > 0)
+                        <span class="badge {{ $returnedUnits >= $soldUnits ? 'bg-danger' : 'bg-warning text-dark' }} ms-1">
+                            {{ $returnedUnits >= $soldUnits ? __('Returned') : __('Partly returned') }}
+                        </span>
+                    @endif
+                </p>
             </div>
             <div class="col-md-3">
                 <p class="text-muted small mb-1">{{ __('Customer') }}</p>

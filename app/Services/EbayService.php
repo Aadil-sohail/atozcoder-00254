@@ -817,9 +817,17 @@ class EbayService
         $itemId = $listing->listing_id;
         $startPrice = $price !== null ? '<StartPrice>'.number_format($price, 2, '.', '').'</StartPrice>' : '';
 
+        // On the Trading API a listing's Quantity is everything it has ever
+        // offered: eBay shows Quantity − QuantitySold as available. Sending the
+        // available figure as-is would take every past sale of the listing off
+        // a second time — the store an order came from would drop by two for a
+        // single unit sold. So the units it has already sold go on top.
+        $sold = $this->listingQuantitySold($account, $itemId);
+        $total = $quantity + $sold;
+
         $body = '<?xml version="1.0" encoding="utf-8"?>'
             .'<ReviseInventoryStatusRequest xmlns="urn:ebay:apis:eBLBaseComponents">'
-            ."<InventoryStatus><ItemID>{$itemId}</ItemID><Quantity>{$quantity}</Quantity>{$startPrice}</InventoryStatus>"
+            ."<InventoryStatus><ItemID>{$itemId}</ItemID><Quantity>{$total}</Quantity>{$startPrice}</InventoryStatus>"
             .'</ReviseInventoryStatusRequest>';
 
         $response = Http::withHeaders([
@@ -848,7 +856,50 @@ class EbayService
         }
 
         Log::info("eBay: listing {$itemId} on \"{$account->store_name}\" set to {$quantity} available"
+            ." (quantity {$total}, {$sold} sold)"
             .($price !== null ? ' at '.number_format($price, 2) : ''));
+    }
+
+    /**
+     * How many units a Trading API listing has sold so far, which eBay counts
+     * against its Quantity. Throws rather than guess: assuming 0 would put the
+     * listing straight back to under-reporting its stock.
+     */
+    private function listingQuantitySold(EbayAccount $account, string $itemId): int
+    {
+        $body = '<?xml version="1.0" encoding="utf-8"?>'
+            .'<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">'
+            ."<ItemID>{$itemId}</ItemID>"
+            .'<OutputSelector>Item.Quantity</OutputSelector>'
+            .'<OutputSelector>Item.SellingStatus.QuantitySold</OutputSelector>'
+            .'</GetItemRequest>';
+
+        $response = Http::withHeaders([
+            'X-EBAY-API-CALL-NAME' => 'GetItem',
+            'X-EBAY-API-SITEID' => (string) config("ebay.marketplaces.{$account->marketplace_id}.site", 0),
+            'X-EBAY-API-COMPATIBILITY-LEVEL' => '1155',
+            'X-EBAY-API-IAF-TOKEN' => $this->ensureAccessToken($account),
+            'Content-Type' => 'text/xml',
+        ])->timeout(30)->withBody($body, 'text/xml')->post($this->tradingApiUrl());
+
+        if ($response->failed()) {
+            throw new RuntimeException("eBay returned HTTP {$response->status()} reading listing {$itemId}.");
+        }
+
+        $xml = @simplexml_load_string($response->body());
+
+        if ($xml === false) {
+            throw new RuntimeException("eBay sent back unreadable XML reading listing {$itemId}.");
+        }
+
+        if ((string) $xml->Ack === 'Failure') {
+            throw new RuntimeException(
+                (string) ($xml->Errors->LongMessage ?: $xml->Errors->ShortMessage)
+                    ?: "eBay would not return listing {$itemId}."
+            );
+        }
+
+        return max(0, (int) $xml->Item->SellingStatus->QuantitySold);
     }
 
     /*
