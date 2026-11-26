@@ -85,6 +85,15 @@
                                         <i class="fa-solid fa-pen"></i>
                                     </a>
                                 @endcan
+                                @can('remove shelf products')
+                                    <button type="button" class="btn btn-sm btn-outline-danger shelf-remove-product"
+                                        data-action="{{ route('shelves.products.remove', [$shelf, $product]) }}"
+                                        data-name="{{ $product->name }}"
+                                        data-connected="{{ $product->productConnection ? '1' : '0' }}"
+                                        title="{{ __('Remove from this shelf') }}">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -101,8 +110,36 @@
     </div>
 </div>
 
+<form id="shelf-remove-product-form" method="POST" class="d-none">
+    @csrf
+    @method('DELETE')
+</form>
+
 @push('scripts')
     <script>
+        $(document).on('click', '.shelf-remove-product', function () {
+            const action = this.dataset.action;
+            const connected = this.dataset.connected === '1';
+
+            Swal.fire({
+                title: 'Remove "' + this.dataset.name + '" from this shelf?',
+                text: connected
+                    ? 'It is a connected product, so all its connected listings are taken off the shelf. The product itself is not deleted.'
+                    : 'The product is not deleted, it just no longer has a shelf.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, remove it',
+            }).then(function (result) {
+                if (!result.isConfirmed) return;
+
+                const form = document.getElementById('shelf-remove-product-form');
+                form.action = action;
+                form.submit();
+            });
+        });
+
         $(function () {
             @if ($products->isNotEmpty())
                 $('#shelf-products-table').DataTable({

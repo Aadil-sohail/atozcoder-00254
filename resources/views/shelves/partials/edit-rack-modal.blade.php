@@ -13,12 +13,12 @@
                 <input type="hidden" name="updateRack_id" id="edit_rack_id" value="{{ $rackEditFailed ? old('updateRack_id') : '' }}">
 
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editRackLabel">{{ __('Rename Rack') }}</h5>
+                    <h5 class="modal-title" id="editRackLabel">{{ __('Rename Shelf') }}</h5>
                     <button type="button" class="btn-close" onclick="closeModal('edit-rack-modal')"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="rack_edit_name" class="form-label">{{ __('Rack Name') }} <span class="text-danger">*</span></label>
+                        <label for="rack_edit_name" class="form-label">{{ __('Shelf Name') }} <span class="text-danger">*</span></label>
                         <input id="rack_edit_name" name="name" type="text" required
                             value="{{ $rackEditFailed ? old('name') : '' }}"
                             class="form-control @error('name', 'updateRack') is-invalid @enderror">

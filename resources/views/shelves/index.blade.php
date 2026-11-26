@@ -146,12 +146,20 @@
         /* ── Rack view: each rack drawn as a shelving unit ─────────── */
         .rack-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); /* never wider than the screen */
             gap: 28px;
             padding: 20px 16px 8px;
         }
 
         .rack-unit { display: flex; flex-direction: column; }
+        .rack-unit { min-width: 0; }
+
+        /* Phones: tighter spacing so a rack uses the full width. */
+        @media (max-width: 575.98px) {
+            .rack-grid { padding: 14px 4px 4px; gap: 20px; }
+            .rack-frame { border-left-width: 7px; border-right-width: 7px; }
+            .rack-shelf { padding: 0 6px; }
+        }
 
         .rack-top {
             display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -228,24 +236,24 @@
     @endif
 
     <div class="card shadow-sm border-0 p-2">
-        <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between flex-wrap gap-3 py-3">
             <div>
                 <p class="mb-0 text-muted small">{{ __('Manage the shelves available under each rack.') }}
                 </p>
                 <span class="text-muted" style="font-size:12px;">{{ $shelves->count() }}
                     {{ Str::plural('shelf', $shelves->count()) }} total</span>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
                 @can('create racks')
                     <button type="button" onclick="openCreateRackModal()" class="btn btn-outline-dark btn-sm d-flex align-items-center gap-2">
                         <i class="fa-solid fa-warehouse"></i>
-                        {{ __('Add Rack') }}
+                        {{ __('Add Shelf') }}
                     </button>
                 @endcan
                 @can('create shelves')
                     <button type="button" onclick="openCreateModal()" class="btn btn-dark btn-sm d-flex align-items-center gap-2">
                         <i class="fa-solid fa-plus"></i>
-                        {{ __('Add Shelf') }}
+                        {{ __('Add Row') }}
                     </button>
                 @endcan
             </div>
@@ -256,7 +264,7 @@
         <ul class="nav nav-tabs px-3 pt-3" id="shelf-view-tabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="rack-view-tab" data-bs-toggle="tab" data-bs-target="#rack-view" type="button" role="tab">
-                    <i class="fa-solid fa-warehouse me-1"></i>{{ __('Rack view') }}
+                    <i class="fa-solid fa-warehouse me-1"></i>{{ __('Shelf view') }}
                 </button>
             </li>
             <li class="nav-item" role="presentation">

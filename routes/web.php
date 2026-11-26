@@ -109,6 +109,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/shelves/check-name', [ShelfController::class, 'checkName'])->name('shelves.check-name');
     Route::post('/shelves/reorder', [ShelfController::class, 'reorder'])->name('shelves.reorder');
     Route::get('/shelves/{shelf}', [ShelfController::class, 'show'])->name('shelves.show');
+    Route::delete('/shelves/{shelf}/products/{product}', [ShelfController::class, 'removeProduct'])->name('shelves.products.remove');
 
     // Out of stock products
     Route::get('/out-of-stock', [ProductController::class, 'outOfStock'])->name('out-of-stock.index');

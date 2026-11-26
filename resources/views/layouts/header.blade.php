@@ -96,6 +96,16 @@
             .header-search { position: relative; max-width: 460px; }
             .header-search .form-control { padding-left: 32px; border-radius: 8px; background: #f9fafb; }
             .header-search .form-control:focus { background: #fff; }
+
+            /* Phones: the search gets a full-width row under the title and user menu. */
+            @media (max-width: 767.98px) {
+                #topbar {
+                    height: auto; min-height: 64px;
+                    flex-wrap: wrap; row-gap: 8px;
+                padding-top: 10px; padding-bottom: 10px;
+                }
+                .header-search { order: 3; flex: 0 0 100%; max-width: none; margin: 0 !important; }
+            }
             .header-search-icon {
                 position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
                 color: #9ca3af; font-size: 13px; pointer-events: none;
@@ -201,7 +211,8 @@
                         @endif
                     </div>
 
-                    @can('view products')
+                    {{-- Enter opens the Products list, so the search also needs view products. --}}
+                    @if (auth()->user()->can('use global search') && auth()->user()->can('view products'))
                         <!-- Product search: suggestions as you type, Enter for the full list -->
                         <form id="header-search" class="header-search mx-3 flex-grow-1" action="{{ route('products.index') }}" method="GET" role="search" autocomplete="off">
                             <i class="fa-solid fa-magnifying-glass header-search-icon"></i>
@@ -211,7 +222,7 @@
                                 aria-label="{{ __('Search products') }}" aria-autocomplete="list" aria-controls="header-search-results">
                             <div id="header-search-results" class="header-search-results" role="listbox"></div>
                         </form>
-                    @endcan
+                    @endif
 
                     <!-- User Dropdown -->
                     <div class="user-dropdown">
@@ -278,6 +289,7 @@
                     const form = document.getElementById('header-search');
                     const input = document.getElementById('header-search-input');
                     const box = document.getElementById('header-search-results');
+                    if (!form) return;   // search hidden: no permission
                     const url = @json(route('products.quick-search'));
 
                     let timer = null;

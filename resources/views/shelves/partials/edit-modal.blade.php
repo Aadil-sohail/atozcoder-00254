@@ -11,12 +11,12 @@
                 <input type="hidden" name="updateShelf_id" id="edit_shelf_id" value="{{ old('updateShelf_id') }}">
 
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editShelfLabel">{{ __('Edit Shelf') }}</h5>
+                    <h5 class="modal-title" id="editShelfLabel">{{ __('Edit Row') }}</h5>
                     <button type="button" class="btn-close" onclick="closeModal('edit-shelf-modal')"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="edit_name" class="form-label">{{ __('Shelf Name') }} <span class="text-danger">*</span></label>
+                        <label for="edit_name" class="form-label">{{ __('Row Name') }} <span class="text-danger">*</span></label>
                         <input id="edit_name" name="name" type="text" value="{{ old('name') }}" required
                             class="form-control @error('name', 'updateShelf') is-invalid @enderror">
                         <div id="edit_name_feedback" class="small mt-1"></div>
@@ -26,10 +26,10 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="edit_rack_id" class="form-label">{{ __('Rack') }} <span class="text-danger">*</span></label>
+                        <label for="edit_rack_id" class="form-label">{{ __('Shelf') }} <span class="text-danger">*</span></label>
                         <select id="edit_rack_id" name="rack_id" required
                             class="form-select @error('rack_id', 'updateShelf') is-invalid @enderror">
-                            <option value="">{{ __('Select a rack') }}</option>
+                            <option value="">{{ __('Select a shelf') }}</option>
                             @foreach ($racks as $rack)
                                 <option value="{{ $rack->id }}" @selected(old('rack_id') == $rack->id)>
                                     {{ $rack->name }}

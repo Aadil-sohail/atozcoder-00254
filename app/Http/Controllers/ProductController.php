@@ -36,6 +36,7 @@ class ProductController extends Controller
         $this->middleware('permission:create products')->only(['create', 'store', 'importChunk', 'importFinalize', 'importResolve']);
         $this->middleware('permission:edit products')->only(['edit', 'update']);
         $this->middleware('permission:delete products')->only('destroy');
+        $this->middleware('permission:use global search')->only('quickSearch');
     }
 
     /**

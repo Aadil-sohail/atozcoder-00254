@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreShelfRequest;
 use App\Http\Requests\UpdateShelfRequest;
+use App\Models\Product;
 use App\Models\Rack;
 use App\Models\Shelf;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +22,22 @@ class ShelfController extends Controller
         $this->middleware('permission:edit shelves')->only('update', 'reorder');
         $this->middleware('permission:delete shelves')->only('destroy');
         $this->middleware('permission:create shelves|edit shelves')->only('checkName');
+        $this->middleware('permission:remove shelf products')->only('removeProduct');
+    }
+
+    public function removeProduct(Shelf $shelf, Product $product): RedirectResponse
+    {
+        if ((int) $product->shelf_id !== (int) $shelf->id) {
+            return redirect()->route('shelves.show', $shelf)->with('error', 'That product is not on this shelf.');
+        }
+
+        $ids = $product->productConnection
+            ? $product->productConnection->items()->pluck('product_id')->push($product->id)->unique()
+            : collect([$product->id]);
+
+        Product::whereIn('id', $ids)->where('shelf_id', $shelf->id)->update(['shelf_id' => null]);
+
+        return redirect()->route('shelves.show', $shelf)->with('status', "\"{$product->name}\" removed from this shelf.");
     }
 
     /**
@@ -33,13 +50,7 @@ class ShelfController extends Controller
         $shelves = Shelf::choices()->loadCount(['products' => fn ($q) => Shelf::stockedProducts($q)]);
 
         $racks = Rack::where(['status' => '1', 'close' => '1'])->orderBy('name')->get();
-
-        // Arriving with ?rack= opens the list on that rack.
         $selectedRack = $racks->firstWhere('id', (int) $request->query('rack'));
-
-        // A rack only gets a heading in the table once it has a shelf, so the
-        // ones still empty are listed above it, where they can be renamed,
-        // deleted or given their first shelf.
         $emptyRacks = $racks->whereNotIn('id', $shelves->pluck('rack_id'))->values();
 
         return view('shelves.index', compact('shelves', 'racks', 'selectedRack', 'emptyRacks'));

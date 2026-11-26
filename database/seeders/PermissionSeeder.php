@@ -26,6 +26,8 @@ class PermissionSeeder extends Seeder
             'subcategories' => ['view', 'create', 'edit', 'delete'],
             'racks' => ['view', 'create', 'edit', 'delete'],
             'shelves' => ['view', 'create', 'edit', 'delete'],
+            'shelf products' => ['remove'],
+            'global search' => ['use'],
             'products' => ['view', 'create', 'edit', 'delete'],
             'inventories' => ['view', 'create'],
             'stock adjustments' => ['view', 'create', 'edit'],

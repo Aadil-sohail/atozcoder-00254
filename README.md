@@ -1,5 +1,8 @@
 ## Database Updates
 
+### 2026-11-26
+- New permissions: `remove shelf products` (remove a product from a shelf on the shelf page), `use global search` (product search in the page header; also needs `view products`)
+
 ### 2026-11-25
 - New table `racks`
 - New table `shelves`

@@ -12,12 +12,12 @@
                 <input type="hidden" name="form" value="create_rack">
 
                 <div class="modal-header">
-                    <h5 class="modal-title" id="createRackLabel">{{ __('Add Rack') }}</h5>
+                    <h5 class="modal-title" id="createRackLabel">{{ __('Add Shelf') }}</h5>
                     <button type="button" class="btn-close" onclick="closeModal('create-rack-modal')"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="rack_create_name" class="form-label">{{ __('Rack Name') }} <span class="text-danger">*</span></label>
+                        <label for="rack_create_name" class="form-label">{{ __('Shelf Name') }} <span class="text-danger">*</span></label>
                         <input id="rack_create_name" name="name" type="text" required
                             value="{{ $rackCreateFailed ? old('name') : '' }}"
                             class="form-control {{ $rackCreateFailed && $errors->has('name') ? 'is-invalid' : '' }}">
@@ -30,7 +30,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" onclick="closeModal('create-rack-modal')" class="btn btn-outline-secondary">{{ __('Cancel') }}</button>
-                    <button type="submit" class="btn btn-dark">{{ __('Save Rack') }}</button>
+                    <button type="submit" class="btn btn-dark">{{ __('Save Shelf') }}</button>
                 </div>
             </form>
         </div>
